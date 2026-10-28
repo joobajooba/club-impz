@@ -1,6 +1,6 @@
 # Game Direction
 
-> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-28
+> Status: v3 · Owner: J00BA · Last updated: 2026-10-28
 >
 > This is the top-level direction for Club Impz. It describes what the game is, who it is for and how the core loop works. Detailed specs (resources, mobs, crafting, web3, bonuses, challenges) will live in their own docs and must agree with this one.
 
@@ -70,7 +70,7 @@ The world is split into two areas.
 
 ```
    ┌────────────────┐   ┌────────────────┐   ┌──────────────────┐
-   │ Gather         │──▶│ Process        │──▶│ Items            │──▶ Sell or trade (coins)
+   │ Gather         │──▶│ Process        │──▶│ Items            │──▶ Sell for coins
    │ mine, chop,    │   │ at stations    │   │ ore, logs, fish, │
    │ forage, fish,  │   └────────────────┘   │ hides, plants    │
    │ hunt           │                        └──────────────────┘
@@ -78,7 +78,7 @@ The world is split into two areas.
             ▲                                   │          │
    ┌────────────────┐   ┌────────────────┐      │          ▼
    │ Better tools   │◀──│ Craft          │◀─────┘  ┌──────────────────┐
-   │ higher tiers   │   │ pickaxes, axes,│         │ Tame animals     │
+   │ higher tiers   │   │ pickaxes, axes,│         │ Tame animals *   │
    └────────────────┘   │ rods, bows,    │         │ with plant       │
                         │ weapons, armour│         │ bundles          │
                         └────────────────┘         └──────────────────┘
@@ -88,6 +88,8 @@ The world is split into two areas.
                                                    │ Battles + games  │
                                                    │ rewards and rank │
                                                    └──────────────────┘
+
+   * Taming, battles and games come in a later update.
 ```
 
 1. **Gather**: mine, chop, forage, fish or hunt in the resource world.
@@ -95,10 +97,10 @@ The world is split into two areas.
 3. **Items**: processed materials, plus raw items like fish and hides.
 4. From items, a player can:
    - **Craft** better tools, weapons and armour → reach **higher tier** resources → back to gather.
-   - **Sell or trade** for **coins**.
-   - **Tame animals** using plant bundles → use them in **battles and games** for rewards and rank.
+   - **Sell** to NPCs for **coins**. There is no player-to-player trading.
+   - *(Later update)* **Tame animals** using plant bundles → use them in **battles and games** for rewards and rank.
 5. Every action earns **XP** (player level and the matching skill).
-6. **Imp holders**: every gathering action also has a chance to find a **mint token**.
+6. **Imp holders**: gathering any resource has an extremely rare chance to drop a **mint token**, a random reward.
 7. Between grinding sessions, players return to the hub to socialise, take on challenges and show off what they earned.
 
 ### 5.1 Social loop
@@ -118,6 +120,8 @@ There are two separate progression tracks.
 - Players start at **level 1**, max is **level 50**.
 - XP comes from gathering resources and from general play.
 - At level 50 a player can choose to **prestige**: their level resets to 1 and their prestige icon goes up by one.
+- Each prestige also awards an **exclusive prestige badge**.
+- Prestige only resets the player level. Skill levels, items and cosmetics are kept.
 - There are six prestige icons, `prestige_0.png` (new player) to `prestige_5.png` (max prestige). These are 2D images supplied by J00BA.
 
 ### 6.2 Skill levels
@@ -140,6 +144,7 @@ Each skill levels on its own, from **1 to 100**.
 - Every resource has a **resource tier** from **T1 to T10**.
 - Each resource needs a **minimum tool** to gather it.
 - **Stone tools are the starter tools.** Each new tier of tool is crafted from earlier materials, which creates the progression ladder.
+- **Bronze** is an alloy made from **tin and copper** ingots. It has no ore of its own.
 
 > Naming note: "resource tier" (T1 to T10) and "imp tier" (Tier 1 to Tier 3) are two different things. This doc always says which one it means.
 
@@ -218,7 +223,7 @@ Holder bonuses scale with:
 Exact bonuses are **to be decided** and will go in `holder_bonuses.md`. Known so far:
 
 - NFT skins and trait cosmetics (section 2).
-- Chance to find a **mint token** on every gathering action (section 5).
+- An extremely rare chance to find a **mint token** (a random reward) while gathering any resource (section 5).
 
 ---
 
@@ -230,7 +235,7 @@ Each player has a profile card that others can view.
 - **Tabs**:
   - **Stats**: skill levels for all five skills, plus the skill tree for the selected skill.
   - **Trophies**: trophies earned from challenges.
-  - **Collection**: owned cosmetics, skins, titles, emblems and items.
+  - **Collection**: owned cosmetics, skins, titles, emblems, prestige badges and items.
   - **Information**: general player info.
 
 ---
@@ -263,18 +268,8 @@ Each player has a profile card that others can view.
 | --- | --- |
 | `resources.md` | Every resource for all five skills, tiers, times, drops |
 | `crafting.md` | Recipes, stations, tool / weapon / armour progression |
-| `world_mobs.md` | Mobs, hunting, taming |
+| `world_mobs.md` | Mobs, hunting, taming (later update) |
 | `challenges.md` | Challenges, trophies, titles, emblems |
 | `web3_integration.md` | Wallet connect, NFT reading, skins, traits, mint tokens |
 | `holder_bonuses.md` | Bonuses by imp count and imp tier |
 | `skill_trees.md` | Every node in every skill tree |
-
----
-
-## 13. Open questions
-
-- What is a mint token and what does it do?
-- Are taming and battles part of the first release, or later?
-- What carries over when a player prestiges (skills, items, cosmetics)?
-- Is bronze made from tin and copper?
-- Can players trade items with each other directly, or only sell for coins?
