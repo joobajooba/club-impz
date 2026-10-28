@@ -1,265 +1,280 @@
-# game_direction
+# Game Direction
 
-> status: draft v1 · owner: j00ba · last updated: 2026-10-28
+> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-28
 >
-> this is the top-level direction for club impz. it describes what the game is, who it is for and how the core loop works. detailed specs (resources, mobs, crafting, web3, bonuses) will live in their own docs and must agree with this one.
+> This is the top-level direction for Club Impz. It describes what the game is, who it is for and how the core loop works. Detailed specs (resources, mobs, crafting, web3, bonuses, challenges) will live in their own docs and must agree with this one.
 
 ---
 
-## 1. the pitch
+## 1. The pitch
 
-club impz is a small, browser-based **social mmo** for the implingz community, in the spirit of **club penguin** (hang out, chat, show off) and **runescape** (gather, skill up, craft, progress).
+Club Impz is a small, browser-based **social MMO** for the Implingz community, in the spirit of **Club Penguin** (hang out, chat, show off) and **RuneScape** (gather, skill up, craft, progress).
 
-players drop into a shared world, talk to each other, show off their imp and gear, and grind skills to craft better tools, weapons and armour.
+Players drop into a shared 3D world, talk to each other, show off their imp, gear and achievements, and grind skills to craft better tools, weapons and armour.
 
-**two halves of the game:**
+**Two halves of the game:**
 
-| half | feel | where |
+| Half | Feel | Where |
 | --- | --- | --- |
-| social | club penguin: chat, emotes, npcs, showing off cosmetics | hub world |
-| grind | runescape: gather resources, level skills, craft, progress tool tiers | resource world |
+| Social | Club Penguin and Call of Duty profiles: chat, NPCs, cosmetics, challenges, trophies, titles, emblems | Hub world |
+| Grind | RuneScape: gather resources, level skills, craft, progress tool tiers | Resource world |
 
 ---
 
-## 2. who can play
+## 2. Who can play
 
-- **anyone can play for free.** every player gets a **base imp** to play as. no wallet or nft is needed.
-- **imp holders** (owners of an implingz nft) get extras on top:
-  - use their owned imp as a **skin**.
-  - unlock **trait cosmetics**: each trait on an imp they own becomes a cosmetic item they can mix and match on their in-game imp.
-  - receive **holder bonuses** (see section 7).
-- non-holders can never use nft skins or nft trait cosmetics.
+- **Anyone can play for free.** Every player gets a **base imp** to play as. No wallet or NFT is needed.
+- **Imp holders** (owners of an Implingz NFT) get extras on top:
+  - Use their owned imp as a **skin**.
+  - Unlock **trait cosmetics**: each trait on an imp they own becomes a cosmetic item they can mix and match on their in-game imp.
+  - Receive **holder bonuses** (see section 8).
+- Non-holders can never use NFT skins or NFT trait cosmetics.
 
 ---
 
-## 3. the implingz nft
+## 3. The Implingz NFT
 
-| field | value |
+| Field | Value |
 | --- | --- |
-| collection | implingz ("impz") |
-| supply | 2222 |
-| chains | eth / robinhood |
-| contract | `0x81D2D1f0e92285CdD22Aa3cbc6956B6E1724d029` |
-| key trait | `tier`: tier_1, tier_2 or tier_3 (tier_3 is the highest) |
+| Collection | Implingz ("Impz") |
+| Supply | 2222 |
+| Chains | ETH / Robinhood |
+| Contract | `0x81D2D1f0e92285CdD22Aa3cbc6956B6E1724d029` |
+| Key trait | `tier`: Tier 1, Tier 2 or Tier 3 (Tier 3 is the highest) |
 
-ownership and traits are read from the player's **connected wallet**. full details go in a separate `web3_integration.md`.
-
-> naming note: the contract address keeps its original mixed case because ethereum uses it as a checksum. it is the only exception to the lowercase rule.
+Players connect their wallet with **Glyph** (ApeChain). Glyph reads the ETH contract to check which impz the wallet owns and which traits those impz have. Full details go in `web3_integration.md`.
 
 ---
 
-## 4. the world
+## 4. The world
 
-the world is split into two areas.
+The world is **3D**. Some assets are **2D**: inventory items, prestige icons, titles, emblems and other UI.
 
-### 4.1 hub world (social)
+The world is split into two areas.
 
-- every player **spawns here**.
-- the main hangout: chat, show off skins and items, meet other players.
-- home to the **npcs** (shops, quest givers, crafting stations, etc.).
-- players can also chat in any other part of the map, not only the hub.
+### 4.1 Hub world (social)
 
-### 4.2 resource world (grind)
+- Every player **spawns here**.
+- The main hangout: chat, show off skins, items, trophies, titles and emblems, meet other players.
+- Home to the **NPCs** (shops, challenge givers, crafting stations, etc.).
+- Players can also chat in any other part of the map, not only the hub.
 
-- an explorable area where all gatherable resources live: ores, trees, plants, fish and mobs.
-- higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world.
+### 4.2 Resource world (grind)
+
+- An explorable area where all gatherable resources live: ores, trees, plants, fish and mobs.
+- Higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world.
 
 ---
 
-## 5. core game loop
+## 5. Core game loop
 
 ```
-            ┌─────────────────────────────────────────────────────┐
-            │                                                     │
-            ▼                                                     │
-   ┌────────────────┐   ┌────────────────┐   ┌──────────────────┐ │
-   │ gather         │──▶│ process        │──▶│ items            │─┼──▶ sell or trade (coins)
-   │ spends energy  │   │ at stations    │   │ ore, logs, fish, │ │
-   └────────────────┘   └────────────────┘   │ hides, plants    │ │
-            ▲                                └──────────────────┘ │
-            │                                   │          │      │
-   ┌────────────────┐   ┌────────────────┐      │          │      │
-   │ better tools   │◀──│ craft          │◀─────┘          │      │
-   │ higher tiers   │   │ pickaxes, axes │                 ▼      │
-   └────────────────┘   │ rods, bows,    │       ┌──────────────────┐
-                        │ weapons, armour│       │ tame animals     │
-                        └────────────────┘       │ with plant       │
-                                                 │ bundles          │
-                                                 └──────────────────┘
-                                                          │
-                                                          ▼
-                                                 ┌──────────────────┐
-                                                 │ battles + games  │
-                                                 │ rewards and rank │
-                                                 └──────────────────┘
+   ┌────────────────┐   ┌────────────────┐   ┌──────────────────┐
+   │ Gather         │──▶│ Process        │──▶│ Items            │──▶ Sell or trade (coins)
+   │ mine, chop,    │   │ at stations    │   │ ore, logs, fish, │
+   │ forage, fish,  │   └────────────────┘   │ hides, plants    │
+   │ hunt           │                        └──────────────────┘
+   └────────────────┘                           │          │
+            ▲                                   │          │
+   ┌────────────────┐   ┌────────────────┐      │          ▼
+   │ Better tools   │◀──│ Craft          │◀─────┘  ┌──────────────────┐
+   │ higher tiers   │   │ pickaxes, axes,│         │ Tame animals     │
+   └────────────────┘   │ rods, bows,    │         │ with plant       │
+                        │ weapons, armour│         │ bundles          │
+                        └────────────────┘         └──────────────────┘
+                                                            │
+                                                            ▼
+                                                   ┌──────────────────┐
+                                                   │ Battles + games  │
+                                                   │ rewards and rank │
+                                                   └──────────────────┘
 ```
 
-1. **gather**: mine, chop, forage, fish or hunt in the resource world. gathering spends **energy**.
-2. **process**: turn raw resources into usable materials at stations (ore → ingot, log → planks).
-3. **items**: processed materials, plus raw items like fish and hides.
-4. from items, a player can:
-   - **craft** better tools, weapons and armour → reach **higher tier** resources → back to gather.
-   - **sell or trade** for **coins**.
-   - **tame animals** using plant bundles → use them in **battles and games** for rewards and rank.
-5. every action earns **xp** (player level + the matching skill).
-6. **imp holders**: every gathering action also has a chance to find a **mint token**.
-7. between grinding sessions, players return to the hub to socialise and show off what they earned.
+1. **Gather**: mine, chop, forage, fish or hunt in the resource world.
+2. **Process**: turn raw resources into usable materials at stations (ore → ingot, log → planks).
+3. **Items**: processed materials, plus raw items like fish and hides.
+4. From items, a player can:
+   - **Craft** better tools, weapons and armour → reach **higher tier** resources → back to gather.
+   - **Sell or trade** for **coins**.
+   - **Tame animals** using plant bundles → use them in **battles and games** for rewards and rank.
+5. Every action earns **XP** (player level and the matching skill).
+6. **Imp holders**: every gathering action also has a chance to find a **mint token**.
+7. Between grinding sessions, players return to the hub to socialise, take on challenges and show off what they earned.
+
+### 5.1 Social loop
+
+```
+Challenge ──▶ Trophy ──▶ Title / emblem ──▶ Equip on profile ──▶ Show off in the hub
+```
 
 ---
 
-## 6. progression
+## 6. Progression
 
-there are two separate progression tracks.
+There are two separate progression tracks.
 
-### 6.1 player level + prestige
+### 6.1 Player level and prestige
 
-- players start at **level 1**, max is **level 50**.
-- xp comes from gathering resources and from general play.
-- at level 50 a player can choose to **prestige**: their level resets to 1 and their prestige icon goes up by one.
-- prestige icons run from **prestige_0** (new player) up to **prestige_5** (max).
-- the prestige icon is shown as the player's **emblem** on their profile.
+- Players start at **level 1**, max is **level 50**.
+- XP comes from gathering resources and from general play.
+- At level 50 a player can choose to **prestige**: their level resets to 1 and their prestige icon goes up by one.
+- There are six prestige icons, `prestige_0.png` (new player) to `prestige_5.png` (max prestige). These are 2D images supplied by J00BA.
 
-### 6.2 skill levels
+### 6.2 Skill levels
 
-each skill levels on its own, from **1 to 100**.
+Each skill levels on its own, from **1 to 100**.
 
-| skill | what you do | main resource |
+| Skill | What you do | Main resource |
 | --- | --- | --- |
-| mining | mine ores | ores, ingots, gems |
-| lumbering | chop trees | logs, planks |
-| foraging | pick plants | plants (used for plant bundles) |
-| hunting | hunt mobs | hides, mob drops |
-| fishing | catch fish | fish |
+| Mining | Mine ores | Ores, ingots, gems |
+| Lumbering | Chop trees | Logs, planks |
+| Foraging | Pick plants | Plants (used for plant bundles) |
+| Hunting | Hunt mobs | Hides, mob drops |
+| Fishing | Catch fish | Fish |
 
-- each skill has its own **skill tree**. skill levels unlock more of the tree.
-- skill tree nodes give **buffs for that skill** (for example faster gathering or better drop chances). nodes are unlocked left to right in a chain.
+- Each skill has its own **skill tree**. Skill levels unlock more of the tree.
+- Skill tree nodes give **buffs for that skill** (for example faster gathering or better drop chances). Nodes unlock left to right in a chain.
 
-### 6.3 resource tiers + tool gating
+### 6.3 Resource tiers and tool gating
 
-- every resource has a **resource tier** from **t1 to t10**.
-- each resource needs a **minimum tool** to gather it.
-- each new tier of tool is crafted from the previous tier's materials, which creates the progression ladder.
+- Every resource has a **resource tier** from **T1 to T10**.
+- Each resource needs a **minimum tool** to gather it.
+- **Stone tools are the starter tools.** Each new tier of tool is crafted from earlier materials, which creates the progression ladder.
 
-> naming note: "resource tier" (t1 to t10) and "imp tier" (tier_1 to tier_3) are two different things. this doc always says which one it means.
+> Naming note: "resource tier" (T1 to T10) and "imp tier" (Tier 1 to Tier 3) are two different things. This doc always says which one it means.
 
-#### mining: ores, ingots + time
+#### Mining: ores, ingots and time
 
-| ore | tier | ingot | time to mine | minimum pickaxe |
+| Ore | Tier | Ingot | Time to mine | Minimum pickaxe |
 | --- | --- | --- | --- | --- |
-| coal | t1 | coal | 30s | stone_pickaxe |
-| tin | t2 | tin_ingot | 45s | stone_pickaxe |
-| copper | t3 | copper_ingot | 45s | stone_pickaxe |
-| iron | t4 | iron_ingot | 60s | bronze_pickaxe |
-| gold | t5 | gold_ingot | 120s | iron_pickaxe |
-| obsidian | t6 | obsidian_ingot | 240s | gold_pickaxe |
-| titanite | t7 | titanite_ingot | 300s | obsidian_pickaxe |
-| dreadstone | t8 | dreadstone_ingot | 300s | titanite_pickaxe |
-| voidstone | t9 | voidstone_ingot | 600s | dreadstone_pickaxe |
-| stellarite | t10 | stellarite_ingot | 1000s | void_pickaxe |
+| Coal | T1 | Coal | 30s | Stone pickaxe |
+| Tin | T2 | Tin ingot | 45s | Stone pickaxe |
+| Copper | T3 | Copper ingot | 45s | Stone pickaxe |
+| Iron | T4 | Iron ingot | 60s | Bronze pickaxe |
+| Gold | T5 | Gold ingot | 120s | Iron pickaxe |
+| Obsidian | T6 | Obsidian ingot | 240s | Gold pickaxe |
+| Titanite | T7 | Titanite ingot | 300s | Obsidian pickaxe |
+| Dreadstone | T8 | Dreadstone ingot | 300s | Titanite pickaxe |
+| Voidstone | T9 | Voidstone ingot | 600s | Dreadstone pickaxe |
+| Stellarite | T10 | Stellarite ingot | 1000s | Void pickaxe |
 
-#### mining: gems
+#### Mining: gems
 
-each ore has a chance to drop a gem while being mined.
+Each ore has a chance to drop a gem while being mined. Gem rarity does not follow resource tier on purpose (for example diamond is rarer than topaz).
 
-| gem | tier | found when mining | chance |
+| Gem | Tier | Found when mining | Chance |
 | --- | --- | --- | --- |
-| diamond | t1 | coal | 1/50 |
-| topaz | t2 | tin | 1/10 |
-| sapphire | t3 | copper | 1/12 |
-| amethyst | t4 | iron | 1/15 |
-| ruby | t5 | gold | 1/20 |
-| emerald | t6 | obsidian | 1/25 |
-| jade | t7 | titanite | 1/30 |
-| painite | t8 | dreadstone | 1/50 |
-| arcanium | t9 | voidstone | 1/60 |
-| eclipsium | t10 | stellarite | 1/75 |
+| Diamond | T1 | Coal | 1/50 |
+| Topaz | T2 | Tin | 1/10 |
+| Sapphire | T3 | Copper | 1/12 |
+| Amethyst | T4 | Iron | 1/15 |
+| Ruby | T5 | Gold | 1/20 |
+| Emerald | T6 | Obsidian | 1/25 |
+| Jade | T7 | Titanite | 1/30 |
+| Painite | T8 | Dreadstone | 1/50 |
+| Arcanium | T9 | Voidstone | 1/60 |
+| Eclipsium | T10 | Stellarite | 1/75 |
 
-#### lumbering: logs, planks + time
+#### Lumbering: logs, planks and time
 
-| tree | tier | processed | time to chop | minimum axe |
+| Tree | Tier | Processed | Time to chop | Minimum axe |
 | --- | --- | --- | --- | --- |
-| pine | t1 | pine_planks | 30s | stone_axe |
-| birch | t2 | birch_planks | 45s | stone_axe |
-| oak | t3 | oak_planks | 45s | stone_axe |
-| maple | t4 | maple_planks | 60s | bronze_axe |
-| hickory | t5 | hickory_planks | 120s | iron_axe |
-| frostbark | t6 | frostbark_planks | 240s | gold_axe |
-| titanwood | t7 | titanwood_planks | 300s | obsidian_axe |
-| runewood | t8 | runewood_planks | 300s | titanite_axe |
-| gembark | t9 | gembark_planks | 600s | dreadstone_axe |
-| worldbark | t10 | worldbark_planks | 1000s | void_axe |
+| Pine | T1 | Pine planks | 30s | Stone axe |
+| Birch | T2 | Birch planks | 45s | Stone axe |
+| Oak | T3 | Oak planks | 45s | Stone axe |
+| Maple | T4 | Maple planks | 60s | Bronze axe |
+| Hickory | T5 | Hickory planks | 120s | Iron axe |
+| Frostbark | T6 | Frostbark planks | 240s | Gold axe |
+| Titanwood | T7 | Titanwood planks | 300s | Obsidian axe |
+| Runewood | T8 | Runewood planks | 300s | Titanite axe |
+| Gembark | T9 | Gembark planks | 600s | Dreadstone axe |
+| Worldbark | T10 | Worldbark planks | 1000s | Void axe |
 
-foraging, fishing and hunting tables will be added in `resources.md`.
-
----
-
-## 7. holder bonuses
-
-holder bonuses scale with:
-
-1. **how many impz** the player owns, and
-2. the **imp tier** of those impz (tier_3 is the strongest).
-
-exact bonuses are **to be decided** and will go in `holder_bonuses.md`. known so far:
-
-- nft skins + trait cosmetics (section 2).
-- chance to find a **mint token** on every gathering action (section 5).
+Foraging, fishing and hunting tables will be added in `resources.md`.
 
 ---
 
-## 8. player profile
+## 7. Challenges, trophies, titles and emblems
 
-each player has a profile card that others can view.
+Inspired by Call of Duty calling cards and emblems.
 
-- **left panel**: player name, player level (star), the imp they are wearing, their **emblem** (prestige icon) and their **title**.
-- **tabs**:
-  - **stats**: skill levels for all five skills, plus the skill tree for the selected skill.
-  - **trophies**: achievements.
-  - **collection**: owned cosmetics, skins and items.
-  - **information**: general player info.
+- Players complete **challenges** (for example reach a skill level, gather a rare gem, win battles).
+- Completing a challenge unlocks a **trophy**.
+- Trophies can reward **titles** and **emblems**.
+- Players **equip** one title and one emblem on their profile to show off, especially for difficult challenges.
+- Titles and emblems are 2D assets.
+
+The full challenge list goes in `challenges.md`.
 
 ---
 
-## 9. tech stack
+## 8. Holder bonuses
 
-| tool | used for |
+Holder bonuses scale with:
+
+1. **How many impz** the player owns, and
+2. The **imp tier** of those impz (Tier 3 is the strongest).
+
+Exact bonuses are **to be decided** and will go in `holder_bonuses.md`. Known so far:
+
+- NFT skins and trait cosmetics (section 2).
+- Chance to find a **mint token** on every gathering action (section 5).
+
+---
+
+## 9. Player profile
+
+Each player has a profile card that others can view.
+
+- **Left panel**: player name, player level and prestige icon, the imp they are wearing, their equipped **emblem** and **title**.
+- **Tabs**:
+  - **Stats**: skill levels for all five skills, plus the skill tree for the selected skill.
+  - **Trophies**: trophies earned from challenges.
+  - **Collection**: owned cosmetics, skins, titles, emblems and items.
+  - **Information**: general player info.
+
+---
+
+## 10. Tech stack
+
+| Tool | Used for |
 | --- | --- |
-| godot | game engine (browser / web export) |
-| blockbench | 3d models |
-| aseprite | 2d art (sprites, icons, ui) |
-| supabase | database (accounts, inventory, progression) |
-| apechain | web3, using **glyph** for wallet connect |
-| github | code + file repository |
-| claude | coding |
+| Godot | Game engine (browser / web export) |
+| Blockbench | 3D models |
+| Aseprite | 2D art (items, icons, titles, emblems, UI) |
+| Supabase | Database (accounts, inventory, progression) |
+| ApeChain | Web3, using **Glyph** for wallet connect and reading the ETH contract |
+| GitHub | Code and file repository |
+| Claude | Coding |
 
 ---
 
-## 10. naming rules
+## 11. Naming rules
 
-- every file, folder, id and asset name is **lowercase**.
-- use `_` instead of spaces (for example `stone_pickaxe`, `game_direction.md`).
-- the only exception is data that breaks if changed, like wallet or contract addresses.
+- Every **file and folder name** is **lowercase**, with `_` instead of spaces (for example `stone_pickaxe.png`, `game_direction.md`, `prestige_0.png`).
+- In-game IDs follow the same rule (for example `stone_pickaxe`).
+- Normal text, like the sentences in these docs, uses normal capitals.
 
 ---
 
-## 11. planned docs
+## 12. Planned docs
 
-| doc | covers |
+| Doc | Covers |
 | --- | --- |
-| `resources.md` | every resource for all five skills, tiers, times, drops |
-| `crafting.md` | recipes, stations, tool / weapon / armour progression |
-| `world_mobs.md` | mobs, hunting, taming |
-| `web3_integration.md` | wallet connect, nft reading, skins, traits, mint tokens |
-| `holder_bonuses.md` | bonuses by imp count and imp tier |
-| `skill_trees.md` | every node in every skill tree |
+| `resources.md` | Every resource for all five skills, tiers, times, drops |
+| `crafting.md` | Recipes, stations, tool / weapon / armour progression |
+| `world_mobs.md` | Mobs, hunting, taming |
+| `challenges.md` | Challenges, trophies, titles, emblems |
+| `web3_integration.md` | Wallet connect, NFT reading, skins, traits, mint tokens |
+| `holder_bonuses.md` | Bonuses by imp count and imp tier |
+| `skill_trees.md` | Every node in every skill tree |
 
 ---
 
-## 12. open questions
+## 13. Open questions
 
-- 2d or 3d, and what camera view?
-- what energy is, how it refills, and whether holders get more.
-- what a mint token is and what it does.
-- what carries over when a player prestiges.
-- how impz on eth / robinhood are read through glyph on apechain.
-- whether players can trade with each other directly.
+- What is a mint token and what does it do?
+- Are taming and battles part of the first release, or later?
+- What carries over when a player prestiges (skills, items, cosmetics)?
+- Is bronze made from tin and copper?
+- Can players trade items with each other directly, or only sell for coins?
