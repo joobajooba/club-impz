@@ -29,6 +29,7 @@ Players drop into a shared 3D world, talk to each other, show off their imp, gea
   - Unlock **trait cosmetics**: each trait on an imp they own becomes a cosmetic item they can mix and match on their in-game imp.
   - Receive **holder bonuses** (see section 8).
 - Non-holders can never use NFT skins or NFT trait cosmetics.
+- **Holder-only:** NFT skins, NFT trait cosmetics, mint tokens and holder bonuses. **Every other part of the game is open to all players.**
 
 ---
 
