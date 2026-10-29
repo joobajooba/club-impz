@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v1 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-29
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -113,7 +113,7 @@ Every existing model uses **2 texture pixels per Blockbench unit** (32 pixels pe
 6. **Edge highlights and contact shadows.** Lighten the top edge of each face by one shade. Darken pixels where a cube meets another cube or the ground (fake ambient occlusion).
 7. **Material detail on top of noise:** bark grain, stone cracks, ore veins, leaf shapes, feather rows, fur strands, metal scratches, cloth stitching, wood grain. Each category below says what.
 8. **Total colours per texture:** aim for **40 to 120** distinct colours. The existing mobs use 21 to 52, so new assets should go **beyond** them in detail, not below.
-9. **Glowing parts** (voidstone, stellarite, magic, eyes on some mobs, effects) use bright, saturated, almost-white centres. Put them on cubes whose names end in `_glow`, so Godot can make them emissive (see open question 2).
+9. **Glowing parts** (voidstone, stellarite, magic, eyes on some mobs, effects) use bright, saturated, almost-white centres. Put them on cubes whose names end in `_glow`, so Godot can make them emissive. There is no separate emissive texture.
 10. **Reuse UV space smartly.** Cubes that look the same (leaf clusters, stone chunks, ore crystals) can share the same UV area. This lets a huge tree keep a small texture. Faces that can never be seen (inside a canopy, pressed against another cube, under the model) get UV `[0, 0, 0, 0]` and texture `null`, like the hidden faces in `wolf.bbmodel`.
 11. **Transparency** only for leaf edges, feathers, wing holes, cloth tatters and effects. Use hard alpha (fully on or off), not soft alpha.
 
@@ -139,7 +139,7 @@ These keep models detailed but still light enough for a browser game (see `game_
 | Tree (T1 to T5) | 80 to 220 | 128 or 256 |
 | Tree (T6 to T10, giant) | 150 to 400 | 256 or 512 |
 | Tool, weapon | 10 to 40 | 64 or 128 |
-| Armour piece | 10 to 40 | Shares the character texture, or 128 |
+| Armour piece | 10 to 40 | 64 or 128, one per piece |
 | Small mob | 20 to 50 | 64 or 128 |
 | Large mob, NPC | 40 to 130 | 128 or 256 |
 | Dragon | 100 to 250 | 256 |
@@ -183,7 +183,7 @@ Claude can't click in Blockbench, so models are written as `.bbmodel` JSON by a 
    - Saves the PNG, base64 encodes it into the texture `source` field, and writes the `.bbmodel` JSON.
 2. **Copy the JSON layout** from an existing file in `godot-game/assets/models/mobs/` (top level keys `meta`, `name`, `model_identifier`, `resolution`, `elements`, `groups`, `outliner`, `textures`, `animations`). Use fresh UUIDs for everything.
 3. **Render a preview** (Pillow isometric or a quick three.js / Blender render if available) from the front three quarter view and look at it. Fix the silhouette and texture before calling it done.
-4. **Animations** (mobs, NPCs, dragons) go in the same file, using the names in section 3. Use `catmullrom` for smooth motion and `linear` for snappy hits, like the existing files.
+4. **Animations** (mobs, NPCs, dragons, and the tree `hit` shake) go in the same file, using the names in section 3. Use `catmullrom` for smooth motion and `linear` for snappy hits, like the existing files.
 
 > Painting tip: write small helper functions once (`ramp_fill`, `noise`, `edge_light`, `ao_edge`, `cracks`, `grain`, `leaf_pattern`, `feather_rows`, `veins`) and reuse them. Detail comes from layering several passes, not from one clever function.
 
@@ -210,6 +210,12 @@ Each category has:
 3. `branches`: 2 to 6 branches. Rotated cubes coming out of the trunk at 20° to 50°, each ending inside a canopy cluster.
 4. `canopy`: the leaves. Shape depends on the tree type (table below). Built from clusters, each made of 2 to 5 cubes so it has its own lumpy outline.
 5. `details`: moss patches on roots, mushrooms, fallen leaves, small stones, hanging vines, fruit, cones, tier specific extras (ice, runes, gems).
+
+**Movement.**
+
+- **Wind sway is done in Godot**, with a wind vertex shader on the leaf material, not with a Blockbench animation. It is cheaper, works with batched foliage (`MultiMeshInstance3D`) and keeps every tree moving without animation players. So don't make an `idle` sway animation.
+- Keep the `canopy` and `branches` groups and keep leaves on their own cubes, so the shader can sway the leaves more than the trunk.
+- **Every tree has a `hit` animation**: a short shake (about 0.4s, `linear`) played each time a player chops it. The `canopy` group rotates a few degrees back and forth (about 3° to 5°, settling to 0) and the `trunk` nudges about 1°. The pivot of `canopy` sits where the trunk meets the canopy, and the pivot of `trunk` at the ground.
 
 **Canopy shapes.**
 
@@ -259,6 +265,7 @@ leaf texture:     <ramp>, 2 to 4 px leaf blobs, dark gaps, light warm tops, dark
 signature detail: <from tier table or user>
 budget:           <cubes>, texture <size>, 2 px/unit, shared UV for repeated clusters
 groups:           <tree> > roots, trunk, branches, canopy, details
+animations:       hit (0.4s shake of canopy and trunk); wind sway is a Godot shader
 ```
 
 **Example.** "Make me a tall pine tree, dark green leaves, brown trunk."
@@ -280,6 +287,7 @@ leaf texture:     dark green ramp with blue shadows (6 shades), diagonal needle 
 signature detail: stepped root flare, ragged tip, cones
 budget:           ~200 cubes, 256 texture, 2 px/unit, 4 shared cluster UVs
 groups:           pine_tree > roots, trunk, canopy (tier_1..tier_12), details
+animations:       hit (0.4s shake, canopy pivot at y 20, trunk pivot at y 0)
 ```
 
 ### 3.2 Ore veins
@@ -293,6 +301,8 @@ groups:           pine_tree > roots, trunk, canopy (tier_1..tier_12), details
 3. `ore`: 3 to 8 ore chunks, 3 to 7 units each, **rotated** 10° to 40° on one or two axes, pushed half into the stone. Bigger chunks near the top, smaller ones on the sides. Some chunks are built from 2 cubes for a crystal or nugget shape.
 4. `fragments`: 3 to 8 small loose cubes (1 to 2 units) of stone and ore scattered on the ground around the base.
 5. `details`: moss on top, grass tufts at the base, biome extras (snow cap, ice, swamp slime, void crystals, star sparkles).
+
+- **Ore veins have no animations.** They don't shake when mined. Mining feedback comes from the chip effects (section 3.13).
 
 **Texture recipe.**
 
@@ -389,6 +399,8 @@ texture:          <biome stone ramp>, cracks, lichen, light tops, 2 px/unit, 64 
 | Foraging plants | Same as above, but with a clear "pick me" accent: a bright flower, berry or glow | Each plant gets a unique accent colour |
 
 Foraging plants will come from `resource_gathering.md` section 6 once J00BA adds the table.
+
+Foliage sways with the same Godot wind shader as trees and has no Blockbench animations.
 
 ```
 FOLIAGE BUILD SPEC
@@ -520,14 +532,16 @@ groups:           voidstone_sword > blade, guard, grip, pommel
 
 **Analysis.** Armour is worn by the imp, so it must **fit the imp's body** and use the **same texel density (2 px/unit)**. It is built as separate pieces that sit 0.25 to 0.5 units outside the body cubes and follow the imp's bones. Tiers follow the tool ladder materials.
 
-- **Pieces:** `helmet`, `chestplate`, `shoulders` (left and right), `gauntlets`, `belt`, `leggings`, `boots`. Each is its own group named after the imp bone it follows (`head`, `body`, `arm_right`, ...).
+- **Pieces:** `helmet`, `chestplate`, `shoulders` (left and right), `gauntlets`, `belt`, `leggings`, `boots`.
+- **One file per piece**, named `<tier>_<piece>.bbmodel` (for example `gold_helmet.bbmodel`, `iron_boots.bbmodel`), with its own texture. Inside the file, groups are named after the imp bone the piece follows (`head`, `body`, `arm_right`, ...), so Godot can attach each group to that bone.
+- Every armour file includes the hidden `scale_dummy` so the fit can be checked.
 - **Build:** plates are layered cubes that overlap like real armour (shoulder pads stacked 2 to 3 high, chest plate with a raised centre ridge, helmet with a visor and crest). Low tiers are leather and simple; high tiers have trims, gems, horns, crests and glow.
 - **Texture:** metal plates with rivets, scratches and bright top edges; leather with stitching and buckles; cloth with folds and patterns. Trims in a contrast colour.
 - **Fit rule:** leave the imp's big eyes and ears free. Helmets must have ear holes or ear guards, because the imp's ears stick out sideways.
 
 ```
 ARMOUR BUILD SPEC
-name / id:        <tier>_<piece>        (e.g. gold_helmet)  or  <tier>_armour_set
+name / id:        <tier>_<piece>        (e.g. gold_helmet), one file per piece
 tier:             <stone..stellarite>
 fits:             base imp, 0.25 to 0.5 units outside the body cubes, follows bone <bone>
 pieces:           <list>, each layered from <n> cubes
@@ -767,7 +781,7 @@ Check every item before handing a model over. If one fails, fix it.
 - [ ] All groups and cubes named in lowercase with underscores; pivots at the joints.
 - [ ] `scale_dummy` included (characters and mobs), with export and visibility off.
 - [ ] Texture embedded and saved as a matching `.png`.
-- [ ] Animations present and named as in section 3 (mobs, NPCs, dragons).
+- [ ] Animations present and named as in section 3 (mobs, NPCs, dragons, and `hit` on trees). No animations on ore veins.
 - [ ] File saved in the right folder with a lowercase underscore name (section 1.8).
 
 ---
@@ -826,10 +840,14 @@ If something truly can't be guessed (for example a new mob with no description),
 
 ---
 
-## 7. Open questions
+## 7. Decisions
 
-1. **Held item detail:** tools and weapons use 4 px/unit for extra detail. Is that OK, or should everything stay at 2 px/unit?
-2. **Glow parts:** this doc uses a `_glow` name suffix so Godot can make those parts emissive. Should glow instead be a second emissive texture?
-3. **Tree wind:** should trees and foliage sway with a Godot wind shader (no Blockbench animation), or with a Blockbench `idle` animation on the canopy group?
-4. **Gathering feedback:** should ore veins and trees have a `hit` shake animation when gathered?
-5. **Armour fit:** does armour go on a separate file per piece, or one file per tier set?
+J00BA's answers to the first draft's open questions.
+
+| Question | Decision |
+| --- | --- |
+| Held item detail | Tools and weapons use 4 px/unit (section 1.4) |
+| Glow parts | Cubes named with a `_glow` suffix, made emissive in Godot (section 1.5) |
+| Tree and foliage wind | Godot wind shader, no Blockbench sway animation (section 3.1) |
+| Gathering feedback | Trees shake with a `hit` animation. Ore veins don't animate (sections 3.1 and 3.2) |
+| Armour files | One file per piece (section 3.7) |
