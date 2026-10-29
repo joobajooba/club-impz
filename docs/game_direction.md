@@ -269,6 +269,7 @@ Each player has a profile card that others can view.
 | Doc | Covers |
 | --- | --- |
 | `resource_gathering.md` | Every resource for all five skills, tiers, times, drops, skill XP |
+| `game_worlds.md` | Hub world, resource world, biomes, art style |
 | `crafting.md` | Recipes, stations, tool / weapon / armour progression |
 | `world_mobs.md` | Mobs, hunting, taming (later update) |
 | `challenges.md` | Challenges, trophies, titles, emblems |
