@@ -1,6 +1,6 @@
 # Game Worlds
 
-> Status: draft v1 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-29
 >
 > The two worlds in Club Impz, the hub world and the resource world: what each one is for, what players can do there, how they look and the art style for both. This doc must agree with `game_direction.md` and `resource_gathering.md`. Where they differ, `game_direction.md` wins until it is updated.
 
@@ -12,7 +12,7 @@ Club Impz has **two worlds**. Each one has a single job.
 
 | World | Job | Feel | Gathering | Combat |
 | --- | --- | --- | --- | --- |
-| Hub world | Social | Club Penguin: hang out, chat, show off | None | None (to be confirmed) |
+| Hub world | Social | Club Penguin: hang out, chat, show off | None | None, the hub is combat free |
 | Resource world | Grind | RuneScape: explore, gather, level up | All gathering | Mobs |
 
 - Every player **spawns in the hub world** when they start the game.
@@ -61,6 +61,7 @@ The hub world is the **social area**. It is where players meet, talk and show of
 
 - **Every player spawns here** when they start the game.
 - **No resource gathering.** No resource nodes spawn in the hub (see `resource_gathering.md` section 1).
+- **No combat.** The hub is completely combat free. There are no mobs and players can't fight each other.
 - Players come back here between grinding sessions to craft, sell, take on challenges and socialise.
 
 ### 3.2 What players can do
@@ -86,8 +87,8 @@ A **beautiful village** built around a **castle**. Proposed landmarks:
 | Village square | The main hangout and the place for events |
 | Market stalls | NPC shops where players buy and sell |
 | Crafting area | Smelter, workbenches and other crafting stations |
-| Castle | The centrepiece of the hub. Use to be decided (for example challenge hall or trophy hall) |
-| Portal to the resource world | How players travel to the resource world (section 5) |
+| Castle | The centrepiece of the hub. Scenery only for now, to make the hub look great |
+| Portals | How players travel to the resource world (section 5) |
 
 ---
 
@@ -112,19 +113,23 @@ The resource world is **purely for levelling up** the game's skills.
 
 ### 4.3 Biomes
 
-The biomes J00BA has named so far are forest, plains, mountain, frost, poison swamp, void and cosmic space. More will be added.
+The biomes go in this order, from the start of the resource world to the deepest part. More biomes may be added later.
 
-The table below is a **proposal**: it places each biome by depth and matches it to the resources whose names and tiers fit it best. J00BA to confirm or change.
+```
+forest ─▶ mountain ─▶ frost ─▶ plains ─▶ swamp ─▶ void ─▶ stellar
+```
+
+The biome order is set by J00BA. Which resource tiers sit in each biome is a **proposal**: the 10 tiers are spread over the 7 biomes, with two tiers in each of the first three. J00BA to confirm or change.
 
 | Depth | Biome | Resource tiers | Ores | Trees | Look |
 | --- | --- | --- | --- | --- | --- |
-| 1 (start) | Plains | T1 to T2 | Coal, tin | Pine, birch | Open grassland, flowers, gentle hills, near the portal |
-| 2 | Forest | T3 to T4 | Copper, iron | Oak, maple | Dense trees, ferns, mushrooms, streams |
-| 3 | Mountain | T5 to T6 | Gold, obsidian | Hickory | Tall peaks, cliffs, caves, rocky paths |
-| 4 | Frost | T6 to T7 | Titanite | Frostbark, titanwood | Snow, ice, frozen lakes, blue light |
-| 5 | Poison swamp | T8 | Dreadstone | Runewood | Murky green water, toxic fog, twisted roots |
+| 1 (start) | Forest | T1 to T2 | Coal, tin | Pine, birch | Dense trees, ferns, mushrooms, streams |
+| 2 | Mountain | T3 to T4 | Copper, iron | Oak, maple | Tall peaks, cliffs, caves, rocky paths |
+| 3 | Frost | T5 to T6 | Gold, obsidian | Hickory, frostbark | Snow, ice, frozen lakes, blue light |
+| 4 | Plains | T7 | Titanite | Titanwood | Wide open grassland, giant trees, rolling hills |
+| 5 | Swamp | T8 | Dreadstone | Runewood | Poison swamp: murky green water, toxic fog, twisted roots |
 | 6 | Void | T9 | Voidstone | Gembark | Dark, floating rocks, purple glow, glowing crystals |
-| 7 (deepest) | Cosmic space | T10 | Stellarite | Worldbark | Starry sky, floating islands, low gravity feel |
+| 7 (deepest) | Stellar | T10 | Stellarite | Worldbark | Cosmic space: starry sky, floating islands, low gravity feel |
 
 - Plants, fish and mobs for each biome will be added once their tables are in `resource_gathering.md` and `world_mobs.md`.
 - The existing mob models (`cow`, `pig`, `highland_cow`, `wolf`, `ogre`, `dragon`, `pale_dragon`) still need to be placed in biomes.
@@ -133,20 +138,17 @@ The table below is a **proposal**: it places each biome by depth and matches it 
 
 ## 5. Travel between worlds
 
-> To be decided. Proposal below.
-
-- Players travel between the two worlds through a **portal**: one in the hub, one at the start of the resource world.
-- Using the portal loads the other world. Inventory, tools and progress carry over.
+- Players travel between the hub and the resource world using **portals**.
+- Using a portal loads the other world. Inventory, tools and progress carry over.
+- Exact portal placement is to be decided (section 6).
 
 ---
 
 ## 6. Open questions
 
-1. **Travel:** how do players move between the hub and the resource world? Is a portal right, and can players return to the hub from anywhere (for example a teleport) or only from the portal?
-2. **Biomes:** is the biome and tier mapping in section 4.3 right? Which other biomes should be added?
-3. **Combat in the hub:** is the hub fully safe (no combat at all)?
-4. **Dying:** what happens when a player dies to a mob in the resource world (for example respawn at the portal, lose nothing)?
-5. **Castle:** what is the castle used for?
-6. **Events:** what kind of hub events are planned, and are they scheduled or random?
-7. **Quests:** are quests the same as challenges (`challenges.md`), or a separate system with their own doc?
-8. **Player count:** how many players share one copy of each world at the same time?
+1. **Portals:** where are the portals? For example one portal from the hub to the forest, or one portal per biome that unlocks as the player reaches it. Can players return to the hub from anywhere (for example a teleport) or only from a portal?
+2. **Biome tiers:** is the tier split in section 4.3 right?
+3. **Dying:** what happens when a player dies to a mob in the resource world (for example respawn at the portal, lose nothing)?
+4. **Events:** what kind of hub events are planned, and are they scheduled or random?
+5. **Quests:** are quests the same as challenges (`challenges.md`), or a separate system with their own doc?
+6. **Player count:** how many players share one copy of each world at the same time?
