@@ -196,7 +196,7 @@ Each ore has a chance to drop a gem while being mined. Gem rarity does not follo
 | Gembark | T9 | Gembark planks | 600s | Dreadstone axe |
 | Worldbark | T10 | Worldbark planks | 1000s | Void axe |
 
-Foraging, fishing and hunting tables will be added in `resources.md`.
+Foraging, fishing and hunting tables, gathering rules and skill XP live in `resource_gathering.md`.
 
 ---
 
@@ -267,7 +267,7 @@ Each player has a profile card that others can view.
 
 | Doc | Covers |
 | --- | --- |
-| `resources.md` | Every resource for all five skills, tiers, times, drops |
+| `resource_gathering.md` | Every resource for all five skills, tiers, times, drops, skill XP |
 | `crafting.md` | Recipes, stations, tool / weapon / armour progression |
 | `world_mobs.md` | Mobs, hunting, taming (later update) |
 | `challenges.md` | Challenges, trophies, titles, emblems |
