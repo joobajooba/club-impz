@@ -144,7 +144,8 @@ Each skill levels on its own, from **1 to 100**.
 
 - Every resource has a **resource tier** from **T1 to T10**.
 - Each resource needs a **minimum tool** to gather it.
-- **Stone tools are the starter tools.** Each new tier of tool is crafted from earlier materials, which creates the progression ladder.
+- **Stone tools are the starter tools.** Each new tier of tool is crafted from earlier materials, and its recipe unlocks at a skill level (see `resource_gathering.md`), which creates the progression ladder.
+- The tool is the only gate on gathering. A better tool also gathers lower tier resources a bit faster.
 - **Bronze** is an alloy made from **tin and copper** ingots. It has no ore of its own.
 
 > Naming note: "resource tier" (T1 to T10) and "imp tier" (Tier 1 to Tier 3) are two different things. This doc always says which one it means.
@@ -162,7 +163,7 @@ Each skill levels on its own, from **1 to 100**.
 | Titanite | T7 | Titanite ingot | 300s | Obsidian pickaxe |
 | Dreadstone | T8 | Dreadstone ingot | 300s | Titanite pickaxe |
 | Voidstone | T9 | Voidstone ingot | 600s | Dreadstone pickaxe |
-| Stellarite | T10 | Stellarite ingot | 1000s | Void pickaxe |
+| Stellarite | T10 | Stellarite ingot | 1000s | Voidstone pickaxe |
 
 #### Mining: gems
 
@@ -194,9 +195,9 @@ Each ore has a chance to drop a gem while being mined. Gem rarity does not follo
 | Titanwood | T7 | Titanwood planks | 300s | Obsidian axe |
 | Runewood | T8 | Runewood planks | 300s | Titanite axe |
 | Gembark | T9 | Gembark planks | 600s | Dreadstone axe |
-| Worldbark | T10 | Worldbark planks | 1000s | Void axe |
+| Worldbark | T10 | Worldbark planks | 1000s | Voidstone axe |
 
-Foraging, fishing and hunting tables will be added in `resources.md`.
+Foraging, fishing and hunting tables, gathering rules and skill XP live in `resource_gathering.md`.
 
 ---
 
@@ -267,7 +268,7 @@ Each player has a profile card that others can view.
 
 | Doc | Covers |
 | --- | --- |
-| `resources.md` | Every resource for all five skills, tiers, times, drops |
+| `resource_gathering.md` | Every resource for all five skills, tiers, times, drops, skill XP |
 | `crafting.md` | Recipes, stations, tool / weapon / armour progression |
 | `world_mobs.md` | Mobs, hunting, taming (later update) |
 | `challenges.md` | Challenges, trophies, titles, emblems |
