@@ -63,7 +63,7 @@ The world is split into two areas.
 ### 4.2 Resource world (grind)
 
 - An explorable area where all gatherable resources live: ores, trees, plants, fish and mobs.
-- Higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world.
+- Higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world. Biomes and which resources each one holds are in `game_worlds.md`.
 
 ---
 

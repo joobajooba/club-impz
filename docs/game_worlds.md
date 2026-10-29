@@ -1,6 +1,6 @@
 # Game Worlds
 
-> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v3 · Owner: J00BA · Last updated: 2026-10-29
 >
 > The two worlds in Club Impz, the hub world and the resource world: what each one is for, what players can do there, how they look and the art style for both. This doc must agree with `game_direction.md` and `resource_gathering.md`. Where they differ, `game_direction.md` wins until it is updated.
 
@@ -107,7 +107,9 @@ The resource world is **purely for levelling up** the game's skills.
 ### 4.2 Layout
 
 - The resource world is **open wilderness**, split into **biomes**.
-- **Higher tier resources sit deeper in the world** (see `game_direction.md` section 4.2). Players start near the portal in the easy biomes and travel further out as their tools improve.
+- **Higher tier resources mostly sit deeper in the world** (see `game_direction.md` section 4.2). Players start in the forest and travel further out as their tools improve.
+- Each biome has a **mix of tiers**, not one tier. Coal, for example, is found almost everywhere.
+- Some early biomes also hold a **high tier node** that players can see long before they can gather it, as a goal to come back to (for example obsidian in the mountain and worldbark in the forest).
 - Resource nodes are fixed in place and never run out (see `resource_gathering.md` section 9).
 - Every biome is **full of foliage**.
 
@@ -119,17 +121,64 @@ The biomes go in this order, from the start of the resource world to the deepest
 forest ─▶ mountain ─▶ frost ─▶ plains ─▶ swamp ─▶ void ─▶ stellar
 ```
 
-The biome order is set by J00BA. Which resource tiers sit in each biome is a **proposal**: the 10 tiers are spread over the 7 biomes, with two tiers in each of the first three. J00BA to confirm or change.
+| Depth | Biome | Look |
+| --- | --- | --- |
+| 1 (start) | Forest | Dense trees, ferns, mushrooms, streams |
+| 2 | Mountain | Tall peaks, cliffs, caves, rocky paths |
+| 3 | Frost | Snow, ice, frozen lakes, blue light |
+| 4 | Plains | Wide open grassland, rolling hills |
+| 5 | Swamp | Poison swamp: murky green water, toxic fog, twisted roots |
+| 6 | Void | Dark, floating rocks, purple glow, glowing crystals. No trees |
+| 7 (deepest) | Stellar | Cosmic space: starry sky, floating islands, low gravity feel. No trees |
 
-| Depth | Biome | Resource tiers | Ores | Trees | Look |
-| --- | --- | --- | --- | --- | --- |
-| 1 (start) | Forest | T1 to T2 | Coal, tin | Pine, birch | Dense trees, ferns, mushrooms, streams |
-| 2 | Mountain | T3 to T4 | Copper, iron | Oak, maple | Tall peaks, cliffs, caves, rocky paths |
-| 3 | Frost | T5 to T6 | Gold, obsidian | Hickory, frostbark | Snow, ice, frozen lakes, blue light |
-| 4 | Plains | T7 | Titanite | Titanwood | Wide open grassland, giant trees, rolling hills |
-| 5 | Swamp | T8 | Dreadstone | Runewood | Poison swamp: murky green water, toxic fog, twisted roots |
-| 6 | Void | T9 | Voidstone | Gembark | Dark, floating rocks, purple glow, glowing crystals |
-| 7 (deepest) | Stellar | T10 | Stellarite | Worldbark | Cosmic space: starry sky, floating islands, low gravity feel |
+### 4.4 Ores by biome
+
+| Biome | Ores (resource tier) | Notes |
+| --- | --- | --- |
+| Forest | Coal (T1), tin (T2), copper (T3) | All mineable with the starter `stone_pickaxe` |
+| Mountain | Coal (T1), tin (T2), copper (T3), iron (T4), obsidian (T6) | Obsidian needs a `gold_pickaxe`, so players come back later |
+| Frost | Coal (T1), iron (T4), gold (T5) | |
+| Plains | Coal (T1), titanite (T7) | |
+| Swamp | Coal (T1), iron (T4), gold (T5), dreadstone (T8) | |
+| Void | Coal (T1), obsidian (T6), voidstone (T9) | |
+| Stellar | Gold (T5), stellarite (T10) | The only biome with no coal |
+
+### 4.5 Trees by biome
+
+| Biome | Trees (resource tier) | Notes |
+| --- | --- | --- |
+| Forest | Pine (T1), birch (T2), oak (T3), worldbark (T10) | Worldbark needs a `voidstone_axe`, so it can't be chopped until end game |
+| Mountain | Maple (T4), hickory (T5) | |
+| Frost | Hickory (T5), frostbark (T6) | |
+| Plains | Titanwood (T7), gembark (T9) | |
+| Swamp | Titanwood (T7), runewood (T8) | |
+| Void | None | |
+| Stellar | None | |
+
+### 4.6 Where to find each resource
+
+| Resource | Tier | Biomes |
+| --- | --- | --- |
+| Coal | T1 | Forest, mountain, frost, plains, swamp, void |
+| Tin | T2 | Forest, mountain |
+| Copper | T3 | Forest, mountain |
+| Iron | T4 | Mountain, frost, swamp |
+| Gold | T5 | Frost, swamp, stellar |
+| Obsidian | T6 | Mountain, void |
+| Titanite | T7 | Plains |
+| Dreadstone | T8 | Swamp |
+| Voidstone | T9 | Void |
+| Stellarite | T10 | Stellar |
+| Pine | T1 | Forest |
+| Birch | T2 | Forest |
+| Oak | T3 | Forest |
+| Maple | T4 | Mountain |
+| Hickory | T5 | Mountain, frost |
+| Frostbark | T6 | Frost |
+| Titanwood | T7 | Plains, swamp |
+| Runewood | T8 | Swamp |
+| Gembark | T9 | Plains |
+| Worldbark | T10 | Forest |
 
 - Plants, fish and mobs for each biome will be added once their tables are in `resource_gathering.md` and `world_mobs.md`.
 - The existing mob models (`cow`, `pig`, `highland_cow`, `wolf`, `ogre`, `dragon`, `pale_dragon`) still need to be placed in biomes.
@@ -147,8 +196,7 @@ The biome order is set by J00BA. Which resource tiers sit in each biome is a **p
 ## 6. Open questions
 
 1. **Portals:** where are the portals? For example one portal from the hub to the forest, or one portal per biome that unlocks as the player reaches it. Can players return to the hub from anywhere (for example a teleport) or only from a portal?
-2. **Biome tiers:** is the tier split in section 4.3 right?
-3. **Dying:** what happens when a player dies to a mob in the resource world (for example respawn at the portal, lose nothing)?
-4. **Events:** what kind of hub events are planned, and are they scheduled or random?
-5. **Quests:** are quests the same as challenges (`challenges.md`), or a separate system with their own doc?
-6. **Player count:** how many players share one copy of each world at the same time?
+2. **Dying:** what happens when a player dies to a mob in the resource world (for example respawn at the portal, lose nothing)?
+3. **Events:** what kind of hub events are planned, and are they scheduled or random?
+4. **Quests:** are quests the same as challenges (`challenges.md`), or a separate system with their own doc?
+5. **Player count:** how many players share one copy of each world at the same time?
