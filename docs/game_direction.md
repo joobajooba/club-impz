@@ -63,7 +63,7 @@ The world is split into two areas.
 ### 4.2 Resource world (grind)
 
 - An explorable area where all gatherable resources live: ores, trees, plants, fish and mobs.
-- Higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world.
+- Higher tier resources need higher tier tools, so progression naturally pushes players deeper into the world. Biomes and which resources each one holds are in `game_worlds.md`.
 
 ---
 
@@ -269,6 +269,7 @@ Each player has a profile card that others can view.
 | Doc | Covers |
 | --- | --- |
 | `resource_gathering.md` | Every resource for all five skills, tiers, times, drops, skill XP |
+| `game_worlds.md` | Hub world, resource world, biomes, art style |
 | `crafting.md` | Recipes, stations, tool / weapon / armour progression |
 | `world_mobs.md` | Mobs, hunting, taming (later update) |
 | `challenges.md` | Challenges, trophies, titles, emblems |

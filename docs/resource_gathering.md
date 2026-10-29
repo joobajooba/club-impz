@@ -246,7 +246,7 @@ Lumbering has no gems, so each log gives a little more XP than the matching ore.
 
 - Resource nodes are **placed in the world from the start**. They are part of the map and never move or spawn somewhere new.
 - Nodes **never run out**. An ore rock, tree or plant stays after it is gathered and can be gathered again straight away.
-- Higher tier nodes sit deeper in the resource world (see `game_direction.md` section 4.2).
+- Higher tier nodes mostly sit deeper in the resource world. Which resources are in each biome is in `game_worlds.md` section 4.
 - Nodes are shared: any number of players can gather from the same node at once.
 
 ---
