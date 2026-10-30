@@ -258,6 +258,19 @@ class Model:
                 if f in hidden:
                     continue
                 w, h = self._face_px(c, f)
+                sw = c.mat.opts.get("swatch")
+                if sw and c.decal is None and w <= sw[0] and h <= sw[1]:
+                    # big faces crop a shared painted swatch at their own offset (section 3.11.2)
+                    cls = {"up": "up", "down": "down", "north": "lit", "west": "lit"}.get(f, "shade")
+                    if cls not in c.mat.opts.get("swatch_faces", ("lit", "shade")):
+                        rects.append([w, h, None, [(c, f)]])
+                        continue
+                    k = ("swatch", c.mat.name, cls)
+                    if k not in keyed:
+                        keyed[k] = [sw[0], sw[1], k, []]
+                        rects.append(keyed[k])
+                    keyed[k][3].append((c, f, w, h))
+                    continue
                 if c.share is not None:
                     k = (c.share, f, w, h)
                     if k in keyed:
@@ -280,6 +293,20 @@ class Model:
         img = np.zeros((size, size, 4), np.int16)
         faces_uv = {}
         for (w, h, key, users), (x, y) in zip(rects, places):
+            if key and key[0] == "swatch":
+                mat, cls = users[0][0].mat, key[2]
+                W, H = w / self.ppu, h / self.ppu
+                f, dims = {"lit": ("north", (W, H, 1)), "shade": ("east", (1, H, W)), "up": ("up", (W, 1, H)),
+                           "down": ("down", (W, 1, H))}[cls]
+                fake = Cube(f"swatch_{mat.name}_{cls}", (0, 0, 0), dims, mat, None, None, (0, 0, 0), (), None, None, 0, None)
+                rng = np.random.default_rng(zlib.crc32(f"{self.seed}:{fake.name}".encode()))
+                img[y:y + h, x:x + w] = paint_face(fake, f, w, h, self.ppu, rng)
+                for cu, fa, fw, fh in users:
+                    hsh = zlib.crc32(f"{cu.name}:{fa}".encode())
+                    ox = (hsh % max(1, (w - fw) // 2 + 1)) * 2
+                    oy = ((hsh >> 12) % max(1, (h - fh) // 4 + 1)) * 4
+                    faces_uv[(cu.uuid, fa)] = (x + ox, y + oy, x + ox + fw, y + oy + fh)
+                continue
             c, f = users[0]
             rng = np.random.default_rng(zlib.crc32(f"{self.seed}:{c.name}:{f}".encode()))
             area = paint_face(c, f, w, h, self.ppu, rng)
