@@ -34,6 +34,8 @@
 
 **Decided (D-047):** the **world** (ground, rocks, ore veins, trees, buildings) does **not** go voxel. It keeps the ART-DIRECTION rules, and ore veins keep the Stylized Ore look (D-019). See section 10 for how the two fit together.
 
+**Decided (D-119):** **trees** are the exception: world trees can be Blockbench models. The first are the oak and the pine (lumbering tier 4) in `godot-game/assets/models/source/blockbench/world/`.
+
 ## 2. What gets a Blockbench model (Proposed list)
 
 Taken from the decided systems. **Decided (D-114, D-115): every tier of a tool is its own model with its own texture** (section 6).
@@ -69,7 +71,7 @@ The inventory icons stay **2D pixel art at 48×48** (D-015). A Blockbench model 
 These are the habits that separate top Hypixel-style models from beginner ones.
 
 ### 4.1 One pixel size everywhere
-- **Pick one texel density and never break it.** **Decided (D-053): 2 texture pixels per Blockbench unit** (32 pixels per metre, "resolution 32"). Every model in the game uses it.
+- **Pick one texel density and never break it.** **Decided (D-053): 2 texture pixels per Blockbench unit** (32 pixels per metre, "resolution 32"). Every model in the game uses it. **Exception (D-120):** Blockbench trees use 8 texture pixels per unit (128 per metre).
 - **Never stretch a box after texturing it.** A stretched box has stretched, rectangular pixels. It's the most obvious sign of amateur work.
 - **Half-unit sizes.** Box sizes are in steps of 0.5 units (one texture pixel at D-053), so pixels land exactly on edges. The one exception is a small **Inflate** for an outer layer (fur, a hat, a glow shell), which may stretch pixels slightly on purpose.
 - **No "mixels"** (mixed pixel sizes): a 4× detailed sword next to a 2× creature looks wrong. If something needs more detail, make it physically bigger, not denser.
