@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v4 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v5 · Owner: J00BA · Last updated: 2026-10-30
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -66,6 +66,7 @@ These are the reference images J00BA supplied, and what to copy from each.
 | **Void sword** | Same layout, but the blade glows purple with a darker core rune pattern, gem set in the guard, ornate dark guard with spikes, pale wrapped grip, glowing pommel. Shows how higher tiers get more ornate. |
 | **16 Hytale plants** (flowers, bushes, grass, ferns, dead bushes, mushrooms, leaf litter) | **The main reference for foliage.** Plants are built from many flat alpha cards, one painted leaf or blade per card, fanning out from one base point and crossing each other. Full analysis in section 3.4.1. |
 | **Pickaxe** | Curved two-sided head built from stepped segments that taper to points, a square metal socket with a gold emblem, a cap pin on top, a carved dark wood handle, a metal end cap. |
+| **Hub castle** (French chateau, built in Blockbench) | **The main reference for buildings.** Stepped slate spires (10 to 14 tiers) at many heights, a ledge at every storey, corbel bands on tower tops, recessed windows and door, a grand porch with stairs, clean beige bricks with soft gradients and neat slate rows. Full analysis in section 3.11.1. |
 
 ### 1.3 Units and scale
 
@@ -111,7 +112,7 @@ Every existing model uses **2 texture pixels per Blockbench unit** (32 pixels pe
 2. **Colour ramps, not single colours.** Each material gets a ramp of **5 to 8 shades**, from deep shadow to highlight. **Hue shift** the ramp: shadows lean cooler (towards blue or purple), highlights lean warmer (towards yellow). Never just add black or white.
 3. **Never use pure black (#000000) or pure white (#ffffff).** Darkest outline tone is a very dark version of the material colour.
 4. **Face lighting baked in:** top faces are the lightest, side faces in the middle, bottom faces the darkest. North/south and east/west sides can differ slightly to fake a light direction (light comes from the top, slightly front left).
-5. **Pixel noise on every face.** Scatter 2 to 3 nearby shades across each face so nothing is flat. Use clusters of 2 to 4 pixels, not single-pixel static.
+5. **Pixel noise on every face.** Scatter 2 to 3 nearby shades across each face so nothing is flat. Use clusters of 2 to 4 pixels, not single-pixel static. Buildings use much less noise (section 3.11.1).
 6. **Edge highlights and contact shadows.** Lighten the top edge of each face by one shade. Darken pixels where a cube meets another cube or the ground (fake ambient occlusion).
 7. **Material detail on top of noise:** bark grain, stone cracks, ore veins, leaf shapes, feather rows, fur strands, metal scratches, cloth stitching, wood grain. Each category below says what.
 8. **Total colours per texture:** aim for **40 to 120** distinct colours. The existing mobs use 21 to 52, so new assets should go **beyond** them in detail, not below.
@@ -887,6 +888,109 @@ interaction:      <none | door / lid / sit point>, pivot at <...>
 texture:          <size>, 2 px/unit
 ```
 
+#### 3.11.1 Buildings: the hub castle reference
+
+The **hub castle** (a French style chateau: beige stone, grey slate spires, a central porch with stairs) is J00BA's approved reference for **every building**. It was built from the short prompt in section 3.11.4 and is the quality bar for model and texture. Copy these moves.
+
+*Model*
+
+| What it does | How |
+| --- | --- |
+| **Spires are stepped, not smooth.** | Each spire is 10 to 14 stacked square tiers, each 1 to 2 units smaller on every side than the one below, about 2 to 3 units tall. The steps read as rows of slate. A wide eave tier overhangs the wall by 2 to 3 units. The top ends in a thin 1 × 1 spike with a small cross bar finial (dark iron). |
+| **Many spires at different heights.** | 7 to 9 spires: the biggest on the outer towers, a central lantern spire that is the tallest, and smaller turret spires peeking out behind. The skyline is the silhouette. |
+| **Every storey is marked.** | A 1 unit proud string course (a ledge cube) runs round each tower and wall at every floor, so tall faces are cut into bands. Tower tops get a wider corbel band (a ring of small corbel cubes under a ledge that overhangs 1 to 2 units). |
+| **Square towers with chamfer.** | Towers are square or crossed boxes, not attempts at round. Corner quoins and the ledges give them depth. |
+| **Hipped slate roofs behind a parapet.** | Wings have a low crenellated parapet at the front with a hipped slate roof behind it, and small stone dormers (box + stepped little gable + window) sitting on the roof line. |
+| **Recessed openings.** | Windows and doors are set 0.5 to 1 unit **into** the wall (frame cubes proud round a darker recess), never painted flat on the face. |
+| **A grand central entrance.** | A projecting porch block with a stepped arched frame, a recessed wooden door with iron bars, 5 to 6 stairs with low side walls coming forward, and a tall gable above with one large arched window. |
+| **Base course.** | A slightly wider, darker plinth under every wall and tower, 2 to 4 units tall. |
+| **Regular, calm rhythm.** | Windows in even rows per wing (2 rows of 4), towers with 1 small window per storey. Buildings are near symmetrical (unlike trees and rocks), with small differences (one spire taller, one turret missing). |
+
+*Texture: very detailed but clean, so it reads HD*
+
+Buildings use a cleaner version of section 1.5. Detail comes from **pattern, light and shadow**, not from noise.
+
+- **Brick and ashlar:** clean running bond blocks about **8 × 4 px** (6 to 10 wide), 1 px mortar line in a darker, slightly cooler shade, each block a **soft 2 to 3 shade gradient** with a 1 px light top edge and a darker bottom edge. Neighbouring blocks vary by one shade. Rule 1.5.5 (noise clusters) is **reduced**: at most a few 2 pixel flecks per block, no speckle.
+- **Slate:** neat horizontal rows of tiles **2 to 3 px tall**, each row with a lighter top line and a dark gap under it, staggered tile joints. Each spire tier's side face is its own row band, so the stepped tiers and the painted rows line up.
+- **Openings:** dark blue grey glass with a 1 px lighter frame and a mullion; door as vertical warm brown planks behind dark iron bars.
+- **Light:** tops of ledges and tiers lightest, sides middle, undersides of every ledge, corbel and eave clearly darker. This is what makes the layers pop.
+- **Colour count:** 40 to 80 is enough. Few materials, each with a smooth ramp.
+
+**Building ramps** (dark → light):
+
+| Material | Ramp |
+| --- | --- |
+| Beige limestone | #4a4036 #66594b #82735f #9c8c74 #b5a58a #cbbda0 #e0d4ba |
+| Slate roof | #1e2329 #2c333b #3c444e #4e5762 #646d78 #7f8892 |
+| Door wood | #2a1a12 #3e281a #563824 #6e4a30 |
+| Iron | #1c1f24 #30353c #4a5059 #6a717b |
+| Window glass | #1a2230 #263244 #3a4a60 #5a6e86 |
+
+#### 3.11.2 Building anatomy (build order)
+
+1. `foundation`: base course plinth, stairs, terrace.
+2. `walls`: wing walls with string courses, quoins and proud blocks.
+3. `towers`: one subgroup per tower (body sections, string courses, corbel band).
+4. `roofs`: one subgroup per roof or spire (`<part>_roof`), stepped tiers, finial.
+5. `openings`: windows and doors (frames + recesses).
+6. `details`: dormers, chimneys, crenellations, lantern, banners (cloth on its own cubes).
+7. `scale_dummy`: the hidden 18 unit imp in front of the entrance.
+
+- **Scale:** size from the entrance. A normal door is 16 wide × 28 tall. The hub castle is about 250 wide, 90 deep and 138 tall.
+- **Decorative buildings** (can't be entered): door closed and static, no interior, no animation, but the back is finished (simpler, fewer windows) because players can walk round it.
+- **Budget:** 300 to 500 cubes, one 512 texture, 2 px/unit. Big wall faces map to crops of a few shared painted swatches (stone, slate, wood, trims) at the right pixel size, with different offsets so faces don't repeat.
+
+#### 3.11.3 Building prompt template
+
+```
+BUILDING BUILD SPEC
+name / id:        <building>            (e.g. hub_castle, blacksmith_house)
+use:              <decorative | enterable>, <hub | resource world biome>
+size:             <w> × <d> × <h>, entrance <w × h>
+layout:           <each block / tower: position, footprint, wall top y, roof tip y>
+spires / roofs:   <n> stepped spires (10 to 14 tiers), <hipped | gabled> roofs, dormers, finials
+storeys:          string course at each floor, corbel bands on tower tops, base course
+openings:         <window rows>, recessed frames, entrance <porch, stairs, door>
+materials:        <stone, slate, wood, iron, glass>, building ramps
+texture:          512, 2 px/unit, clean bricks 8 × 4 px with soft gradients, slate rows, low noise
+budget:           <cubes> (max 500)
+groups:           <building> > foundation, walls, towers, roofs, openings, details, scale_dummy
+```
+
+#### 3.11.4 The prompt that worked
+
+Keep building prompts **short**. The hub castle prompt that J00BA approved had only these parts, in this order, each a few lines:
+
+1. **What it is:** one line, plus "decorative, not enterable" if so, and "reference image attached".
+2. **Style:** Hytale voxel, chunky clean silhouette, textures detailed but clean so they look HD.
+3. **File setup:** format, name, save paths, lowercase names, orientation, build with a Python script, render a preview and compare it with the reference.
+4. **Scale:** imp is 18 units, hidden `scale_dummy_imp`, door size, overall size.
+5. **Layout:** one line per block or tower with position, footprint, wall top and roof tip heights.
+6. **Textures:** one texture, 2 px/unit, swatch crops, one line per material, the ramps.
+7. **Limits:** cube cap, no animations, no glow.
+8. **Before you finish:** silhouette matches, door right next to the imp, every face painted, show the preview.
+
+**Example.** "Make me a castle like this picture (French chateau), decoration only."
+
+```
+BUILDING BUILD SPEC
+name / id:        hub_castle
+use:              decorative / hub centrepiece
+size:             250 × 90 × 138, entrance 16 × 28
+layout:           centre porch x ±13 with stairs to z −56 and lantern spire to y 138;
+                  inner towers x ±24, 21 across, walls to 64, spires to 114;
+                  wings x ±34 to ±88, parapet at 50, hipped roof ridge 72, 2 dormers each;
+                  back towers x +50 / −64, walls to 80, spires to 130;
+                  outer towers x ±106, 38 across, walls to 62, spires to 126 (finial 136)
+spires / roofs:   8 stepped spires, hipped wing roofs, stone dormers, iron cross finials
+storeys:          string course every floor, corbel band on each tower top, base course
+openings:         2 rows of 4 windows per wing, 1 per tower storey, arched porch, barred door
+materials:        beige limestone, slate, door wood, iron, glass (building ramps)
+texture:          512, 2 px/unit, clean 8 × 4 px bricks, slate rows, low noise
+budget:           ~400 cubes
+groups:           hub_castle > foundation, walls, towers, roofs, openings, details, scale_dummy
+```
+
 ### 3.12 Textures (standalone)
 
 **Analysis.** Terrain is smooth heightmap ground painted with **stylized voxel / pixel textures** (`game_worlds.md` section 2). These textures are not on a `.bbmodel`; they are tiling PNGs in `godot-game/assets/textures/`.
@@ -939,6 +1043,7 @@ Check every item before handing a model over. If one fails, fix it.
 - [ ] Correct size compared with the 18 unit imp (section 1.3).
 - [ ] Stands on y = 0, centred on x = 0, z = 0. Characters face north (−z).
 - [ ] Within the cube budget (section 1.7).
+- [ ] Buildings: stepped spires, a ledge at every storey, recessed openings, clean bricks with low noise, compared with the hub castle (section 3.11.1).
 - [ ] Plants: built from alpha cards fanning from a base point (section 3.4.2), with the card count from section 3.4.4, and compared side by side with the closest reference in section 3.4.1.
 
 **Texture**
