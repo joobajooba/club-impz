@@ -124,6 +124,10 @@ func is_blocked(x: float, z: float, radius := 0.0) -> bool:
 					return true
 	return false
 
+## Marks a circle as taken, so later props, the meadow's grass and other spawns keep out of it.
+func reserve(x: float, z: float, radius: float) -> void:
+	_add_obstacle(x, z, radius)
+
 func _idx(x: float, z: float) -> int:
 	var ix := clampi(roundi(x + half), 0, _n - 1)
 	var iz := clampi(roundi(z + half), 0, _n - 1)
