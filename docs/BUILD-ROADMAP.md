@@ -28,7 +28,7 @@ The milestone order below is **Proposed**. You can reorder it.
 | M2 | Inventory and energy | Done | n/a |
 | M3 | All ten ores in the scene | Done | Drawn sprites for pickaxes 4–10 (veins 3–10 built in Godot, 2026-10-22) |
 | M4 | Gems | Done | n/a |
-| M5 | Smelting and pickaxe crafting | Done, on test values | Nothing: the real rules are decided (D-054 to D-060). Wood hilts stay a test until lumbering. |
+| M5 | Smelting and pickaxe crafting | Done, on test values | Superseded: G2–G5 rebuilt it in Godot on the decided rules (D-054 to D-060), and wood hilts come from planks (D-107). |
 | G2–G5 | Godot: mining, energy, inventory, furnace and blacksmith | Done | PR #36, merged 2026-10-22. Built on the decided rules (D-054 to D-060), not the D-013 test values. See GODOT.md section 4. |
 | Gathering | Godot: foraging, hunting (taming, stable, tracking), lumbering, fishing | Done | PR #38, merged 2026-10-22. Decided rules (D-022 to D-035, D-061 to D-072, D-105 to D-112). |
 | TEST systems | Godot: merchant, battles, treasure dig | Done, on TEST values | PR #38, merged 2026-10-22. Built from Proposed rules with TEST numbers at the user's request (2026-10-22). Not decisions. |
@@ -56,7 +56,7 @@ The milestone order below is **Proposed**. You can reorder it.
 - [x] Inventory menu: a 6×8 grid. Pickaxes first (click one to hold it), then mined items with counts. The top-left slots show only the held tool. (PR #13, D-008)
 - [x] Every mine costs 5 energy. Energy resets to 100 at 00:00 and 12:00, with no slow refill. Saved in the browser. (PR #13, D-008, D-009)
 - [x] Soil floor texture, square profile picture, chat width lined up with the HUD (PR #13)
-- **Decided since (D-057):** the reset is at 00:00 and 12:00 UTC for every player. The build still uses each player's own clock (see Gaps).
+- **Decided since (D-057):** the reset is at 00:00 and 12:00 UTC for every player. The Godot build resets at UTC (G4).
 
 ### M3: All ten ores in the scene: Done
 Decided: the ten tiers and the ore each gives (D-005, D-010), and which pickaxe mines which ore (D-006, D-011).
@@ -76,24 +76,22 @@ Decided: what each crafted pickaxe costs in ingots (D-006). Test values until yo
 - [x] Blacksmith's anvil in the scene: F opens it. Crafts each pickaxe for the D-006 ingots exactly. Shows what you have and what you need. **Test:** the blacksmith supplies the hilt.
 - [x] Players start with only the Stone pickaxe. Crafting adds a pickaxe and puts it in your hand. Q cycles the pickaxes you own.
 - [x] **Test tools** in Settings, so reviewers can try every tier quickly: refill energy, +20 of every ore, unlock all pickaxes. Remove before launch.
-- [ ] Replace the test values with the decided rules: ore per ingot by tier (D-054), Coal as fuel (D-055), Void and Cosmic hilts from ingots and a gem (D-058), double gem chance with the Stellarite pickaxe (D-059), Titanite ingots for the Titanite pickaxe (D-060). Wood hilts stay free as a test until lumbering exists.
+- [x] Replace the test values with the decided rules (done in Godot, G5): ore per ingot by tier (D-054), Coal as fuel (D-055), Void and Cosmic hilts from ingots and a gem (D-058), double gem chance with the Stellarite pickaxe (D-059), Titanite ingots for the Titanite pickaxe (D-060). Wood hilts stay free as a test until lumbering exists.
 
 ### Mining: what's left after M5
-Everything decided for mining up to D-013 is built. What's left:
-- Building the rules decided on 2026-10-21 (D-054 to D-060) in place of the test values.
-- Drawn 3D veins for tiers 3–10, and drawn sprites for the Steel to Stellarite pickaxes.
-- How lumbering gives Ash Wood and Oak Wood hilts (D-058). Lumbering isn't designed yet.
-- Resetting energy at 00:00 and 12:00 UTC (D-057), checked by the server rather than the player's clock.
-- Saving the inventory between visits (M6).
+Everything decided for mining is built in Godot: D-054 to D-060 (G5), wood hilts from planks (D-107), and every vein but Copper drawn in code (`godot-game/gathering/vein_art.gd`). What's left:
+- Drawn sprites for the Steel to Stellarite pickaxes.
+- The energy reset at 00:00 and 12:00 UTC (D-057) is checked on the device; the server should check it (M6).
+- Saving on the server rather than the device (M6).
 
 ### M6: Saving and accounts: In review, offline
 - [x] Keep the inventory between visits: items, tools, coins, rows and the stable are saved on this device by the `Save` autoload (**TEST**: the player can edit the file; the server keeps the real copy once connected).
-- [x] `Api` autoload: Supabase sign-up, log-in, session refresh and server function calls over HTTPS. Offline while `game/config/supabase.cfg` is empty. Tested against a local mock of Supabase.
+- [x] `Api` autoload: Supabase sign-up, log-in, session refresh and server function calls over HTTPS. Offline while `godot-game/config/supabase.cfg` is empty. Tested against a local mock of Supabase.
 - [x] Account section in the Profile menu (email and password, D-041).
 - [x] `supabase/migrations/…_game_schema.sql`: the section 8 tables with read-own-rows RLS, a player row made at sign-up, `load_state()` and `username_free()`. **Not applied.**
 - [ ] Connect the Supabase project (expose the `game` schema, put the URL and anon key in the config).
 - [ ] Server functions for every write: gather (drops and mint tokens rolled on the server), sell, craft, refill, the energy reset. Then the game stops trusting its own save.
-- [ ] Coins on the HUD: today the counter is fixed at 0, and nothing earns or spends coins.
+- [x] Coins on the HUD: earned and spent at the TEST merchant, battle board and dig, saved on the device.
 - **Decided since (D-041 to D-043):** player data lives in the shared Supabase database, with email accounts and a linked wallet. Saving is done by server functions (ACCOUNTS-AND-DATA, sections 7–8).
 - **No longer blocked on design.** The current tables are recorded in ACCOUNTS-AND-DATA, section 3. The claim is saved by Supabase and staking is finished (D-050). It waits for the Godot rebuild.
 
@@ -107,8 +105,8 @@ Everything decided for mining up to D-013 is built. What's left:
 
 ### Later
 - Skirmish, games and trade: drafted in 03–05 on 2026-10-21. Their smallest first versions are the starting points: wild battles (05), the daily treasure dig (D-096) and the market board (04). Everything new is built in Godot (D-087).
-- Shared chat: the chat panel works only on your own screen. There is no server, so other players don't see messages.
-- Other gathering skills. Foraging is decided enough to build picking, drying and sickles (D-022 to D-027, D-061 to D-064). Potions and Impling food are not. Hunting is decided enough to build hunts, tanning, bows, taming and tracking (D-028 to D-035, D-067 to D-072). Lumbering and fishing too (D-105 to D-112).
+- Shared chat and emotes: built in the Three.js test, not rebuilt in Godot yet. Chat needs the server.
+- Potions and farming: not decided enough to build (D-065, D-066). The other gathering skills are built.
 
 ---
 
@@ -118,10 +116,7 @@ These are known differences. They don't need a fix until their milestone comes u
 
 | Game today | Design | Milestone |
 |---|---|---|
-| Furnace: 2 ore make 1 ingot, with no Coal. The blacksmith supplies every hilt. The Titanite pickaxe takes Obsidian ingots. Gem chances are never doubled. | 2 to 5 ore per ingot, and Coal from Gold up (D-054, D-055). Void and Cosmic hilts from ingots and a gem (D-058). Titanite ingots (D-060). The Stellarite pickaxe doubles gem chances (D-059). Wood hilts stay a test until lumbering. | M5 |
-| Energy resets at 00:00 and 12:00 on each player's own clock | 00:00 and 12:00 UTC for every player (D-057) | M2 |
 | Items, tools, coins and the stable are saved on the device (TEST), not on the server | The server keeps them and decides every change (ACCOUNTS-AND-DATA, section 9) | M6 |
-| Overview section 2 says jump and emotes are "work in progress" | They are built (PR #5) | Design Pass 1 |
 
 ---
 
@@ -146,4 +141,6 @@ These are known differences. They don't need a fix until their milestone comes u
 | 2026-10-22 | Art: veins for tiers 3–10 built in code in the Stylized Ore look, each tier with its own shape (`gathering/vein_art.gd`). 48×48 icons for all sickles, axes, bows and rods and the four hilts (`sprites/build_tool_icons.py`). Plants, trees, animals and the 3D tool models are still TEST art. |
 | 2026-10-22 | G6 built offline-ready: `Api` (Supabase Auth and server function calls), a TEST device save, the Profile menu's account section, and the `game` schema SQL (not applied). Typing in a text box no longer moves the Imp. |
 | 2026-10-30 | Wild nodes (**TEST layout**): about 150 ore veins in outcrops of 2–4 and 350 plants in patches of 3–6 across the open world, outside the gathering sites. The same world on every load (seeded from the world seed). Tiers rise with distance from the middle: tiers 1–2 near the start, every tier by the map edge, and each tier up rarer. Ores stay out of the flat plains; ferns, leafy plants and mushrooms grow only in the woods. Each vein is one of four shapes of its ore, and every node has its own size and turn. Gathering, energy and respawn are the decided rules. |
+| 2026-10-30 | The repo moved to **club-impz** (D-117): the game is now in `godot-game/`, the source art in `godot-game/assets/*/source/`. The Tin vein is drawn in code, because the old Tin model's source is unconfirmed and this repo is public. Earlier PR numbers in this log are COLLAB_IMPZ's. |
+| 2026-10-30 | Pass 5 review: stale lines about the Three.js test, test values and wood hilts brought up to date; three Gaps rows removed because the Godot build closed them. |
 | 2026-10-30 | Menus and HUD redrawn as pixel art (D-015): every window, slot, button and bar is a small pixel picture drawn in code (`ui/ui_kit.gd`) at 3 screen pixels per art pixel: a bevelled gold frame with corner studs, recessed slots (gold for the held tool), raised buttons with a lip, shaded bars, key caps, gold titles over a rule. Coin and energy icons on the HUD. The font is Pixelify Sans (SIL Open Font Licence, `ui/fonts/`), and 2D textures default to nearest filtering so the pixels stay sharp. The style choices are **Proposed**. |
