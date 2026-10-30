@@ -10,11 +10,15 @@ def main():
     doc = None
     elements, groups, outliner, textures = [], [], [], []
     rows = (len(paths) + per_row - 1) // per_row
-    for k, p in enumerate(paths):
-        m = json.load(open(p, encoding="utf-8"))
+    models = [json.load(open(p, encoding="utf-8")) for p in paths]
+    # rows sit one model height apart (the tallest model, plus a gap), so tall models never overlap
+    tall = max(max(max(e["from"][1], e["to"][1]) for e in m["elements"] if e.get("export", True)) -
+               min(min(e["from"][1], e["to"][1]) for e in m["elements"] if e.get("export", True)) for m in models)
+    row_h = max(spacing * 1.1, tall + spacing * 0.4)
+    for k, (p, m) in enumerate(zip(paths, models)):
         doc = doc or m
         dx = (k % per_row - (per_row - 1) / 2) * spacing
-        dy = (rows - 1 - k // per_row) * spacing * 1.1
+        dy = (rows - 1 - k // per_row) * row_h
         ti = len(textures)
         for t in m["textures"]:
             t = dict(t, uuid=str(uuid.uuid4()), id=str(len(textures)))
