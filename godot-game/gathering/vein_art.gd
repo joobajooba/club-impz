@@ -8,14 +8,16 @@ class_name VeinArt
 ##   Void Stone: orbs spiralling up a rock (its icon is a spiral) · Stellarite: twin spires with blue crystals
 ## Colours come from GameData.ORE_LOOKS, which were taken from each ore picture. Veins get bigger
 ## with the tier. Every vein stands on y = 0, about a metre across.
+## `variant` reshuffles the rocks and ore inside the tier's silhouette, so veins out in the world
+## differ from each other; variant 0 is the vein at the mining site.
 
 const ROCK_SIDES := 6
 
 
-static func build(row: Dictionary) -> Node3D:
+static func build(row: Dictionary, variant := 0) -> Node3D:
 	var look: Dictionary = row.look
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(row.id)
+	rng.seed = hash(row.id) + variant * 7919
 	var root := Node3D.new()
 	var top := Color(look.top)
 	var side := Color(look.side)
