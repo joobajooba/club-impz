@@ -50,6 +50,12 @@ Every Markdown file in the repo, most important first. The order is **Proposed**
 | 17 | [reports/2026-10-20-godot-accounts-models.md](reports/2026-10-20-godot-accounts-models.md) | Report: move to Godot, accounts and database, Blockbench models (D-036 to D-050). | Done |
 | 18 | [reports/2026-10-21-design-session.md](reports/2026-10-21-design-session.md) | Report: the 2026-10-21 session: mining, foraging, hunting, economy, overview, skirmish, games, trade, lumbering, fishing (D-054 to D-112). | Done |
 | 19 | [reports/2026-10-22-proposals.md](reports/2026-10-22-proposals.md) | Report: proposals for the open decisions (prices, potions, farming, the dig, moves). | Done |
+| 20 | [reports/2026-10-30-pass-5.md](reports/2026-10-30-pass-5.md) | Report: Pass 5 review after the move to club-impz; clashes with J00BA's docs. | Done |
+| 21 | [implingz_collection.md](implingz_collection.md) | The Imp traits, for modelling them. | Draft |
+| 22 | [game_direction.md](game_direction.md) | J00BA's top-level direction for Club Impz (v3). Treats itself as the source of truth for J00BA's docs. | J00BA's (not tracked in this roadmap's passes) |
+| 23 | [game_worlds.md](game_worlds.md) | J00BA's hub world and resource world, biomes and art style. | J00BA's |
+| 24 | [resource_gathering.md](resource_gathering.md) | J00BA's gathering rules, tools, tiers, XP. | J00BA's |
+| 25 | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) | J00BA's guide for turning a short request into a Blockbench build. | J00BA's |
 
 **Why this order:** decisions and the overview come first because every other doc must agree with them. The two roadmaps come next because they say what to work on. Then come the system docs, in the order they will be worked on. The art direction sits after Resources because every 3D asset already being built (veins, furnace, anvil, cave) must follow it. Resources is first because every other system makes or spends resources. The two `CLAUDE.md` files and the README tell people and Claude how to work in the repo, but they don't define the game. Reports are history.
 
@@ -77,14 +83,14 @@ For a main row, **Status** is the doc's status. For a sub row, it is the topic's
 | 01.1 | ↳ Mining | Decided in 02 (D-005 to D-013, D-054 to D-060), and built on the D-013 test values | Not written up in 01 yet | | |
 | 01.2 | ↳ Mint tokens from gathering | Decided (D-040, D-045: Imp holders only) | The chance | | |
 | **02** | **[Resources & economy](02-resources.md)** | **Draft** | Sections 1, 2 and 5–8 are empty | 00 | 0, then user additions (D-005 to D-013, D-054 to D-060) |
-| 02.1 | ↳ Ore tiers and item pictures | Decided (D-005) | Drawn 3D veins for tiers 3–10 (the build recolours the copper vein) | | |
+| 02.1 | ↳ Ore tiers and item pictures | Decided (D-005) | n/a: every vein but Copper is drawn in code in the build. J00BA's docs order the tiers differently (Pass 5 report) | | |
 | 02.2 | ↳ Pickaxes: which mines which ore, and craft costs | Decided (D-006, D-011, D-059, D-060) | Whether the Stellarite pickaxe mines all ten ores is Proposed | | |
 | 02.3 | ↳ Mining rewards and vein respawn | Decided (D-007, D-010) | n/a | | |
 | 02.4 | ↳ Energy | Decided (D-008, D-009, D-057: 00:00 and 12:00 UTC) | n/a | | |
 | 02.5 | ↳ Inventory | Decided (D-008) | Saving it between visits (build M6) | | |
 | 02.6 | ↳ Gems | Decided (D-005, D-012) | n/a | | |
-| 02.7 | ↳ Smelting: ore into ingots | Decided (D-054 to D-056): ore per ingot by tier, Coal as fuel, no energy | The build still uses the D-013 test recipe | | |
-| 02.8 | ↳ Hilts | Decided (D-058): wood hilts from lumbering, Void and Cosmic hilts from ingots and a gem | How lumbering gives Ash Wood and Oak Wood hilts | | |
+| 02.7 | ↳ Smelting: ore into ingots | Decided (D-054 to D-056): ore per ingot by tier, Coal as fuel, no energy | n/a: built in Godot | | |
+| 02.8 | ↳ Hilts | Decided (D-058): wood hilts from lumbering, Void and Cosmic hilts from ingots and a gem | n/a: from 5 planks (D-107), built | | |
 | 02.9 | ↳ Selling, and other crafting and blacksmithing | Selling decided (D-073, D-074); other crafting not decided | The base sell price; other crafting and blacksmithing | | |
 | 02.10 | ↳ Prestige icons | Not decided | What they are for | | |
 | 02.11 | ↳ Sources, sinks, currencies, tradeability | Open question | The six questions at the end of 02 | | |
@@ -98,7 +104,7 @@ For a main row, **Status** is the doc's status. For a sub row, it is the topic's
 | AD.4 | ↳ Play as your Imp | Decided (D-038); Robinhood Chain now, ApeChain later (D-048); contract recorded (D-050) | ApeChain contract; models hosted in Supabase Storage (D-051) | | |
 | AD.5 | ↳ Non-holders | Decided (D-049): a basic Imp model | Its texture is still to make | | |
 | **GD** | **[Godot](GODOT.md)** | **Draft** | Phones, water shader licence, Godot version | 00 | User addition, 2026-10-21 |
-| GD.1 | ↳ Platform: the browser | Decided (D-046) | Switch the test project to the Compatibility renderer | | |
+| GD.1 | ↳ Platform: the browser | Decided (D-046) | n/a: on the Compatibility renderer, first web export works | | |
 | **BB** | **[Blockbench models](MODELS-BLOCKBENCH.md)** | **Draft** | Imp height, stations, FBX or glTF | ART | User addition, 2026-10-21 |
 | BB.1 | ↳ Stylised world, slight-voxel items and enemies | Decided (D-047) | n/a | | |
 | BB.2 | ↳ Reference listings | Decided (D-052) | Study in BLOCKBENCH-STUDY is Proposed | | |
@@ -116,7 +122,7 @@ For a main row, **Status** is the doc's status. For a sub row, it is the topic's
 
 **Why this order:** the overview decides what the NFT is and what the core loop is. Every system depends on that. Resources come next because every other system makes or spends them. If resources are designed last, the economy won't balance. Trade comes late because it depends on decisions about what is on-chain.
 
-**Where things actually stand:** the mining part of Resources (02) has moved ahead of the overview through user additions. The overview's open questions are still unanswered, so 02 can't go past `Draft` until they are: what is on-chain, and what an Imp is in the game, change how resources work.
+**Where things actually stand:** the mining part of Resources (02) has moved ahead of the overview through user additions. The overview's questions were answered on 2026-10-21 (D-080 to D-086), so 02 can move to `In review` once its empty sections (1, 2, 5–8) are written. Since 2026-10-30, J00BA's docs in this repo set different rules for some of the same things (Pass 5 report): that has to be settled first.
 
 ---
 
@@ -149,7 +155,7 @@ The pass plan can change. Only the user changes it.
   - [x] Energy reset: 00:00 and 12:00 UTC for every player (D-057)
   - [x] Smelter: ore per ingot by tier, Coal as fuel from Gold up, no energy cost (D-054 to D-056)
   - [x] Void and Cosmic hilts: crafted from ingots and a gem (D-058)
-  - [ ] Ash Wood and Oak Wood hilts: from lumbering (D-058), but how is not decided
+  - [x] Ash Wood and Oak Wood hilts: from 5 planks at the blacksmith (D-107)
   - [x] What the Stellarite pickaxe is for (double gem chance, D-059), and what Coal is for (furnace fuel, D-055)
   - [x] The Titanite pickaxe takes Titanite ingots (D-060)
   - [ ] Selling, and other crafting and blacksmithing
@@ -194,6 +200,8 @@ One collaborator has local Pass 1 work that was never pushed. On 2026-10-13 it w
 
 **Pass 5: Review.** On 2026-10-21 every system was given its decided rules in one session (see the [report](reports/2026-10-21-design-session.md)). The overview is In review. 01–05 are Drafts with their remaining details Proposed. Next: you review the Proposed parts, and the base price is set from the staked balances.
 
+On 2026-10-30 the work moved to the club-impz repo (D-117), next to J00BA's Club Impz docs. The [Pass 5 report](reports/2026-10-30-pass-5.md) brings stale lines up to date and lists where the two sets of docs disagree. **Blocking:** which set wins where they disagree.
+
 ---
 
 ## Pass log
@@ -218,3 +226,4 @@ One collaborator has local Pass 1 work that was never pushed. On 2026-10-13 it w
 | User additions | 2026-10-21 | Godot project in the repo | The Godot test project copied into `game/`, and the repo made private (D-079). The asset pack is the free CC0 Quaternius kit. | No report |
 | User additions | 2026-10-21 | Everything left | Overview answered (D-080 to D-086), design only and build in Godot (D-087), skirmish (D-088 to D-095), games (D-096 to D-098), trade (D-099 to D-102), trophies and leather (D-103, D-104), lumbering (D-105 to D-108), fishing (D-109 to D-112). 03–05 drafted, overview In review. | [report](reports/2026-10-21-design-session.md) |
 | User addition | 2026-10-22 | Proposals for open decisions | Real prices as multiples of one base price (02), potions (02), farming details (01), the dig's board (03), 2 moves at level 1 (05). Impling food raised as an Open question. All **Proposed**: nothing decided. | [Report](reports/2026-10-22-proposals.md) |
+| Review | 2026-10-30 | Pass 5, after the move to club-impz | The work moved to the club-impz repo (D-117). Stale lines about the Three.js test, test values, wood hilts and the renderer brought up to date in 00, 01, 02, ACCOUNTS-AND-DATA, ART-DIRECTION, GODOT, BUILD-ROADMAP and this file. Folder paths updated for the new layout. Two broken links in 01 fixed. J00BA's docs listed, and every clash with DECISIONS.md written up. Statuses unchanged. | [Report](reports/2026-10-30-pass-5.md) |

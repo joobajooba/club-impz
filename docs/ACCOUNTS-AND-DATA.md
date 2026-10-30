@@ -241,11 +241,11 @@ Anything that runs on the player's computer can be changed by the player. A brow
 - **Imp holders only (D-045)** is the strongest protection against farming with many accounts: each mint-token account needs its own Imp, and one Imp's wallet can link to one account.
 - **Never put the Supabase `service_role` key in the game or the website.** It skips every RLS rule. Only the public `anon` key goes in the browser.
 
-This means saving moves from "the browser remembers it" (today's Three.js test) to "the server remembers it". That is BUILD-ROADMAP milestone M6 (Godot G6).
+This means saving moves from "the device remembers it" (today's TEST save in the Godot game) to "the server remembers it". That is BUILD-ROADMAP milestone M6 (Godot G6).
 
 ## 10. Calling Supabase from Godot (Proposed)
 
-- **One autoload script, `Api`,** wraps every call: sign up, log in, refresh the session, call a server function, read a table. **Built (2026-10-22):** `game/autoload/api.gd`, using plain `HTTPRequest` so the game works on its own (see the open question below). It is offline while `game/config/supabase.cfg` is empty. The `game` schema is written in `supabase/migrations/` and is **not applied** yet.
+- **One autoload script, `Api`,** wraps every call: sign up, log in, refresh the session, call a server function, read a table. **Built (2026-10-22):** `godot-game/autoload/api.gd`, using plain `HTTPRequest` so the game works on its own (see the open question below). It is offline while `godot-game/config/supabase.cfg` is empty. The `game` schema is written in `supabase/migrations/` and is **not applied** yet.
 - **Login** uses Supabase Auth's HTTP endpoints. **Data** uses its REST API, with the player's access token in each request.
 - **Server functions** are Postgres functions (called through the REST API) or Supabase Edge Functions (small TypeScript programs). Postgres functions are enough for gather, link and spend. The NFT ownership check needs to call out to the chain, so it's an Edge Function.
 - **In the browser,** the game can also use the official Supabase JavaScript library already on impz.club, through `JavaScriptBridge`, which shares the website's login. **Open question:** use the website's library, or plain `HTTPRequest` from GDScript? The first shares the login for free; the second keeps the game working on its own.

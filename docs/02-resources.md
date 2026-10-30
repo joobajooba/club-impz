@@ -9,7 +9,7 @@
 
 **Purpose of this doc:** Everything that can be gathered, earned, spent or traded, and where it enters (sources) and leaves (sinks) the game.
 
-**Read the pictures.** The mining items live as 48×48 PNGs in `sprites/items/`. When this doc is used, open every file in that folder and match it to the tables below. The picture decides what the item looks like. A filename is only the label. If a filename and a picture disagree, trust the picture and say so.
+**Read the pictures.** The mining items live as 48×48 PNGs in `godot-game/assets/sprites/source/items/`. When this doc is used, open every file in that folder and match it to the tables below. The picture decides what the item looks like. A filename is only the label. If a filename and a picture disagree, trust the picture and say so.
 
 ---
 
@@ -24,6 +24,8 @@
 
 ### Mining tiers (Decided, D-005)
 
+Icon files named `items/…` in this doc's tables are in `godot-game/assets/sprites/source/items/` (D-117). The game loads its copies from `godot-game/sprites/items/`.
+
 The user set this table on 2026-10-12. It is the list of ores that can be mined, the ingot icon that belongs to each, and the one gem that can come with that ore. Ten tiers, lowest to highest. One gem per tier. No tier shares a gem.
 
 The **Chance for Gem** column was empty on the user's table. The user set it on 2026-10-13 (**Decided, D-012**): 10% for Tin, falling 1% per tier to 1% for Stellarite. The chance is rolled each time a vein breaks, and the gem comes on top of the ore. While the player holds the Stellarite pickaxe, every gem chance is doubled (**Decided, D-059**): 20% for Tin down to 2% for Stellarite.
@@ -34,16 +36,16 @@ What mining gives: one ore item for that tier (the `nugget_` picture) every time
 
 | Tier | Name | Ore picture | Ingot picture | Gem | Gem picture | Gem chance (D-012) |
 |---|---|---|---|---|---|---|
-| 1 | Tin | `sprites/items/nugget_tin.png` | `sprites/items/ingot_tin.png` | Topaz | `sprites/items/gemstone_topaz.png` | 10% |
-| 2 | Copper | `sprites/items/nugget_copper.png` | `sprites/items/ingot_copper.png` | Sapphire | `sprites/items/gemstone_sapphire.png` | 9% |
-| 3 | Iron | `sprites/items/nugget_iron.png` | `sprites/items/ingot_iron.png` | Amethyst | `sprites/items/gemstone_amethyst.png` | 8% |
-| 4 | Coal | `sprites/items/nugget_coal.png` | none | Ruby | `sprites/items/gemstone_ruby.png` | 7% |
-| 5 | Gold | `sprites/items/nugget_gold.png` | `sprites/items/ingot_gold.png` | Emerald | `sprites/items/gemstone_emerald.png` | 6% |
-| 6 | Obsidian | `sprites/items/nugget_obsidian.png` | `sprites/items/ingot_obsidian.png` | Jade | `sprites/items/gemstone_jade.png` | 5% |
-| 7 | Titanite | `sprites/items/nugget_mithril.png` | `sprites/items/ingot_mithril.png` | Diamond | `sprites/items/gemstone_diamond.png` | 4% |
-| 8 | Dreadstone | `sprites/items/nugget_adamantite.png` | `sprites/items/ingot_adamantite.png` | Painite | `sprites/items/gemstone_painite.png` | 3% |
-| 9 | Void Stone | `sprites/items/nugget_void.png` | `sprites/items/ingot_void.png` | Arcanium | `sprites/items/gemstone_arcanium.png` | 2% |
-| 10 | Stellarite | `sprites/items/nugget_stellarite.png` | `sprites/items/ingot_stellarite.png` | Eclipsium | `sprites/items/gemstone_eclipsium.png` | 1% |
+| 1 | Tin | `items/nugget_tin.png` | `items/ingot_tin.png` | Topaz | `items/gemstone_topaz.png` | 10% |
+| 2 | Copper | `items/nugget_copper.png` | `items/ingot_copper.png` | Sapphire | `items/gemstone_sapphire.png` | 9% |
+| 3 | Iron | `items/nugget_iron.png` | `items/ingot_iron.png` | Amethyst | `items/gemstone_amethyst.png` | 8% |
+| 4 | Coal | `items/nugget_coal.png` | none | Ruby | `items/gemstone_ruby.png` | 7% |
+| 5 | Gold | `items/nugget_gold.png` | `items/ingot_gold.png` | Emerald | `items/gemstone_emerald.png` | 6% |
+| 6 | Obsidian | `items/nugget_obsidian.png` | `items/ingot_obsidian.png` | Jade | `items/gemstone_jade.png` | 5% |
+| 7 | Titanite | `items/nugget_mithril.png` | `items/ingot_mithril.png` | Diamond | `items/gemstone_diamond.png` | 4% |
+| 8 | Dreadstone | `items/nugget_adamantite.png` | `items/ingot_adamantite.png` | Painite | `items/gemstone_painite.png` | 3% |
+| 9 | Void Stone | `items/nugget_void.png` | `items/ingot_void.png` | Arcanium | `items/gemstone_arcanium.png` | 2% |
+| 10 | Stellarite | `items/nugget_stellarite.png` | `items/ingot_stellarite.png` | Eclipsium | `items/gemstone_eclipsium.png` | 1% |
 
 File names that do not match the display name:
 
@@ -58,7 +60,7 @@ What the pictures actually show (open the file if you need the exact pixels):
 - `ingot_` files are bars. Stellarite is a blue bar with yellow stars. Void Stone is a dark bar with a purple spiral. Tin is a plain silver bar.
 - Gems are cut stones. Topaz is an orange round gem. Arcanium is a purple four-point star. Eclipsium is a black sphere with a white four-point glint. The other gems match their names: blue sapphire, purple amethyst, red ruby, green emerald, green jade, white diamond, red painite cluster.
 
-These pictures are inventory icons. They are not the 3D ore vein in the walk scene (`models/tin_orevein.fbx`).
+These pictures are inventory icons. They are not the 3D ore veins in the world (`godot-game/gathering/vein_art.gd` and `godot-game/assets/models/source/copper_vein.glb`).
 
 ### Pickaxes (Decided, D-006)
 
@@ -70,7 +72,7 @@ Stellarite is mined with the Void pickaxe. The Stellarite pickaxe is crafted, an
 
 The Stone pickaxe mines Tin and Copper. It has **no row** on the craft table. Do not invent a Stone recipe.
 
-Hilts are ingredients only (**Decided, D-058**). Ash Wood and Oak Wood hilts are made from 5 Ash or Oak planks (D-107). The blacksmith crafts the Void Hilt and the Cosmic Hilt from ingots and a gem (see [Smelting, fuel and hilts](#smelting-fuel-and-hilts-decided-d-054-to-d-058)). There is no picture for a hilt in `sprites/items/`.
+Hilts are ingredients only (**Decided, D-058**). Ash Wood and Oak Wood hilts are made from 5 Ash or Oak planks (D-107). The blacksmith crafts the Void Hilt and the Cosmic Hilt from ingots and a gem (see [Smelting, fuel and hilts](#smelting-fuel-and-hilts-decided-d-054-to-d-058)). There is no picture for a hilt in `godot-game/assets/sprites/source/items/`.
 
 | Ore | Gem | Mined with |
 |---|---|---|
@@ -102,7 +104,7 @@ The Titanite row first said 10 Obsidian Ingot, the same as the Obsidian row. On 
 
 Coal is not an ingredient in any pickaxe. It is furnace fuel (D-055). Coal still has no ingot file.
 
-The walk scene has all ten pickaxes as skins (`models/pickaxe-skins.json`). Stone, Bronze and Iron have drawn sprites. Steel to Stellarite are **test placeholders**: their sprites in `sprites/pickaxes/` are the iron sprite recoloured with each ingot's colours, and the handle coloured for its hilt. They should be replaced with drawn art.
+Pickaxe pictures: Stone, Bronze and Iron have drawn sprites in `godot-game/assets/sprites/source/pickaxes/`. Steel to Stellarite are **test placeholders**: the iron sprite recoloured with each ingot's colours, and the handle coloured for its hilt. They should be replaced with drawn art. (The Three.js test showed them as skins from `godot-game/assets/models/source/pickaxe-skins.json`; that test was removed, D-113.)
 
 ### Smelting, fuel and hilts (Decided, D-054 to D-058)
 
@@ -135,7 +137,7 @@ Hilts (D-058). The blacksmith makes the two gem hilts:
 | Void Hilt | Void pickaxe | 2 Void ingots + 1 Arcanium, at the blacksmith |
 | Cosmic Hilt | Stellarite pickaxe | 2 Stellarite ingots + 1 Eclipsium, at the blacksmith |
 
-**Until lumbering exists**, the build keeps supplying wood hilts for free, as a labelled **test value**. D-013 still applies to wood hilts only.
+Lumbering is built in Godot (COLLAB_IMPZ PR #38), so the blacksmith makes wood hilts from planks (D-107) and the D-013 free hilts are gone.
 
 **What this costs a player** (worked out from D-006, D-012, D-054, D-055, D-058 and D-060; not a decision): every pickaxe from Bronze to Stellarite, plus the two gem hilts, takes about **345 ore and 98 Coal, about 443 mines**. At 20 mines per energy reset that is about 22 resets, or 11 days for a player who uses both resets every day. Gems add to that, and they are random. Arcanium (2%) takes about 50 Void Stone mines on average, most of which the Void pickaxe needs anyway. Eclipsium (1%) takes about 100 Stellarite mines on average, against the 60 Stellarite ore the Stellarite pickaxe and Cosmic Hilt need. About 1 player in 3 needs more than 100 Stellarite mines to find one, and about 1 in 20 needs more than 300.
 
@@ -151,16 +153,16 @@ Plants are picked with **sickles**, one per tier. A sickle picks its own tier's 
 
 | Tier | Name | Plant picture | Bundle picture | Seed picture | Seed chance (D-025) |
 |---|---|---|---|---|---|
-| 1 | Nettle | `sprites/items/plant_nettle.png` | `sprites/items/bundle_nettle.png` | `sprites/items/seed_nettle.png` | 10% |
-| 2 | Marigold | `sprites/items/plant_marigold.png` | `sprites/items/bundle_marigold.png` | `sprites/items/seed_marigold.png` | 9% |
-| 3 | Bluebell | `sprites/items/plant_bluebell.png` | `sprites/items/bundle_bluebell.png` | `sprites/items/seed_bluebell.png` | 8% |
-| 4 | Thornroot | `sprites/items/plant_thornroot.png` | `sprites/items/bundle_thornroot.png` | `sprites/items/seed_thornroot.png` | 7% |
-| 5 | Sunpetal | `sprites/items/plant_sunpetal.png` | `sprites/items/bundle_sunpetal.png` | `sprites/items/seed_sunpetal.png` | 6% |
-| 6 | Nightshade | `sprites/items/plant_nightshade.png` | `sprites/items/bundle_nightshade.png` | `sprites/items/seed_nightshade.png` | 5% |
-| 7 | Frostbloom | `sprites/items/plant_frostbloom.png` | `sprites/items/bundle_frostbloom.png` | `sprites/items/seed_frostbloom.png` | 4% |
-| 8 | Bloodcap | `sprites/items/plant_bloodcap.png` | `sprites/items/bundle_bloodcap.png` | `sprites/items/seed_bloodcap.png` | 3% |
-| 9 | Voidlily | `sprites/items/plant_voidlily.png` | `sprites/items/bundle_voidlily.png` | `sprites/items/seed_voidlily.png` | 2% |
-| 10 | Starmoss | `sprites/items/plant_starmoss.png` | `sprites/items/bundle_starmoss.png` | `sprites/items/seed_starmoss.png` | 1% |
+| 1 | Nettle | `items/plant_nettle.png` | `items/bundle_nettle.png` | `items/seed_nettle.png` | 10% |
+| 2 | Marigold | `items/plant_marigold.png` | `items/bundle_marigold.png` | `items/seed_marigold.png` | 9% |
+| 3 | Bluebell | `items/plant_bluebell.png` | `items/bundle_bluebell.png` | `items/seed_bluebell.png` | 8% |
+| 4 | Thornroot | `items/plant_thornroot.png` | `items/bundle_thornroot.png` | `items/seed_thornroot.png` | 7% |
+| 5 | Sunpetal | `items/plant_sunpetal.png` | `items/bundle_sunpetal.png` | `items/seed_sunpetal.png` | 6% |
+| 6 | Nightshade | `items/plant_nightshade.png` | `items/bundle_nightshade.png` | `items/seed_nightshade.png` | 5% |
+| 7 | Frostbloom | `items/plant_frostbloom.png` | `items/bundle_frostbloom.png` | `items/seed_frostbloom.png` | 4% |
+| 8 | Bloodcap | `items/plant_bloodcap.png` | `items/bundle_bloodcap.png` | `items/seed_bloodcap.png` | 3% |
+| 9 | Voidlily | `items/plant_voidlily.png` | `items/bundle_voidlily.png` | `items/seed_voidlily.png` | 2% |
+| 10 | Starmoss | `items/plant_starmoss.png` | `items/bundle_starmoss.png` | `items/seed_starmoss.png` | 1% |
 
 What the pictures show:
 
@@ -169,9 +171,9 @@ What the pictures show:
 - `seed_` files are the seeds, one different shape per plant, like the gems. Nettle: three olive teardrop seeds. Marigold: three long dark seeds with pale tips. Bluebell: a green pod split open on blue-black seeds, two loose beside it. Thornroot: a brown burr with pale spikes. Sunpetal: a big striped gold seed with sparkles. Nightshade: two glossy purple seeds. Frostbloom: a pale ice crystal with a blue core. Bloodcap: three red spore balls with cream specks (a mushroom has spores, not seeds). Voidlily: a dark oval seed with a glowing purple spiral. Starmoss: a dark blue spore ball with yellow stars.
 - Tiers 5 to 10 reuse the colours of the same mining tiers (gold, dark purple, pale lilac, red, void purple, starry blue), so a colour means the same rarity in both activities.
 
-The icons are drawn by `sprites/build_foraging_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_foraging_icons.lua`), using the shared helpers in `sprites/pixel_icons.lua`. They can be hand-edited in Aseprite afterwards.
+The icons are drawn by `godot-game/assets/sprites/source/build_foraging_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_foraging_icons.lua`), using the shared helpers in `godot-game/assets/sprites/source/pixel_icons.lua`. They can be hand-edited in Aseprite afterwards.
 
-The whole table as one picture, in the layout of the mining sheet, is [`foraging-table.png`](foraging-table.png). It is drawn by `sprites/build_item_tables.lua` in Aseprite, the same as the hunting table.
+The whole table as one picture, in the layout of the mining sheet, is [`foraging-table.png`](foraging-table.png). It is drawn by `godot-game/assets/sprites/source/build_item_tables.lua` in Aseprite, the same as the hunting table.
 
 #### Picking, drying and sickles (Decided, D-061 to D-066)
 
@@ -233,22 +235,22 @@ The **Trophy chance** is decided (D-033). The gem and seed ladder (10% falling 1
 
 | Tier | Animal | Hide picture | Leather picture | Trophy | Trophy picture | Trophy chance (D-033) |
 |---|---|---|---|---|---|---|
-| 1 | Hare | `sprites/items/hide_hare.png` | `sprites/items/leather_hare.png` | Lucky Foot | `sprites/items/trophy_lucky_foot.png` | 10.0% |
-| 2 | Fox | `sprites/items/hide_fox.png` | `sprites/items/leather_fox.png` | Brush Tail | `sprites/items/trophy_brush_tail.png` | 9.4% |
-| 3 | Boar | `sprites/items/hide_boar.png` | `sprites/items/leather_boar.png` | Boar Tusk | `sprites/items/trophy_boar_tusk.png` | 8.8% |
-| 4 | Wolf | `sprites/items/hide_wolf.png` | `sprites/items/leather_wolf.png` | Wolf Fang | `sprites/items/trophy_wolf_fang.png` | 8.2% |
-| 5 | Goldhorn Stag | `sprites/items/hide_goldhorn_stag.png` | `sprites/items/leather_goldhorn_stag.png` | Golden Antler | `sprites/items/trophy_golden_antler.png` | 7.6% |
-| 6 | Shadowcat | `sprites/items/hide_shadowcat.png` | `sprites/items/leather_shadowcat.png` | Shadow Claw | `sprites/items/trophy_shadow_claw.png` | 7.0% |
-| 7 | Frostmane Yeti | `sprites/items/hide_frostmane_yeti.png` | `sprites/items/leather_frostmane_yeti.png` | Frozen Heart | `sprites/items/trophy_frozen_heart.png` | 6.4% |
-| 8 | Cinder Salamander | `sprites/items/hide_cinder_salamander.png` | `sprites/items/leather_cinder_salamander.png` | Ember Scale | `sprites/items/trophy_ember_scale.png` | 5.8% |
-| 9 | Voidstalker | `sprites/items/hide_voidstalker.png` | `sprites/items/leather_voidstalker.png` | Void Eye | `sprites/items/trophy_void_eye.png` | 5.2% |
-| 10 | Starwyrm | `sprites/items/hide_starwyrm.png` | `sprites/items/leather_starwyrm.png` | Star Horn | `sprites/items/trophy_star_horn.png` | 4.6% |
-| 11 | Stormhorn Ram | `sprites/items/hide_stormhorn_ram.png` | `sprites/items/leather_stormhorn_ram.png` | Thunder Curl | `sprites/items/trophy_thunder_curl.png` | 4.0% |
-| 12 | Tidecrest Serpent | `sprites/items/hide_tidecrest_serpent.png` | `sprites/items/leather_tidecrest_serpent.png` | Abyss Pearl | `sprites/items/trophy_abyss_pearl.png` | 3.4% |
-| 13 | Mossmane Behemoth | `sprites/items/hide_mossmane_behemoth.png` | `sprites/items/leather_mossmane_behemoth.png` | Verdant Mane | `sprites/items/trophy_verdant_mane.png` | 2.8% |
-| 14 | Crystalback Basilisk | `sprites/items/hide_crystalback_basilisk.png` | `sprites/items/leather_crystalback_basilisk.png` | Prism Shard | `sprites/items/trophy_prism_shard.png` | 2.2% |
-| 15 | Sunfeather Griffin | `sprites/items/hide_sunfeather_griffin.png` | `sprites/items/leather_sunfeather_griffin.png` | Sun Feather | `sprites/items/trophy_sun_feather.png` | 1.6% |
-| 16 | Eclipse Dragon | `sprites/items/hide_eclipse_dragon.png` | `sprites/items/leather_eclipse_dragon.png` | Eclipse Crown | `sprites/items/trophy_eclipse_crown.png` | 1.0% |
+| 1 | Hare | `items/hide_hare.png` | `items/leather_hare.png` | Lucky Foot | `items/trophy_lucky_foot.png` | 10.0% |
+| 2 | Fox | `items/hide_fox.png` | `items/leather_fox.png` | Brush Tail | `items/trophy_brush_tail.png` | 9.4% |
+| 3 | Boar | `items/hide_boar.png` | `items/leather_boar.png` | Boar Tusk | `items/trophy_boar_tusk.png` | 8.8% |
+| 4 | Wolf | `items/hide_wolf.png` | `items/leather_wolf.png` | Wolf Fang | `items/trophy_wolf_fang.png` | 8.2% |
+| 5 | Goldhorn Stag | `items/hide_goldhorn_stag.png` | `items/leather_goldhorn_stag.png` | Golden Antler | `items/trophy_golden_antler.png` | 7.6% |
+| 6 | Shadowcat | `items/hide_shadowcat.png` | `items/leather_shadowcat.png` | Shadow Claw | `items/trophy_shadow_claw.png` | 7.0% |
+| 7 | Frostmane Yeti | `items/hide_frostmane_yeti.png` | `items/leather_frostmane_yeti.png` | Frozen Heart | `items/trophy_frozen_heart.png` | 6.4% |
+| 8 | Cinder Salamander | `items/hide_cinder_salamander.png` | `items/leather_cinder_salamander.png` | Ember Scale | `items/trophy_ember_scale.png` | 5.8% |
+| 9 | Voidstalker | `items/hide_voidstalker.png` | `items/leather_voidstalker.png` | Void Eye | `items/trophy_void_eye.png` | 5.2% |
+| 10 | Starwyrm | `items/hide_starwyrm.png` | `items/leather_starwyrm.png` | Star Horn | `items/trophy_star_horn.png` | 4.6% |
+| 11 | Stormhorn Ram | `items/hide_stormhorn_ram.png` | `items/leather_stormhorn_ram.png` | Thunder Curl | `items/trophy_thunder_curl.png` | 4.0% |
+| 12 | Tidecrest Serpent | `items/hide_tidecrest_serpent.png` | `items/leather_tidecrest_serpent.png` | Abyss Pearl | `items/trophy_abyss_pearl.png` | 3.4% |
+| 13 | Mossmane Behemoth | `items/hide_mossmane_behemoth.png` | `items/leather_mossmane_behemoth.png` | Verdant Mane | `items/trophy_verdant_mane.png` | 2.8% |
+| 14 | Crystalback Basilisk | `items/hide_crystalback_basilisk.png` | `items/leather_crystalback_basilisk.png` | Prism Shard | `items/trophy_prism_shard.png` | 2.2% |
+| 15 | Sunfeather Griffin | `items/hide_sunfeather_griffin.png` | `items/leather_sunfeather_griffin.png` | Sun Feather | `items/trophy_sun_feather.png` | 1.6% |
+| 16 | Eclipse Dragon | `items/hide_eclipse_dragon.png` | `items/leather_eclipse_dragon.png` | Eclipse Crown | `items/trophy_eclipse_crown.png` | 1.0% |
 
 What the pictures show:
 
@@ -256,9 +258,9 @@ What the pictures show:
 - `leather_` files are one rolled leather shape with a strap and gold buckle, recoloured per tier, like the ingots. Higher tiers carry the same marks as their hides.
 - `trophy_` files are each their own shape, like the gems. Lucky Foot: a furry foot on a gold keyring. Brush Tail: a bushy orange tail with a white tip. Boar Tusk: a curved ivory tusk. Wolf Fang: a fang on a cord. Golden Antler: a branching gold antler. Shadow Claw: three dark claws with glowing edges. Frozen Heart: an ice-crystal heart. Ember Scale: a red scale with glowing cracks. Void Eye: a dark eye with a glowing purple iris and slit pupil. Star Horn: a ridged blue horn with stars. Thunder Curl: a curled grey ram's horn with a lightning bolt. Abyss Pearl: a pearl in an open teal shell. Verdant Mane: green mane strands in a gold clasp. Prism Shard: a cluster of pink crystals. Sun Feather: a pale gold feather. Eclipse Crown: a black and gold crown with a dark orb ringed in light.
 
-The icons are drawn by `sprites/build_hunting_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_hunting_icons.lua`). It shares its drawing helpers with the foraging script through `sprites/pixel_icons.lua`.
+The icons are drawn by `godot-game/assets/sprites/source/build_hunting_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_hunting_icons.lua`). It shares its drawing helpers with the foraging script through `godot-game/assets/sprites/source/pixel_icons.lua`.
 
-The whole table as one picture, in the layout of the mining sheet, is [`hunting-table.png`](hunting-table.png). It is drawn by `sprites/build_item_tables.lua` in Aseprite (`aseprite -b --script sprites/build_item_tables.lua`, which redraws every table picture), with the labels in a small pixel font (`sprites/pixel_font.lua`). Re-run it after changing an icon.
+The whole table as one picture, in the layout of the mining sheet, is [`hunting-table.png`](hunting-table.png). It is drawn by `godot-game/assets/sprites/source/build_item_tables.lua` in Aseprite (`aseprite -b --script sprites/build_item_tables.lua`, which redraws every table picture), with the labels in a small pixel font (`godot-game/assets/sprites/source/pixel_font.lua`). Re-run it after changing an icon.
 
 #### Hunting, tanning, bows and taming (Decided, D-067 to D-072)
 
@@ -327,7 +329,7 @@ Tiers 5 to 10 reuse the colours of the same mining tiers (gold, dark purple, pal
 
 **What this costs a player** (worked out from the tables, not a decision): every Ash and Oak hilt for the pickaxes, sickles and axes (12 Ash and 9 Oak) takes about **255 chops**. All ten axes add about 240 mines on top of the 886 for pickaxes and sickles.
 
-**Icons (D-105):** `log_<tree>.png`, `plank_<tree>.png` and `sap_<tree>.png` in `sprites/items/` (for example `log_ash.png`). A log lies diagonally with its rings facing you, and has bark in that tree's colour (Birch has black marks). Planks are a stack of two. Saps are a glossy drop. Tiers 5 to 10 carry the same marks as foraging: sparkles, a purple glint, frost, spots, a spiral, stars.
+**Icons (D-105):** `log_<tree>.png`, `plank_<tree>.png` and `sap_<tree>.png` in `godot-game/assets/sprites/source/items/` (for example `log_ash.png`). A log lies diagonally with its rings facing you, and has bark in that tree's colour (Birch has black marks). Planks are a stack of two. Saps are a glossy drop. Tiers 5 to 10 carry the same marks as foraging: sparkles, a purple glint, frost, spots, a spiral, stars.
 
 ### Fishing tiers (Decided, D-109 to D-112)
 
@@ -356,9 +358,9 @@ The user set the fishing rules on 2026-10-21 and asked Claude to name the fish a
 
 **What this costs a player** (worked out, not a decision): all nine crafted rods take about **330 chops** of logs for their planks. Starwood planks aren't used by any rod.
 
-**Icons (D-109):** `fish_<fish>.png`, `cooked_<fish>.png` and `pearl_<pearl>.png` in `sprites/items/` (for example `fish_goldfin_carp.png`, `pearl_golden.png`). Each fish has its own body shape and details: Perch has bars, Trout a pink stripe, Catfish whiskers, Void Angler a glowing lure, Starfin Koi white patches. Cooked fish is the same fish, browned, with grill marks and steam. A pearl sits in an open shell.
+**Icons (D-109):** `fish_<fish>.png`, `cooked_<fish>.png` and `pearl_<pearl>.png` in `godot-game/assets/sprites/source/items/` (for example `fish_goldfin_carp.png`, `pearl_golden.png`). Each fish has its own body shape and details: Perch has bars, Trout a pink stripe, Catfish whiskers, Void Angler a glowing lure, Starfin Koi white patches. Cooked fish is the same fish, browned, with grill marks and steam. A pearl sits in an open shell.
 
-All lumbering and fishing icons are drawn by `sprites/build_lumber_fishing_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_lumber_fishing_icons.lua`), using the shared helpers in `sprites/pixel_icons.lua`.
+All lumbering and fishing icons are drawn by `godot-game/assets/sprites/source/build_lumber_fishing_icons.lua` in Aseprite (`aseprite -b --script-param out=sprites/items --script sprites/build_lumber_fishing_icons.lua`), using the shared helpers in `godot-game/assets/sprites/source/pixel_icons.lua`.
 
 ### Currencies: IMP coins and mint tokens (Decided, D-039, D-040, D-042, D-073 to D-078)
 
@@ -423,24 +425,24 @@ These six files were in the same folder. They are **not** ores, ingots or gems, 
 
 | File | What the picture is |
 |---|---|
-| `sprites/items/prestige_0.png` | Gold star medal with a red and blue ribbon |
-| `sprites/items/prestige_1.png` | Red eye with a yellow slit pupil on a black winged shape |
-| `sprites/items/prestige_2.png` | Green dragon head with yellow horns and spines |
-| `sprites/items/prestige_3.png` | Red horned helmet with a dark visor |
-| `sprites/items/prestige_4.png` | Gold beast face with a mane and an open mouth |
-| `sprites/items/prestige_5.png` | Gold crown floating over a blue glowing ring |
+| `items/prestige_0.png` | Gold star medal with a red and blue ribbon |
+| `items/prestige_1.png` | Red eye with a yellow slit pupil on a black winged shape |
+| `items/prestige_2.png` | Green dragon head with yellow horns and spines |
+| `items/prestige_3.png` | Red horned helmet with a dark visor |
+| `items/prestige_4.png` | Gold beast face with a mane and an open mouth |
+| `items/prestige_5.png` | Gold crown floating over a blue glowing ring |
 
 ## 4. Inputs & outputs
 | Takes in | Gives out | Notes |
 |---|---|---|
-| Breaking one vein of any tier, and 5 energy | 1 ore of that tier (`nugget_` icon) in the inventory menu | **Decided** (D-005, D-007, D-008, D-010). The scene has a vein for every tier. Tin uses `models/tin_orevein.fbx` and Copper uses `models/copper_vein.glb`. Iron to Stellarite use the copper vein recoloured per tier: **test art** until each has its own model. |
+| Breaking one vein of any tier, and 5 energy | 1 ore of that tier (`nugget_` icon) in the inventory menu | **Decided** (D-005, D-007, D-008, D-010). The scene has a vein for every tier. Copper uses `godot-game/assets/models/source/copper_vein.glb`. Every other tier is built in code in the Stylized Ore look, each with its own shape (`godot-game/gathering/vein_art.gd`). |
 | Breaking one vein of any tier | That tier's gem, sometimes | **Decided** (D-005, D-012). 10% for Tin down to 1% for Stellarite, rolled once per vein. |
-| Mining any vein | Costs 5 energy | **Decided** (D-008). Energy max is 100. Below 5 energy nothing can be mined. Energy resets to 100 every 12 hours, at **00:00 and 12:00 UTC** for every player (D-009, D-057), with no slow refill. The build still uses the player's own clock and saves energy in the browser, until it is updated. |
+| Mining any vein | Costs 5 energy | **Decided** (D-008). Energy max is 100. Below 5 energy nothing can be mined. Energy resets to 100 every 12 hours, at **00:00 and 12:00 UTC** for every player (D-009, D-057), with no slow refill. The Godot build resets at UTC and saves energy on the device (TEST) until the server checks it (M6). |
 | Time | A broken vein grows back after 10 seconds | **Decided** (D-007), for now. Applies to every vein. |
 | The pickaxe named for that ore, or a stronger one | The right to mine that ore | **Decided** (D-006, D-011). Every player starts with Stone. |
 | Ingots and one hilt, in the amounts in the pickaxe table | That crafted pickaxe, from the blacksmith | **Decided** (D-006, D-060). Stone has no craft cost. Crafting costs no energy (D-056). |
-| Ingots and a gem, at the blacksmith | A Void Hilt or a Cosmic Hilt | **Decided** (D-058): 2 Void ingots + 1 Arcanium, or 2 Stellarite ingots + 1 Eclipsium. Ash Wood and Oak Wood hilts are made from 5 planks (D-107). The build supplies wood hilts for free as a test until lumbering is built. |
-| Ore and Coal, at the furnace | 1 ingot of that metal | **Decided** (D-054, D-055, D-056): 2 to 5 ore per ingot by tier, Coal from Gold upward, no energy. See the smelting table. The build still uses the D-013 test recipe. |
+| Ingots and a gem, at the blacksmith | A Void Hilt or a Cosmic Hilt | **Decided** (D-058): 2 Void ingots + 1 Arcanium, or 2 Stellarite ingots + 1 Eclipsium. Ash Wood and Oak Wood hilts are made from 5 planks (D-107), as built in Godot. |
+| Ore and Coal, at the furnace | 1 ingot of that metal | **Decided** (D-054, D-055, D-056): 2 to 5 ore per ingot by tier, Coal from Gold upward, no energy. See the smelting table. Built in Godot. |
 | Picking one plant, and 5 energy from the shared pool | 1 plant of that tier, and sometimes its seed | **Decided** (D-022, D-025, D-061). The plant grows back after 10 seconds (D-064). |
 | Plants, at the drying rack | 1 dried bundle of that plant | **Decided** (D-062): 2 to 5 plants by tier, no fuel, no energy. |
 | Ingots and one hilt, at the blacksmith | A sickle | **Decided** (D-063): the same cost as the pickaxe of the same name. |

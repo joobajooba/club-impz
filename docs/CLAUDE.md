@@ -18,11 +18,11 @@ The game design for **IMPLINGZ**, an NFT web game. The design is built as a **ro
 | `00-overview.md` | The game's intent, core loop and the role of the NFT. Every other doc must agree with it. |
 | `01`–`05` | One doc per system: activities, resources, games, trade, skirmish. |
 | `reports/` | One report per pass, plus any report the user asks for. |
-| `../sprites/items/` | 48×48 inventory PNGs. Not inside `docs/`, but part of the resources design. The catalog is in `02-resources.md`. |
+| `../godot-game/assets/sprites/source/items/` | 48×48 inventory PNGs. Not inside `docs/`, but part of the resources design. The catalog is in `02-resources.md`. |
 
 ## Item pictures
 
-Before writing or changing anything about ores, gems, ingots, mining rewards or inventory icons, open every PNG in `sprites/items/` and read the catalog in `02-resources.md`. Match each file to that table. The picture is the source of truth for how an item looks. Do not describe an item from its filename alone.
+Before writing or changing anything about ores, gems, ingots, mining rewards or inventory icons, open every PNG in `godot-game/assets/sprites/source/items/` and read the catalog in `02-resources.md`. Match each file to that table. The picture is the source of truth for how an item looks. Do not describe an item from its filename alone.
 
 `nugget_` is the ore rock you mine. `ingot_` is the bar picture. `gemstone_` is the gem that can come with that ore. Coal has no ingot file. `prestige_0.png` through `prestige_5.png` are in the same folder and are not mining rewards. Their use is not decided. Do not add them to a tier.
 

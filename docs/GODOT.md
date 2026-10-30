@@ -34,7 +34,7 @@
 
 ## 2. The Godot test project today
 
-On 2026-10-20 Claude looked at the local test project (`Documents/map-world-test`, project name `Map_WorldTest`). On 2026-10-21 it was copied into this repo as **`game/`** (D-079), without its `.godot/` cache and `build/` export folders. **Work in `game/` from now on**: the old `map-world-test` folder is no longer the copy that counts. What it has:
+On 2026-10-20 Claude looked at the local test project (`Documents/map-world-test`, project name `Map_WorldTest`). On 2026-10-21 it was copied into the COLLAB_IMPZ repo as **`game/`** (D-079), and on 2026-10-30 moved to club-impz as **`godot-game/`** (D-117), without its `.godot/` cache and `build/` export folders. **Work in `godot-game/` from now on**: the old `map-world-test` folder is no longer the copy that counts. What it has:
 
 | Part | Files | What it does |
 |---|---|---|
@@ -54,7 +54,7 @@ The kit ships each model in four formats. Godot needs only one, so the others co
 The game runs in the browser, as a Godot **web export**, ideally on impz.club. What that means for the build:
 
 - **Renderer: Compatibility.** Browsers only support Godot's Compatibility renderer. The test project uses Forward+. **Switched on 2026-10-22.** The sun was lowered from 1.2 to 0.5 and the exposure set to 0.8, because Compatibility has no HDR range and the old lighting clipped to white. The water shader now remaps depth for Compatibility. The meadow wind shader and `tint.gdshader` work unchanged. Some Forward+ effects (volumetric fog, SDFGI, some screen effects) don't exist in Compatibility.
-- **First web export (2026-10-22): it works.** The no-threads `Web` preset in `game/export_presets.cfg` exports to `game/build/web/` (git-ignored). Headless Chrome runs it on WebGL 2 with the Compatibility renderer and reaches the meadow with the HUD. Size: `index.pck` 104 MB (55 MB gzipped), `index.wasm` 39.5 MB (9.7 MB gzipped), 138 MB in all. The web templates must be in `%APPDATA%/Godot/export_templates/4.7.2.stable/` (`web_nothreads_release.zip`, `web_nothreads_debug.zip`).
+- **First web export (2026-10-22): it works.** The no-threads `Web` preset in `godot-game/export_presets.cfg` exports to `godot-game/build/web/` (git-ignored). Headless Chrome runs it on WebGL 2 with the Compatibility renderer and reaches the meadow with the HUD. Size: `index.pck` 104 MB (55 MB gzipped), `index.wasm` 39.5 MB (9.7 MB gzipped), 138 MB in all. The web templates must be in `%APPDATA%/Godot/export_templates/4.7.2.stable/` (`web_nothreads_release.zip`, `web_nothreads_debug.zip`).
 - **Shrinking the download (Proposed).** Most of the pack is the asset kit's 2048 px bark and leaf textures (about 5.4 MB each once imported), which exist twice, in `Textures/` and `glTF/`. Options: import them at 1024 px (Import dock → Size Limit), point the glTF models at one shared copy, and export only the resources the game uses instead of `all_resources`. That last one needs care, because some models are loaded by path from code. Serve the files with gzip or Brotli.
 - **GDScript only.** Godot 4's web export doesn't support C#. All game code is GDScript.
 - **Export without threads.** Godot 4.3 and later can export for the web without thread support. That version runs on any web host without special server headers. The threaded version needs the host to send two security headers (COOP and COEP), which can break wallet pop-ups and other scripts on impz.club. **Proposed:** export without threads.
@@ -74,7 +74,7 @@ The Three.js build reached milestones M0 to M5 (see [BUILD-ROADMAP.md](BUILD-ROA
 | G1 | Walk and camera | M0 | Third-person camera, walk, sprint, jump, emotes. The test already has walk and jump. |
 | G2 | Data tables | n/a | Ores, plants and animals as data, not code (section 6). |
 | G3 | Mining loop | M1, M3, M4 | Ten ore veins, pickaxe gating (D-006, D-011), three swings, gems (D-012), 10-second regrow (D-007). |
-| G4 | Energy and inventory | M2 | 100 energy, 5 per mine, 12-hour reset (D-008, D-009). 6×8 inventory with the held tool top-left (D-008). Uses the existing 48×48 icons in `sprites/`. |
+| G4 | Energy and inventory | M2 | 100 energy, 5 per mine, 12-hour reset (D-008, D-009). 6×8 inventory with the held tool top-left (D-008). Uses the existing 48×48 icons in `godot-game/assets/sprites/source/`. |
 | G5 | Furnace and blacksmith | M5 | Build the decided rules (D-054 to D-060), not the D-013 test values. Wood hilts stay a test until lumbering. |
 | G6 | Accounts and saving | M6 | Sign up, log in, server-side saving, link wallet. ACCOUNTS-AND-DATA sections 3, 7–9. |
 | G7 | Play as your Imp | M7 | Load the player's Imp at runtime (D-038). Everyone else plays as the basic Imp (D-049). |
@@ -83,10 +83,10 @@ The Three.js build reached milestones M0 to M5 (see [BUILD-ROADMAP.md](BUILD-ROA
 
 **Built so far (2026-10-22, Done: PR #36 merged to `main`):** G2 to G5, from the decided rules, not translated from `main.js`:
 
-- **G2:** `game/autoload/game_data.gd` holds the ore, gem, pickaxe and hilt tables (D-005 to D-012, D-054 to D-060), with the Titanite and Dreadstone names (D-020).
-- **G3:** a mining area about 24 m south of the spawn (`game/mining/`). It has 15 veins for the ten ores, three swings to break a vein, pickaxe gating with "Needs a … pickaxe", gems (doubled while holding the Stellarite pickaxe, D-059), and a 10-second regrow. The pickaxe is held in the Imp's right hand and Q switches it. **TEST:** the layout and the vein art (the copper vein recoloured per ore, as in the Three.js test).
-- **G4:** energy is 100, each mine costs 5, and it resets at 00:00 and 12:00 **UTC** (D-057). It is saved on the device until G6. The inventory is a 6×8 grid (D-008) and resets on restart, as in the Three.js test. **TEST tools** sit under the inventory grid.
-- **G5:** the furnace uses the D-054 ore counts and burns Coal from Gold up (D-055). The blacksmith crafts Void and Cosmic hilts (D-058) and every pickaxe (D-006, D-060). **TEST:** wood hilts are free until lumbering exists.
+- **G2:** `godot-game/autoload/game_data.gd` holds the ore, gem, pickaxe and hilt tables (D-005 to D-012, D-054 to D-060), with the Titanite and Dreadstone names (D-020).
+- **G3:** a mining area about 24 m south of the spawn (now `godot-game/gathering/area.gd`). It has 15 veins for the ten ores, three swings to break a vein, pickaxe gating with "Needs a … pickaxe", gems (doubled while holding the Stellarite pickaxe, D-059), and a 10-second regrow. The pickaxe is held in the Imp's right hand and Q switches it. **TEST:** the layout and the vein art (the copper vein recoloured per ore, as in the Three.js test).
+- **G4:** energy is 100, each mine costs 5, and it resets at 00:00 and 12:00 **UTC** (D-057). It is saved on the device until G6. The inventory is a 6×8 grid (D-008). It reset on restart until G6, which saves it on the device (TEST). **TEST tools** sit under the inventory grid.
+- **G5:** the furnace uses the D-054 ore counts and burns Coal from Gold up (D-055). The blacksmith crafts Void and Cosmic hilts (D-058) and every pickaxe (D-006, D-060). **TEST:** wood hilts were free until lumbering was built; now they take 5 planks (D-107).
 - The world generator has a new `clearings` setting that keeps the mining area free of grass and props without changing the rest of the world.
 
 **Built since (2026-10-22, Done: PR #38 merged to `main`):** the other four gathering skills and, at the user's request, playable TEST versions of systems that are not fully decided.
@@ -101,12 +101,12 @@ The Three.js build reached milestones M0 to M5 (see [BUILD-ROADMAP.md](BUILD-ROA
 
 ## 5. Where the Godot project lives (Decided, D-079; details Proposed)
 
-- It is in this repo under **`game/`** (the folder holding `project.godot`), so both collaborators review it through `staging/` PRs like everything else. Open `game/project.godot` in Godot.
-- `game/.gitignore` keeps the `.godot/` cache and Windows `desktop.ini` files out. Export builds are never committed either.
+- It is in this repo under **`godot-game/`** (the folder holding `project.godot`), so both collaborators review it through `staging/` PRs like everything else. Open `godot-game/project.godot` in Godot.
+- `godot-game/.gitignore` keeps the `.godot/` cache and Windows `desktop.ini` files out. Export builds are never committed either.
 - The Three.js files (`index.html`, `main.js`, `package.json`) were removed on 2026-10-22 (**Decided, D-113**), once G2 to G5 were built. They are in the git history before that date.
 - **Large files:** if models and textures grow past a few hundred MB, switch them to Git LFS. Not needed yet.
 
-Proposed layout inside `game/` (the test project's folders stay as they are until the work is reorganised):
+Proposed layout inside `godot-game/` (the test project's folders stay as they are until the work is reorganised):
 
 ```
 game/
@@ -125,7 +125,7 @@ game/
   - `Session`: who is logged in, their username, wallet and Imp.
   - `GameData`: the ore, plant and animal tables, loaded from the database at start-up.
   - `Inventory`: the player's items, tools and energy, as the server last reported them.
-- **Data, not code.** A new ore, plant or animal is a new row in the item table, not a new script. The Three.js build already worked this way (one ore table drove all ten veins), and the pickaxe skins file (`models/pickaxe-skins.json`) shows the same idea for models.
+- **Data, not code.** A new ore, plant or animal is a new row in the item table, not a new script. The Three.js build already worked this way (one ore table drove all ten veins), and the pickaxe skins file (`godot-game/assets/models/source/pickaxe-skins.json`) shows the same idea for models.
 - **One scene per kind of thing.** One `OreVein` scene with a `tier` setting, not ten vein scenes. One `Pickaxe` scene that swaps its texture per tier (MODELS-BLOCKBENCH, section 6).
 - **The server is the judge.** The game plays the swing animation and asks the server what was found. It never decides drops itself (ACCOUNTS-AND-DATA, section 8).
 
@@ -147,7 +147,7 @@ game/
 4. **Godot version:** stay on 4.7 for both collaborators?
 5. **Unused model formats:** remove the kit's FBX, FBX (Unity) or OBJ copies that Godot doesn't use (section 2)?
 
-Answered on 2026-10-21: the project is in this repo under `game/`, and the repo is private (D-079). The asset pack is free and CC0, so it can be shipped and shared.
+Answered on 2026-10-21: the project went into the repo, which was private (D-079). Since 2026-10-30 it is in the public club-impz repo under `godot-game/` (D-117). The asset pack is free and CC0, so it can be shipped and shared.
 
 ## Pass history
 | Pass | Change |

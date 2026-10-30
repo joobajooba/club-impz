@@ -116,7 +116,7 @@ These are the habits that separate top Hypixel-style models from beginner ones.
 Pickaxes have 10 tiers, sickles 10, bows 16. Make **one model** per tool and **one texture per tier**:
 
 - Each tier's texture uses the same UV layout, only the colours change. The colours come from that tier's ingot or item icon.
-- In Godot, a `Pickaxe` scene picks its texture by tier. This is the same idea as `models/pickaxe-skins.json` in the Three.js build.
+- In Godot, a `Pickaxe` scene picks its texture by tier. This is the same idea as `godot-game/assets/models/source/pickaxe-skins.json` in the Three.js build.
 - Higher tiers may add pixels (sparkles, a spiral, stars) the way the ingot icons do, but **inside the same UV layout**.
 - If a tier needs a different shape (for example a Stellarite pickaxe with a crystal on top), that's a second model. Keep it rare.
 
@@ -142,7 +142,7 @@ models/blockbench/
   items/      …
 ```
 
-`models/` is where D-021 puts all models. When the Godot project moves into the repo (GODOT.md, section 5), the game reads from here or copies the exports in.
+`godot-game/assets/models/source/` is where model sources live (D-021, moved by D-117). When the Godot project moves into the repo (GODOT.md, section 5), the game reads from here or copies the exports in.
 
 ## 9. Review checklist (Proposed)
 
