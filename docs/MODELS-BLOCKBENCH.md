@@ -45,10 +45,13 @@ Taken from the decided systems. **Decided (D-114, D-115): every tier of a tool i
 | Sickles | 10 models, Stone to Stellarite | D-024, D-063, D-115 | Made and in the game |
 | Bows | 16 models, one per animal, Hare to Eclipse Dragon | D-030, D-032, D-115 | Made and in the game |
 | Fishing rods | 10 models, one per wood | D-110, D-115 | Made and in the game |
-| Swords | Tiers not decided | D-044 | Not made |
+| Weapons | 70 models: sword, dagger, battle axe, mace, spear, staff and shield, Stone to Stellarite (**Proposed** kinds; tiers follow the tool ladder) | D-044, D-118 | Made 2026-10-30, not in the game yet |
+| Armour | 70 models: helmet, chestplate, shoulders, gauntlets, belt, leggings and boots in 10 tiers, **Leather** then Bronze to Stellarite (**Proposed**), fitted to the imp's bones | D-118 | Made 2026-10-30, not in the game yet |
+| NPCs | 8: blacksmith (badger), merchant (fennec), tanner (bear), herbalist (rabbit), carpenter (beaver), fisher (otter), guard (fox), quest giver (owl). Animal folk, not imps (D-016). **Proposed** | D-073, D-118 | Made 2026-10-30, with idle, talk, wave, work, walk |
 | Hunting animals | 16 creatures, Hare to Eclipse Dragon | D-032 | Not made |
-| Items in the world | Dropped ore, ingots on the anvil, hides on the tanning rack, bundles on the drying rack | D-005, D-022, D-029 | Not made |
-| Stations | Furnace, anvil, drying rack, tanning rack | **Open question**: world or item? (section 10) | Not made |
+| Items in the world | 76: ore (10), ingots (9), hides (16), dried bundles (10), logs (10), planks (10), gems (10), a coin pile. Colours from each item's icon | D-005, D-022, D-029, D-118 | Made 2026-10-30, not in the game yet |
+| Stations and props | Furnace, anvil, drying rack, tanning rack, sawbench, workbench; market stall, notice board, bench, barrel, crate, lantern post, signpost, well, fence, portal | D-118 (answers open question 2) | Made 2026-10-30, not in the game yet |
+| Buildings | Cottage, smithy, general store, tavern, watchtower (**Proposed** list), to the hub castle reference | D-118 | Made 2026-10-30. The hub castle itself is J00BA's (not in the repo) |
 
 The inventory icons stay **2D pixel art at 48×48** (D-015). A Blockbench model does not replace its icon.
 
@@ -157,9 +160,17 @@ godot-game/assets/models/source/blockbench/   sources (D-021, moved by D-117)
               export/                                   Blockbench's .glb exports (and the test .fbx)
   creatures/  <name>.bbmodel, .png, build_<name>_bbmodel.py
 
+  bbkit.py    the shared builder (cubes, groups, culled faces, UV packing, painted materials, swatches)
+  weapons/ armour/ props/ items/ npcs/ buildings/   build_<kind>.py, one script per group
+
+godot-game/assets/models/<group>/         the .bbmodel files those scripts write (one per model,
+                                          plus <kind>s_lineup.bbmodel with the set side by side)
+godot-game/assets/textures/<group>/       the matching .png textures
+
 godot-game/models/blockbench/            what the game loads
   pickaxes/ axes/ sickles/ bows/ rods/   <kind>_<tier>.glb and its .glb.import
   creatures/                             <name>.glb
+  weapons/ armour/ props/ items/ npcs/ buildings/   <name>.glb (2026-10-30)
 
 godot-game/assets/models/mobs/, trees/   J00BA's Blockbench sources (.bbmodel)
 ```
@@ -213,13 +224,16 @@ ART-DIRECTION was written for a smooth, painted, cartoon look in Three.js (D-014
 ## 11. Open questions
 
 1. **Imp height** in Godot, so every model can be scaled against it.
-2. **Stations** (furnace, anvil, racks): Blockbench, or world-style? They stand in the world, so world-style is **Proposed**.
+2. **Buildings and props in Blockbench vs D-047.** D-047 keeps the world stylised cartoon, but the user asked for Blockbench buildings and props (D-118) and J00BA's docs make everything voxel. Which wins is part of the doc-set question in the Pass 5 report.
+3. **Weapon and armour texel density.** The weapons use J00BA's 4 px per unit for held items; D-053 says 2 on every model. Armour uses 2.
 
 Answered on 2026-10-20: the world stays stylised cartoon (D-047).
 
 Answered on 2026-10-21: 2 texture pixels per unit (D-053).
 
 Answered on 2026-10-22: glTF (`.glb`), not FBX (D-116). Every tier gets its own model (D-114, D-115).
+
+Answered on 2026-10-30: stations are Blockbench models (D-118).
 
 ## Pass history
 | Pass | Change |
@@ -228,3 +242,4 @@ Answered on 2026-10-22: glTF (`.glb`), not FBX (D-116). Every tier gets its own 
 | User addition, 2026-10-20 (later) | World stays stylised cartoon, items and enemies have a slight voxel feel (D-047). Section 10 rewritten with how they fit together. World-style question removed. |
 | User addition, 2026-10-21 | Link to BLOCKBENCH-STUDY (D-052). Texel density decided: 2 pixels per unit (D-053). Sections 4.1, 7, 9 and 10 updated to match; open question 1 removed. |
 | User addition, 2026-10-22 | All 56 tools made and put in the game. Each tier gets its own model (D-114, D-115): sections 2, 6, 8 and 9 rewritten. Models go into Godot as `.glb`, not FBX (D-116): sections 1, 3, 5 and 10 updated, open question 3 answered. Section 5 now holds the tested export and import steps. |
+| User addition, 2026-10-30 | Weapons, armour, NPCs, props and stations, items in the world and village buildings made in Blockbench (D-118). Section 2 table rows added; section 8 lists the shared `bbkit.py` and the new folders; open question 2 answered, two new ones (D-047 vs Blockbench buildings; weapon texel density). |
