@@ -10,6 +10,7 @@ const WORLDS := {
 	"hub": "res://scenes/hub/hub_world.tscn",
 	"resource": "res://scenes/resource/resource_world.tscn",
 	"test": "res://scenes/test/flat_test_world.tscn",
+	"lineup": "res://scenes/test/model_lineup.tscn",
 }
 
 @onready var world_holder: Node3D = $world_holder
