@@ -103,3 +103,27 @@ func biome_name(x: float, z: float) -> String:
 
 func in_bounds(x: float, z: float, margin := 0.0) -> bool:
 	return x >= origin.x + margin and z >= origin.y + margin and x <= origin.x + size.x - margin and z <= origin.y + size.y - margin
+
+
+func biome_pick(x: float, z: float, r: float) -> int:
+	## Same border rule as the terrain shader: inside a border zone pick one of the two biomes with the blend weight.
+	if fixed_biome >= 0:
+		return fixed_biome
+	var s := depth(x, z)
+	var i := clampi(int(floor(s / band)), 0, 4)
+	var f := s - i * band
+	if f > band - blend_half and i < 4 and r < (f - (band - blend_half)) / (2.0 * blend_half):
+		return i + 2
+	if f < blend_half and i > 0 and r < (blend_half - f) / (2.0 * blend_half):
+		return i
+	return i + 1
+
+
+func water_level(x: float, z: float) -> float:
+	## Highest water plane over this point, or -1000 if there is none.
+	var lvl := -1000.0
+	for w in layout.get("water", []):
+		var r: Array = w["rect"]
+		if x >= r[0] and x <= r[2] and z >= r[1] and z <= r[3]:
+			lvl = maxf(lvl, float(w["level"]))
+	return lvl

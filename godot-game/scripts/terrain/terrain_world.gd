@@ -41,8 +41,8 @@ func setup() -> void:
 func _build_layer_array() -> Texture2DArray:
 	var images: Array[Image] = []
 	for id in data.biome_data["layer_files"]:
-		var tex: Texture2D = load("res://assets/textures/terrain/%s.png" % id)
-		var img := tex.get_image()
+		# imported as Image resources (no GPU texture, so no GPU readback when building the array)
+		var img: Image = (load("res://assets/textures/terrain/%s.png" % id) as Image).duplicate()
 		if img.is_compressed():
 			img.decompress()
 		img.clear_mipmaps()

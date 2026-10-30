@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/game_world.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/world/hub_props.gd" id="2"]
+
+[node name="hub_world" type="Node3D"]
+script = ExtResource("1")
+data_prefix = "hub"
+fixed_biome = 0
+view_chunks = 3
+
+[node name="hub_props" type="Node3D" parent="."]
+script = ExtResource("2")

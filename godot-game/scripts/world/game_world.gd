@@ -10,6 +10,8 @@ extends Node3D
 var terrain: TerrainWorld
 var player: Node3D
 var water_root: Node3D
+var environment: BiomeEnvironment
+var scatter: Scatter
 
 
 func _ready() -> void:
@@ -26,7 +28,42 @@ func _ready() -> void:
 	_make_markers()
 	_make_water()
 	terrain.build_now_around(_marker_pos("spawn_point"), 1)
+	environment = BiomeEnvironment.new()
+	environment.name = "environment"
+	add_child(environment)
+	environment.setup(terrain.data.biome_data, WorldData.BIOMES[fixed_biome] if fixed_biome >= 0 else "forest")
+	scatter = Scatter.new()
+	scatter.name = "scatter"
+	add_child(scatter)
+	scatter.setup(self, terrain.data)
+	if fixed_biome < 0:
+		_make_biome_areas()
+	for c in get_children():
+		if c.has_method("populate"):
+			c.populate(self)
 	print("world %s: ready %d ms" % [data_prefix, Time.get_ticks_msec() - t0])
+
+
+func _make_biome_areas() -> void:
+	## One Area3D per biome band; entering one fades the environment to that biome (game_worlds.md section 4.9).
+	var root := Node3D.new()
+	root.name = "biome_areas"
+	add_child(root)
+	var band: float = terrain.data.band
+	var names := biome_names()
+	for i in names.size():
+		var area := Area3D.new()
+		area.name = "area_%s" % names[i]
+		area.collision_layer = 8
+		area.collision_mask = 2
+		var cs := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(band, 400.0, terrain.data.size.y)
+		cs.shape = shape
+		area.add_child(cs)
+		area.position = Vector3(band * (i + 0.5), 100.0, terrain.data.origin.y + terrain.data.size.y / 2.0)
+		root.add_child(area)
+		area.body_entered.connect(func(b): if b == player: environment.set_biome(names[i]))
 
 
 func data() -> WorldData:
