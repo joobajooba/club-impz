@@ -1,6 +1,6 @@
 # Game Worlds
 
-> Status: draft v4 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v5 · Owner: J00BA · Last updated: 2026-10-29
 >
 > The two worlds in Club Impz, the hub world and the resource world: what each one is for, what players can do there, how they look and the art style for both. This doc must agree with `game_direction.md` and `resource_gathering.md`. Where they differ, `game_direction.md` wins until it is updated.
 
@@ -197,7 +197,7 @@ This section and sections 4.8 and 4.9 describe how each biome should look and fe
 | RuneScape | Classic fantasy places with a clear identity (Morytania swamp, Trollheim mountains, Fremennik snow, the Abyss) |
 | Minecraft | Each biome has its own grass, leaf and water colour, so you know where you are from the ground colour alone. The End for floating, empty void islands |
 
-**Reference images.** J00BA supplied nine reference screenshots. What to take from each:
+**Reference images.** J00BA supplied nine biome reference screenshots and 16 plant references. What to take from each:
 
 | Reference | Biome | What to copy |
 | --- | --- | --- |
@@ -208,6 +208,7 @@ This section and sections 4.8 and 4.9 describe how each biome should look and fe
 | Hytale Emerald Wilds gully | Forest | Rolling hills cut by a river, blue leafed trees next to red and orange ones, teal ground under the trees, pale rock outcrops in the grass |
 | Hytale swamp with a giant tree house | Swamp | Thick green fog, drooping vines, wet flat ground with pools, a giant hollow tree with platforms, lanterns and rope bridges, fireflies |
 | Hytale snow field with a polar bear | Frost | Bright blue sky, deep snow with wind ripples, snow loaded pines next to clean green ones, a few orange grass tufts poking through, a big white bear |
+| 16 Hytale plant references (flowers, bushes, grass, ferns, dead bushes, mushrooms, leaf litter) | All | How plants are built and coloured. Analysed in `blockbench_detailed_prompts.md` section 3.4.1; the biome plant lists are in section 4.10 |
 | Purple fog forest | Void | Purple haze, dark towering shapes, thorny black dead bushes, no colour except purple. Void has **no trees** (section 4.5), so the tall shapes become rock and crystal spires |
 | Voxel galaxy with planets | Stellar | Deep purple space, a bright glowing galaxy ring, planets with rings and a lava planet, floating asteroids, star sparkles everywhere |
 
@@ -387,6 +388,112 @@ Recommendations for building the biomes in Godot. The game runs in the browser (
 | Wind | The wind shader from `blockbench_detailed_prompts.md` on all trees and foliage. Stronger in the plains and mountain, none in stellar |
 | Sound | One ambient sound loop per biome, faded at the borders like the environment |
 | Performance | Keep draw distance shorter in the swamp and void, where thick fog hides the distance anyway |
+
+
+### 4.10 Plants and foliage by biome
+
+Every biome is **full of foliage** (section 4.7). This section lists the plants for each biome, how they look and how thickly they grow. Build them with `blockbench_detailed_prompts.md` section 3.4, which has the full build and paint rules and the analysis of J00BA's 16 Hytale plant references. Foraging plants (the ones players pick) are added once their table is in `resource_gathering.md` section 6.
+
+**What every plant has in common** (from the references):
+
+- Built from **many flat alpha cards** (one painted leaf, blade, petal or twig per card) fanning out from one base point and crossing each other. Only mushrooms and crystals use solid cubes.
+- **Size:** grass tufts 4 to 14 units tall, flowers 6 to 12, bushes and ferns 12 to 24, so most plants fit in one block. The imp is 18 units tall, so bushes come up to its head.
+- **Colour:** smooth gradients from a dark base to light tips, a light edge on each leaf, no outlines and no neon.
+- **Ground match:** grass tufts use the **same colours as the biome's grass texture**, so they blend into the ground.
+- **Reuse:** one plant shape serves several biomes by recolouring it (the dry grass and frost grass references are the same model).
+
+**Density** (how much of the ground is covered):
+
+| Density | Meaning |
+| --- | --- |
+| Carpet | Grass tufts every 0.5 to 1 metre; the ground texture barely shows |
+| Dense | A plant every 1 to 2 metres |
+| Scattered | Small groups every 4 to 8 metres |
+| Rare | A few per area, used as accents or landmarks |
+
+#### 4.10.1 Forest
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Forest grass | `forest_grass_tuft` | Grass tuft | Short lime green blades in the `forest_grass` colours (`#4d6f0d` to `#7aad1d`) | Carpet |
+| Golden dry grass | `dry_grass_tuft` | Tall grass | Olive gold fan with long blades shooting out sideways, in the dry grass patches | Dense in patches |
+| Wildflowers | `blue_wildflower`, `pink_wildflower`, `white_wildflower` | Flower | 2 to 4 heads on curved stems with a leaf rosette, like the pansy reference | Scattered |
+| Yellow pansy | `yellow_pansy` | Flower | Gold to orange petals with violet face marks (the pansy reference) | Scattered in clearings |
+| Leafy bush | `green_leafy_bush` | Bush (leafy) | Dense upright cone of pointed green leaves (the big green bush reference) | Dense at forest edges |
+| Berry shrub | `berry_shrub` | Bush (twiggy) | Brown stems, clusters of small round leaves (the leafy shrub reference) with red berries | Scattered |
+| Fern | `forest_fern` | Fern | Arching mid green fronds with drooping lower fronds | Dense under trees |
+| Big leaf plant | `big_leaf_plant` | Large leaf plant | Long arching leaves with red brown midribs, by the river | Scattered near water |
+| Red mushrooms | `red_mushroom_group` | Mushroom | Red caps with pale pink spots, white frill at the base | Scattered under trees |
+| Brown mushrooms | `brown_mushroom_group` | Mushroom | Same build, tan and brown caps | Scattered |
+| Leaf litter | `green_leaf_litter`, `yellow_leaf_litter` | Ground scatter | Flat leaves on the ground; yellow under birch | Dense under trees |
+| Reeds | `forest_reeds` | Reeds | Upright green blades at the river edge | Dense along water |
+
+#### 4.10.2 Mountain
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Mountain grass | `mountain_grass_tuft` | Grass tuft | Olive green blades in the `mountain_grass` colours | Carpet on slopes |
+| Dry ledge grass | `dry_grass_tuft` | Tall grass | Olive gold, wind blown | Dense on ledges |
+| Heather | `heather_bush` | Bush (twiggy) | Low twiggy bush covered in tiny purple flower clusters (`#6a3a8a` to `#b878d0`) | Dense on open slopes |
+| Alpine flowers | `alpine_flower` | Flower | Small white and pale blue heads, short stems | Scattered |
+| Red flame bush | `red_flame_bush` | Bush (spiky) | Dark red to yellow lance leaves on grey stems (the red bush reference) | Scattered in maple valleys |
+| Copper autumn bush | `copper_autumn_bush` | Bush (round) | Rust and peach oblong leaves on brown branches (the copper bush reference) | Dense in maple valleys |
+| Orange leaf litter | `orange_leaf_litter` | Ground scatter | Orange and red maple leaves on the ground | Dense under maples |
+| Cave glow mushrooms | `glow_mushroom_group` | Mushroom | Pale blue caps with `_glow` spots | Scattered in caves |
+
+#### 4.10.3 Frost
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Frost grass | `frost_grass_tuft` | Tall grass | Pale icy green white blades (the frost grass reference) | Dense at snow edges |
+| Tundra grass | `tundra_grass_tuft` | Tall grass | Orange and rust blades poking through the snow | Scattered |
+| Frost bush | `frost_bush` | Bush (frost) | Puffy pale leaf clumps on pale stems (the frost bush reference) | Scattered |
+| Frozen dead bush | `frozen_dead_bush` | Dead bush | Grey twigs with white frost on the top edges | Scattered |
+| Snow berry shrub | `snow_berry_shrub` | Bush (twiggy) | Dark green leaves with white berries and snow on top | Rare |
+| Ice crystals | `ice_crystal_cluster` | Crystal cluster | Pale blue pointed crystals | Scattered near ice |
+
+#### 4.10.4 Plains
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Tall golden grass | `plains_tall_grass` | Tall grass | Very tall (12 to 14 units) gold and straw blades, the strongest wind sway | Carpet (the most grass in the game) |
+| Green grass | `plains_grass_tuft` | Grass tuft | Fresh green, near water | Dense near water |
+| Wheat stalks | `wild_wheat` | Reeds | Tall stalks with seed heads | Dense in patches |
+| Dry bush | `dry_bush` | Dead bush | Pale grey brown twigs | Scattered |
+| Wildflowers | `plains_wildflower` | Flower | Yellow, white and purple heads above the grass | Scattered |
+| Gem crystals | `gem_crystal_cluster` | Crystal cluster | Jewel coloured crystals, `_glow` | Rare, in gembark groves |
+
+#### 4.10.5 Swamp
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Swamp grass | `swamp_grass_tuft` | Grass tuft | Dark olive blades | Carpet on islands |
+| Reeds and cattails | `swamp_reeds`, `cattail` | Reeds | Tall olive blades with brown cattail heads | Dense along water |
+| Swamp fern | `swamp_fern` | Fern | Dark teal fronds on short stems (the dark fern reference) | Dense |
+| Big leaf plant | `swamp_big_leaf_plant` | Large leaf plant | Darker, murky green recolour with purple midribs | Scattered |
+| Lily pads | `lily_pad` | Ground scatter | Flat round pads on the water, a few with pale flowers | Dense on pools |
+| Hanging moss | `hanging_moss` | Vines | Grey green strands hanging from runewood | Dense on trees |
+| Giant mushrooms | `giant_mushroom` | Mushroom | Huge (16 to 32 units) brown and purple caps | Rare landmarks |
+| Glow fungus | `glow_fungus` | Mushroom | Small toxic green `_glow` caps on roots | Scattered |
+
+#### 4.10.6 Void
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Ash grass | `ash_grass_tuft` | Grass tuft | Grey purple dead blades | Scattered |
+| Thorn bush | `void_thorn_bush` | Dead bush (thorny) | Dark purple brown curling, hooked branches with thorns (the thorn bush reference) | Dense |
+| Dead bush | `void_dead_bush` | Dead bush | Black twigs with forked tips (the dead bush reference) | Scattered |
+| Void crystals | `void_crystal_cluster` | Crystal cluster | Purple crystals with `_glow` cores | Scattered |
+| Void flowers | `void_flower` | Flower | Black stems with glowing violet petals (`_glow`) | Rare |
+
+#### 4.10.7 Stellar
+
+| Plant | Model id | Type | Look | Density |
+| --- | --- | --- | --- | --- |
+| Star moss | `star_moss` | Ground scatter | Soft dark blue cards with gold and white sparkle pixels, `_glow` | Dense |
+| Crystal flowers | `stellar_crystal_flower` | Flower | Glass like white gold petals, `_glow` | Scattered |
+| Star dust | `star_dust_patch` | Ground scatter | Flat gold dust cards | Scattered |
+| Stellar crystals | `stellar_crystal_cluster` | Crystal cluster | White gold crystals, `_glow` | Scattered |
 
 ---
 
