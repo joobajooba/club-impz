@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v3 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v4 · Owner: J00BA · Last updated: 2026-10-29
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -64,6 +64,7 @@ These are the reference images J00BA supplied, and what to copy from each.
 | **Void dragon** (being ridden) | Huge curved horns made from chained, rotated segments. Wing membranes with ragged holes. Glowing purple eyes and mouth. White bone spikes along the wing arms. Shows how big a dragon is next to a player. |
 | **Basic sword** | Clean steel blade with a light centre line (fuller), soft gradient from dark at the base to light at the tip, simple cross guard, brown wrapped grip, round pommel. |
 | **Void sword** | Same layout, but the blade glows purple with a darker core rune pattern, gem set in the guard, ornate dark guard with spikes, pale wrapped grip, glowing pommel. Shows how higher tiers get more ornate. |
+| **16 Hytale plants** (flowers, bushes, grass, ferns, dead bushes, mushrooms, leaf litter) | **The main reference for foliage.** Plants are built from many flat alpha cards, one painted leaf or blade per card, fanning out from one base point and crossing each other. Full analysis in section 3.4.1. |
 | **Pickaxe** | Curved two-sided head built from stepped segments that taper to points, a square metal socket with a gold emblem, a cap pin on top, a carved dark wood handle, a metal end cap. |
 
 ### 1.3 Units and scale
@@ -134,8 +135,8 @@ These keep models detailed but still light enough for a browser game (see `game_
 
 | Asset | Cubes | Texture |
 | --- | --- | --- |
-| Grass tuft, flower, mushroom | 3 to 15 | 32 or 64 |
-| Bush, fern, small plant | 10 to 40 | 64 |
+| Grass tuft, flower, mushroom, ground scatter | 6 to 30 (mostly alpha cards) | 64 |
+| Bush, fern, large leaf plant | 30 to 90 (mostly alpha cards) | 128 |
 | Ore vein, rock | 30 to 90 | 128 |
 | Tree (T1 to T5) | 100 to 260 | 128 or 256 |
 | Tree (T6 to T10, giant) | 150 to 400 | 256 or 512 |
@@ -149,7 +150,7 @@ These keep models detailed but still light enough for a browser game (see `game_
 
 ### 1.8 File names and folders
 
-Follow the repo naming rules: lowercase, `_` instead of spaces. Source files are `.bbmodel`. The texture is embedded and also saved next to it as a `.png`.
+Follow the repo naming rules: lowercase, `_` instead of spaces. Source files are `.bbmodel`. The texture is embedded and also saved as a `.png` in `godot-game/assets/textures/<group>/` with the same name (for example `textures/trees/pine_tree.png`, `textures/foliage/red_flame_bush.png`), like the existing tree textures.
 
 | Asset | Folder |
 | --- | --- |
@@ -429,33 +430,163 @@ texture:          <biome stone ramp>, cracks, lichen, light tops, 2 px/unit, 64 
 
 ### 3.4 Foliage and plants
 
-**Analysis.** Foliage is what makes the world look lush (`game_worlds.md` section 2). It will be drawn in big batches, so each piece must be **cheap but beautiful**: few cubes, great texture, strong alpha cutout shapes.
+**Analysis.** Foliage is what makes the world look lush (`game_worlds.md` sections 2 and 4.10). It is drawn in big batches, so each piece must be **cheap but beautiful**. J00BA supplied 16 Hytale plant references (section 3.4.1). Every plant Claude makes must match them in **design and quality**. Study the rules below before building any plant.
 
-| Type | Build | Texture |
-| --- | --- | --- |
-| Grass tuft | 3 to 6 thin crossed cubes (0.5 thick) with alpha blade shapes | Green ramp, lighter tips, darker roots |
-| Flowers | Stem cube + 2 to 5 petal cubes + centre | Petal ramp with darker base, bright centre pixel |
-| Bush | 6 to 20 leaf clusters in a lumpy dome, a few twigs | Leaf texture like trees, optional berries |
-| Fern | 4 to 8 rotated frond cubes fanning out | Frond leaflet pattern with alpha edges |
-| Mushroom | Stem + cap (2 to 4 stepped cubes) + spots | Cap ramp, spots, gills on the bottom face |
-| Vines | Chains of thin cubes with leaf cubes | Leaf ramp, alpha leaf shapes |
-| Reeds, cattails | Tall thin cubes with a head | Green to brown ramp |
-| Crystals (void, stellar) | Rotated crystal cubes in a cluster | Glow ramp, `_glow` |
-| Foraging plants | Same as above, but with a clear "pick me" accent: a bright flower, berry or glow | Each plant gets a unique accent colour |
+**The big lesson from the references:** Hytale plants are almost never built from solid cubes. They are built from **many flat alpha cutout cards** (cubes 0 units thick), each card painted as **one leaf, one blade, one petal or one twig** with its own gradient and midrib. The cards **fan out from one base point** at many angles and **cross through each other**, so the plant looks full and round from every side. The detail is in the **shape of each painted leaf** and in the **number of cards**, not in solid geometry.
 
-Foraging plants will come from `resource_gathering.md` section 6 once J00BA adds the table.
+#### 3.4.1 What the plant references teach
 
-Foliage sways with the same Godot wind shader as trees and has no Blockbench animations.
+| Reference | Type | Size (units) | Colours | What to copy |
+| --- | --- | --- | --- | --- |
+| Yellow pansy flower | Flower | 10 tall, 10 wide | Petals gold `#eacc5b` to orange `#bd7134`, violet `#6a5aa8` face marks, leaves `#2e5707` to `#5b871e` | 3 flower heads on short curved stems, each head 2 to 3 square petal cards turned outward like a face, a dark violet blotch and a bright yellow eye in the centre. Broad rounded leaf cards in a rosette at the base, spilling onto the ground |
+| Big leafy green bush (in world) | Bush | 24 tall, 18 wide | `#285a17` `#316716` `#447819` `#5e8d1f` `#72962b` | An upright, rounded cone of 40+ pointed leaf cards, each leaf a separate painted shape with a light edge and darker vein. No visible core: the leaves overlap so densely that the bush reads as solid. Bottom leaves droop onto the ground |
+| Grass tufts on the ground | Grass | 4 to 8 tall | Same greens as the ground texture `#4d6f0d` to `#7aad1d` | Short crossed blade cards that **use the exact ground colours**, so tufts melt into the terrain and only add texture and height. Blades lean outward at different angles |
+| Dark fern / small palm | Fern | 20 tall, 18 wide | Dark teal greens `#1d2c20` `#244a2c` `#3c5e3a` `#516331`, stems `#3a3020` | Two or three short dark stems with arching fronds at the top, plus a skirt of lower fronds that droop to the ground. Each frond is a long card with serrated leaflet edges cut by alpha |
+| Dead bush | Dead bush | 16 tall, 14 wide | Grey browns `#272019` `#312c24` `#4a3e34` `#5e4e44` | No leaves. 10 to 20 thin twig cards branching from one stump, each twig a stepped zigzag line 1 to 2 pixels wide with forked tips. A few long straight sticks poke up above the rest |
+| Thorn bush | Dead bush (thorny) | 14 tall, 18 wide | Purple browns `#211918` `#2c241f` `#403530` `#5a4844` | Three clumps of branches that **curl over at the tips** like hooks, with small thorn pixels sticking out of every branch. Dense at the base, open at the top |
+| Dry grass tuft | Grass (tall) | 10 tall, 20 wide | Olive gold `#6a760f` `#859519` `#a8a030` `#c8b448` | A dense fan of blades, plus 4 to 8 **very long, 1 pixel thin blades** that shoot out almost sideways and bend down, giving a wild, wind blown outline. Tips have jagged pixel steps |
+| Red flame bush | Bush (spiky) | 16 tall, 18 wide | Leaves deep red `#8a1e18` → `#b73620` → orange `#e86a2c` → yellow tips `#f4b048`, stems dark grey `#3a3a36` | Lance shaped leaves with **serrated pixel edges** pointing up and out like flames, on thin dark grey stems that branch from the base. Each leaf goes from dark red at the base to yellow at the tip |
+| Copper autumn bush | Bush (round) | 16 tall, 20 wide | Rust `#5e2622` `#6f3828` `#a85a3c` `#d08a5c`, stems `#4a2a20` | A round bush of short **oblong leaves in clumps** at the ends of thick brown branches. Visible branches at the base. Leaves light peach on the top edge, rust in the middle, dark brown underneath |
+| Big leaf plant | Large leaf plant | 16 tall, 22 wide | `#2e4a20` `#36641f` `#457623` `#4d8428` `#6aa040`, midrib `#5a3a22` | 10 to 14 long, pointed leaves that **arch out from the centre** like a hosta or canna. Each leaf has a **dark brown red midrib line** down the middle and a smooth gradient from darker base to lighter middle |
+| Frost grass tuft | Grass (frost) | 10 tall, 20 wide | Icy `#83a772` `#a6cbc0` `#cee5ca` `#e4f4ec` | Same build as the dry grass tuft, recoloured pale icy green white. Shows how one shape gets reused across biomes by changing only the colours |
+| Frost bush | Bush (frost) | 16 tall, 20 wide | `#779982` `#a6cbc0` `#b9dacc` `#d2ecd5`, stems `#5e7a70` | Puffy, rounded leaf clumps (like snow loaded leaves) on pale stems, and long frosty leaves sweeping out sideways. Almost white tops, blue green shadows underneath |
+| Leafy green shrub | Bush (twiggy) | 18 tall, 18 wide | Leaves `#3b6815` `#507f18` `#5e941d` `#7ab03a`, stems `#7a5a2a` | Many thin brown stems growing up and out, each ending in **clusters of small rounded leaves** (3 to 5 pixels each). Leaves get brighter towards the top and outside |
+| Red mushrooms | Mushroom | 3 to 6 tall, caps 4 to 8 wide | Cap `#7a1c24` `#9c2830` `#c03a40`, spots `#f0c8c8`, stem `#d8d0c0`, base `#c8c8b8` | The exception: **solid flat slab caps** (thin cubes) with a darker rim and pale pink spots, on short pale stems. A frilly **white alpha card ring** sits on the ground round each base. A group of 3 at different heights |
+| Orange leaf litter | Ground scatter | 0.1 tall, cluster 24 wide | `#c86a18` `#e08a28` `#f0a840` | Small flat leaf cards (2 to 3 units each) **lying flat on the ground**, slightly tilted, in a loose cluster. Bright against the grass |
+| Yellow leaf litter | Ground scatter | 0.1 tall, cluster 24 wide | `#e0a020` `#f0b830` `#f8d050` | Same as above in gold. Use under birch, maple and autumn trees |
+
+#### 3.4.2 Build rules for every plant
+
+1. **Cards, not blocks.** Use cubes that are **0 units thick** on one axis (a flat plane) for every leaf, blade, petal, frond and twig. Only mushroom caps, thick stems and crystals use solid cubes.
+2. **One card = one painted shape.** Each card shows one leaf (or blade, petal, twig) cut out with alpha. Never paint a whole bush on one card.
+3. **Radiate from a base point.** All cards start at or near one point at the bottom centre (or 2 to 3 points for clumpy plants), then **fan up and out**. Rotate each card on **two axes**: tilt outward 10° to 80° from vertical and turn round the base in uneven steps (for example 0°, 37°, 71°, 118°, 160° ...), never in a perfect circle.
+4. **Cross the cards.** At least half the cards should cross another card at 60° to 90°, so the plant looks full from every view. Cards may pass right through each other.
+5. **Layers by height.** Low outer cards droop (tilted 60° to 85°, tips touching the ground). Middle cards stand at 30° to 60°. Top cards are almost upright (10° to 30°). This gives the rounded dome or fan shape in the references.
+6. **Card count makes the quality.** Use the counts in 3.4.4. A bush with 8 cards looks cheap; the references use 30 to 80.
+7. **Vary every card.** Change length by ±30%, width by ±20% and colour by one ramp step between cards. Use 3 to 6 different painted card variants per plant and reuse them.
+8. **Sink the base.** Start cards 0.5 to 1 unit below y = 0 so no gap shows where the plant meets the terrain.
+9. **Stems and branches** (shrubs, flame bush, autumn bush, dead bush) are thin cards or 0.5 to 1 unit cubes coming out of the base, and the leaf cards attach at their tips.
+10. **Double sided, hard alpha.** Texture `render_sides` set to `double`. Alpha is fully on or off, no soft edges. In Godot: alpha scissor, back face culling off.
+11. **No outlines, no black.** The references never outline leaves. Shape comes from the light edge on top and the shadow underneath.
+12. **Footprint.** Most plants fit in **one block (16 × 16 units)**, like the references. Grass and flowers are smaller. Only big bushes and large leaf plants spill slightly past one block.
+
+#### 3.4.3 How to paint plant cards
+
+Plants use the same texel density as everything else, **2 px per unit**. Every card is a little painting:
+
+- **Leaf shape first.** Draw the outline on a transparent background with **stepped pixel edges**: pointed lance (flame bush, big leaf plant), oval (shrub, autumn bush), rounded (pansy leaves, frost bush), serrated (fern leaflets, flame bush edges), blade (grass), twig (dead bush).
+- **Gradient along the leaf:** darker at the base where it joins the stem, lighter towards the tip. 4 to 6 shades per leaf.
+- **Midrib:** one darker (or for the big leaf plant, red brown) line down the middle of broad leaves, with the half facing up one shade lighter than the half facing down.
+- **Light edge:** the top or outer edge of each leaf gets a 1 pixel highlight one shade lighter.
+- **Shadow base:** the bottom 20 to 30% of each card is 1 to 2 shades darker, so the inside of the plant reads as shade.
+- **Smooth, not noisy.** Use clean bands of colour like the references, with only a little pixel variation. No speckle, no neon pixels.
+- **Accents:** flower eyes, berries, spots and thorns are 1 to 3 pixel details in a contrast colour.
+- **Twigs:** 1 to 2 pixel wide lines in a dark ramp, lighter on one side, with forks and small knots.
+- **Texture size:** 64 for grass, flowers, mushrooms and litter, 128 for bushes, ferns and big leaf plants.
+
+#### 3.4.4 Plant types
+
+| Type | Size (units) | Cards / cubes | Build | Texture | Wind |
+| --- | --- | --- | --- | --- | --- |
+| Grass tuft | 4 to 8 tall, 6 to 10 wide | 6 to 14 blade cards | Crossed blade cards in a fan, uses the ground colours | 64 | Strong |
+| Tall or dry grass tuft | 8 to 14 tall, 14 to 22 wide | 14 to 30 cards, 4 to 8 of them long and thin | Dense fan plus long blades shooting out sideways and bending down | 64 | Strong |
+| Flower | 6 to 12 tall | 3 to 6 stems, 2 to 4 petal cards per head, 4 to 8 leaf cards | 1 to 4 heads on curved stems, leaf rosette at the base | 64 | Medium |
+| Bush (leafy) | 14 to 24 tall, 14 to 20 wide | 30 to 80 leaf cards, 3 to 8 stem cards | Dense dome or upright cone, no visible core, drooping lower leaves | 128 | Medium |
+| Bush (twiggy shrub) | 14 to 18 tall | 8 to 16 stems, 30 to 60 small leaf cards in clusters | Stems visible, leaf clusters at the stem tips | 128 | Medium |
+| Bush (spiky, flame) | 14 to 18 tall | 6 to 10 stems, 25 to 50 lance leaf cards | Leaves point up and out, serrated edges | 128 | Medium |
+| Dead or thorn bush | 12 to 18 tall | 10 to 24 twig cards | Branches from one stump, forked or hooked tips, thorns | 64 or 128 | Light |
+| Fern | 12 to 22 tall | 1 to 3 stems, 8 to 16 frond cards | Arching fronds from the top of short stems, lower fronds droop to the ground | 128 | Medium |
+| Large leaf plant | 12 to 18 tall, 18 to 24 wide | 10 to 14 big leaf cards | Long pointed leaves arching out from the centre, midribs | 128 | Light |
+| Mushroom group | 3 to 8 tall | 2 to 4 mushrooms, each 2 to 4 cubes + 1 to 2 ring cards | Flat slab caps with a darker rim and spots, pale stems, frilly ring at the base | 64 | None |
+| Ground scatter (leaf litter, petals, twigs) | under 0.5 tall, cluster 16 to 32 wide | 8 to 20 flat cards | Cards lie almost flat (tilted 0° to 15°) in a loose cluster | 64 | Light |
+| Reeds, cattails | 16 to 32 tall | 6 to 14 cards, 1 to 3 cattail heads (small cubes) | Tall upright blades, a few bent over | 64 | Strong |
+| Vines, hanging moss | 8 to 40 long | 4 to 16 cards in a chain | Hanging strips with leaf shapes | 64 | Light |
+| Crystal cluster (void, stellar) | 6 to 20 tall | 4 to 12 solid rotated cubes | Pointed crystal columns from one base, `_glow` cores | 64 | None |
+
+- **Foraging plants** (from `resource_gathering.md` section 6, once J00BA adds the table) use these types, plus one clear **"pick me" accent**: bright flowers, berries or a soft glow, so players can spot them among normal foliage.
+- **Make variants.** Every plant gets 2 to 4 variants (`_2`, `_3`) with a different card layout, so batched foliage doesn't look copied.
+- **Recolour, don't rebuild.** One shape can serve several biomes by swapping the ramp (the dry grass and frost grass references are the same model). Name the recolours by biome: `dry_grass_tuft`, `frost_grass_tuft`.
+
+#### 3.4.5 Wind
+
+Foliage sways with the same Godot wind shader as trees and has **no Blockbench animations**. The "Wind" column in 3.4.4 says how strongly each type should move. Keep the base of every card still and let the tips move most: put card bases near y = 0 so the shader can scale sway by height.
+
+#### 3.4.6 Prompt template
 
 ```
-FOLIAGE BUILD SPEC
-name / id:        <plant>               (e.g. blue_bell_flower, forest_fern)
-type / biome:     <grass | flower | bush | fern | mushroom | vine | reed | crystal | forage>, <biome>
-size:             <h> tall, <w> wide
-build:            <n> cubes, crossed / fanned / clustered, alpha cutout edges
-colours:          <main ramp>, <accent>
-texture:          32 or 64, 2 px/unit, light tips, dark base, hard alpha
-variants:         <2 to 4 variants with small changes for batching>
+PLANT BUILD SPEC
+name / id:        <plant>               (e.g. red_flame_bush, forest_fern, dry_grass_tuft)
+type / biome:     <type from 3.4.4>, <biome>
+closest reference: <reference from 3.4.1>
+size:             <h> tall, <w> wide, footprint <one block or less>
+silhouette:       <dome | upright cone | fan | rosette | clump | flat scatter>
+build:            <n> alpha cards (+ <n> stems / solid cubes), radiating from <1 to 3> base points,
+                  tilt layers: low droop 60 to 85°, middle 30 to 60°, top 10 to 30°, crossed pairs
+card shapes:      <lance | oval | rounded | serrated | blade | twig | petal>, <3 to 6> variants
+colours:          <leaf ramp, 5 to 6 shades>, <stem ramp>, <accent>
+texture:          <64 | 128>, 2 px/unit, base to tip gradient, midrib, 1 px light edge, shadow base,
+                  smooth bands, no outlines, hard alpha, double sided
+wind:             <none | light | medium | strong>
+variants:         <2 to 4>
+groups:           <plant> > stems, leaves (or blades / petals / fronds / twigs), accents
+```
+
+#### 3.4.7 Examples
+
+**"Make me a red bush."**
+
+```
+PLANT BUILD SPEC
+name / id:        red_flame_bush
+type / biome:     bush (spiky), mountain
+closest reference: red flame bush
+size:             16 tall, 18 wide, fits one block
+silhouette:       rounded fan, leaves pointing up and out like flames
+build:            8 thin dark grey stems branching from the base, 40 lance leaf cards on the stems,
+                  lower leaves tilted 60 to 75°, middle 35 to 55°, top 10 to 25°, crossed pairs
+card shapes:      lance with serrated pixel edges, 5 variants (long, short, wide, narrow, curved)
+colours:          leaves #8a1e18 #b73620 #d4502a #e86a2c #f4b048, stems #2e2e2a #3a3a36 #4e4e48
+texture:          128, 2 px/unit, dark red base to yellow tip, midrib, 1 px light edge
+wind:             medium
+variants:         3
+groups:           red_flame_bush > stems, leaves
+```
+
+**"Make me some grass for the forest."**
+
+```
+PLANT BUILD SPEC
+name / id:        forest_grass_tuft (+ _2, _3, _4)
+type / biome:     grass tuft, forest
+closest reference: grass tufts on the ground
+size:             6 tall, 8 wide
+silhouette:       low fan
+build:            10 blade cards from one base point, 5 crossed pairs, tilted 10 to 50°, base sunk 0.5
+card shapes:      blades 1 to 2 px wide at the tip, 3 to 4 px at the base, 4 variants
+colours:          the forest_grass ground colours #4d6f0d #587e0e #608a10 #679411 #7aad1d
+texture:          64, 2 px/unit, darker base, lighter tips, stepped tip edges
+wind:             strong
+variants:         4
+groups:           forest_grass_tuft > blades
+```
+
+**"Make me red mushrooms."**
+
+```
+PLANT BUILD SPEC
+name / id:        red_mushroom_group
+type / biome:     mushroom group, forest
+closest reference: red mushrooms
+size:             6 tall, 14 wide
+silhouette:       clump of 3 at different heights
+build:            3 mushrooms: caps are flat slab cubes 8 × 1.5 × 8, 6 × 1.5 × 6 and 5 × 1.5 × 5 with a
+                  thinner rim slab underneath, pale stems 1.5 to 2 wide, 2 frilly ring cards at each base
+card shapes:      ring frill (white, ragged alpha edge)
+colours:          cap #7a1c24 #9c2830 #c03a40, spots #f0c8c8 #f8e0e0, stem #c8c0b0 #d8d0c0, ring #c8c8b8
+texture:          64, 2 px/unit, light cap top with 4 to 8 spots, dark red rim and underside with gill lines
+wind:             none
+variants:         2
+groups:           red_mushroom_group > mushroom_1, mushroom_2, mushroom_3
 ```
 
 ### 3.5 Tools
@@ -808,6 +939,7 @@ Check every item before handing a model over. If one fails, fix it.
 - [ ] Correct size compared with the 18 unit imp (section 1.3).
 - [ ] Stands on y = 0, centred on x = 0, z = 0. Characters face north (−z).
 - [ ] Within the cube budget (section 1.7).
+- [ ] Plants: built from alpha cards fanning from a base point (section 3.4.2), with the card count from section 3.4.4, and compared side by side with the closest reference in section 3.4.1.
 
 **Texture**
 
