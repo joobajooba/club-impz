@@ -49,14 +49,14 @@ func set_prompt(key: String, text: String, key2 := "", text2 := "") -> void:
 
 func _build() -> void:
 	var stats := PanelContainer.new()
-	stats.add_theme_stylebox_override("panel", UIKit.style(UIKit.BG, UIKit.BORDER, 10, 10))
+	stats.add_theme_stylebox_override("panel", UIKit.panel(UIKit.BG, UIKit.GOLD, 16.0, true))
 	stats.position = Vector2(16, 16)
 	add_child(stats)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	stats.add_child(row)
 	var tool_box := PanelContainer.new()
-	tool_box.add_theme_stylebox_override("panel", UIKit.style(UIKit.SLOT, UIKit.BORDER * Color(1, 1, 1, 0.6), 6, 4))
+	tool_box.add_theme_stylebox_override("panel", UIKit.slot(UIKit.SLOT, UIKit.OUTLINE, 1, 6.0))
 	row.add_child(tool_box)
 	_tool_icon = UIKit.icon(null, 44)
 	tool_box.add_child(_tool_icon)
@@ -69,6 +69,7 @@ func _build() -> void:
 	_tool_name = UIKit.label("", Color.WHITE, 14)
 	top.add_child(_tool_name)
 	top.add_child(UIKit.spacer())
+	top.add_child(UIKit.pixel_icon(UIKit.COIN, UIKit.ENERGY))
 	_coins = UIKit.label("", UIKit.RARE, 14)
 	_coins.tooltip_text = "Coins (TEST: earned at the merchant, the battle board and the dig)"
 	_coins.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -76,15 +77,15 @@ func _build() -> void:
 	var energy_row := HBoxContainer.new()
 	energy_row.add_theme_constant_override("separation", 8)
 	col.add_child(energy_row)
-	energy_row.add_child(UIKit.label("Energy", UIKit.MUTED, 13))
+	energy_row.add_child(UIKit.pixel_icon(UIKit.BOLT, UIKit.ENERGY))
 	_energy_bar = ProgressBar.new()
-	_energy_bar.custom_minimum_size = Vector2(130, 14)
+	_energy_bar.custom_minimum_size = Vector2(150, 18)
 	_energy_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_energy_bar.max_value = GameData.ENERGY_MAX
 	_energy_bar.show_percentage = false
 	_energy_bar.mouse_filter = Control.MOUSE_FILTER_STOP
-	_energy_bar.add_theme_stylebox_override("background", UIKit.style(UIKit.SLOT, UIKit.BORDER * Color(1, 1, 1, 0.4), 4, 0))
-	_energy_bar.add_theme_stylebox_override("fill", UIKit.style(UIKit.ENERGY, UIKit.ENERGY, 4, 0))
+	_energy_bar.add_theme_stylebox_override("background", UIKit.bar_track())
+	_energy_bar.add_theme_stylebox_override("fill", UIKit.bar(UIKit.ENERGY))
 	energy_row.add_child(_energy_bar)
 	_energy_text = UIKit.label("", Color.WHITE, 13)
 	energy_row.add_child(_energy_text)
@@ -106,7 +107,7 @@ func _build() -> void:
 	bottom.add_child(_loot)
 	_prompt = PanelContainer.new()
 	_prompt.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_prompt.add_theme_stylebox_override("panel", UIKit.style(UIKit.BG, UIKit.BORDER, 8, 8))
+	_prompt.add_theme_stylebox_override("panel", UIKit.panel(UIKit.BG, UIKit.GOLD, 14.0, true))
 	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bottom.add_child(_prompt)
 	var prow := HBoxContainer.new()
@@ -114,10 +115,7 @@ func _build() -> void:
 	_prompt.add_child(prow)
 	for i in 2:
 		var key := UIKit.label("", Color.BLACK, 15)
-		var key_bg := UIKit.style(Color(0.95, 0.93, 0.85), Color(0.95, 0.93, 0.85), 4, 0)
-		key_bg.content_margin_left = 8
-		key_bg.content_margin_right = 8
-		key.add_theme_stylebox_override("normal", key_bg)
+		key.add_theme_stylebox_override("normal", UIKit.key_cap())
 		var text := UIKit.label("", Color.WHITE, 16)
 		prow.add_child(key)
 		prow.add_child(text)
@@ -142,7 +140,7 @@ func _on_held(id: String) -> void:
 func _line(content: Control, rare: bool) -> void:
 	var line := PanelContainer.new()
 	line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	line.add_theme_stylebox_override("panel", UIKit.style(UIKit.BG, UIKit.RARE if rare else UIKit.BORDER * Color(1, 1, 1, 0.5), 6, 6))
+	line.add_theme_stylebox_override("panel", UIKit.panel(UIKit.BG, UIKit.RARE if rare else UIKit.GOLD.darkened(0.25), 12.0, true))
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(content)
 	_loot.add_child(line)

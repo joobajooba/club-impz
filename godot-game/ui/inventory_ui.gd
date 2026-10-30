@@ -7,7 +7,7 @@ extends CanvasLayer
 
 const HELD := Color(1.0, 0.86, 0.4)
 const SLOT_SIZE := 52
-const TOOL_SIZE := 30
+const TOOL_SIZE := 34
 
 @onready var vbox: VBoxContainer = $Center/Panel/VBox
 @onready var slots: GridContainer = $Center/Panel/VBox/Slots
@@ -18,6 +18,15 @@ var _buttons: Array[Button] = []
 
 func _ready() -> void:
 	slots.columns = GameData.INVENTORY_COLUMNS
+	$Center/Panel.add_theme_stylebox_override("panel", UIKit.panel())
+	var title: Label = $Center/Panel/VBox/Title
+	title.add_theme_color_override("font_color", UIKit.RARE)
+	title.add_theme_color_override("font_shadow_color", UIKit.OUTLINE)
+	title.add_theme_constant_override("shadow_offset_x", 2)
+	title.add_theme_constant_override("shadow_offset_y", 2)
+	var rule := UIKit.divider()
+	vbox.add_child(rule)
+	vbox.move_child(rule, title.get_index() + 1)
 	_tools = VBoxContainer.new()
 	_tools.add_theme_constant_override("separation", 4)
 	vbox.add_child(_tools)
@@ -32,12 +41,6 @@ func _ready() -> void:
 	Inventory.changed.connect(_render)
 	visibility_changed.connect(_render)
 	_render()
-
-
-func _thick(border: Color, width: int) -> StyleBoxFlat:
-	var s := UIKit.style(UIKit.SLOT, border, 6, 4)
-	s.set_border_width_all(width)
-	return s
 
 
 func _slot(size: int) -> Button:
@@ -62,10 +65,11 @@ func _slot(size: int) -> Button:
 	return b
 
 
-func _style_slot(b: Button, border: Color, width := 2) -> void:
-	var s := _thick(border, width)
-	for state in ["normal", "hover", "pressed", "disabled"]:
+func _style_slot(b: Button, held := false) -> void:
+	var s := UIKit.slot(UIKit.SLOT, HELD, 2) if held else UIKit.slot()
+	for state in ["normal", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(state, s)
+	b.add_theme_stylebox_override("hover", UIKit.slot(UIKit.SLOT.lightened(0.1), HELD if held else UIKit.GOLD, 2 if held else 1))
 
 
 func _render() -> void:
@@ -77,13 +81,13 @@ func _render() -> void:
 		slots.add_child(b)
 		_buttons.append(b)
 	var rows := Inventory.slots() / GameData.INVENTORY_COLUMNS
-	var room := get_viewport().get_visible_rect().size.y - 330.0
+	var room := get_viewport().get_visible_rect().size.y - 420.0   # the title, tools, TEST row and frame
 	_scroll.custom_minimum_size = Vector2(GameData.INVENTORY_COLUMNS * (SLOT_SIZE + 6) + 12, minf(rows * (SLOT_SIZE + 6), maxf(room, 160.0)))
 	var ids := Inventory.items.keys()
 	for i in _buttons.size():
 		var b := _buttons[i]
 		var id: String = ids[i] if i < ids.size() else ""
-		_style_slot(b, UIKit.BORDER * Color(1, 1, 1, 0.6))
+		_style_slot(b)
 		var tex := GameData.item_icon(id) if id else null
 		b.icon = tex
 		b.text = "" if tex or not id else GameData.item_label(id)   # hilts have no picture yet
@@ -104,7 +108,7 @@ func _render_tools() -> void:
 		for id in Inventory.owned[kind]:
 			var b := _slot(TOOL_SIZE)
 			var held: bool = Inventory.held[kind] == id
-			_style_slot(b, HELD if held else UIKit.BORDER * Color(1, 1, 1, 0.5), 3 if held else 2)
+			_style_slot(b, held)
 			b.icon = GameData.tool_icon(id)
 			b.tooltip_text = GameData.tools[id].label
 			b.pressed.connect(Inventory.hold.bind(id))

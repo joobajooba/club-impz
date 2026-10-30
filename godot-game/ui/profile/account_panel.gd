@@ -20,7 +20,7 @@ func _init(owner_ui: Node) -> void:
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 8)
-	add_child(ui._label("Account", Color.WHITE, 18))
+	add_child(UIKit.title("Account", 20))
 	status = ui._label("", ui.MUTED, 13)
 	add_child(status)
 	form = VBoxContainer.new()
