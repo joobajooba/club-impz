@@ -1,6 +1,6 @@
 # Game Worlds
 
-> Status: draft v5 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v6 · Owner: J00BA · Last updated: 2026-10-30
 >
 > The two worlds in Club Impz, the hub world and the resource world: what each one is for, what players can do there, how they look and the art style for both. This doc must agree with `game_direction.md` and `resource_gathering.md`. Where they differ, `game_direction.md` wins until it is updated.
 
@@ -89,6 +89,8 @@ A **beautiful village** built around a **castle**. Proposed landmarks:
 | Crafting area | Smelter, workbenches and other crafting stations |
 | Castle | The centrepiece of the hub. Scenery only for now, to make the hub look great |
 | Portals | How players travel to the resource world (section 5) |
+
+**Ground textures:** `hub_grass` (lawn), `hub_dirt_path` (paths between landmarks) and `hub_cobblestone` (village square, castle approach, crafting area). See `terrain_textures.md`.
 
 ---
 
@@ -380,7 +382,7 @@ Recommendations for building the biomes in Godot. The game runs in the browser (
 | Part | How |
 | --- | --- |
 | Terrain | One heightmap terrain for the whole resource world (a terrain addon such as Terrain3D, or a custom heightmap mesh). Void and stellar islands are separate meshes, because they float |
-| Ground textures | Paint the terrain with the biome texture sets above (tiling PNGs, built with `blockbench_detailed_prompts.md` section 3.12). Use about 4 to 5 textures per biome and blend them at the borders |
+| Ground textures | Paint the terrain with the biome texture sets above (tiling PNGs, built with `blockbench_detailed_prompts.md` section 3.12). Use about 4 to 5 textures per biome and blend them at the borders. The full list, layer order and blend rules are in `terrain_textures.md` |
 | Foliage | Scatter grass, flowers and small plants with `MultiMeshInstance3D`, in chunks that hide past a set distance. Trees and rocks are instanced scenes with level of detail |
 | Sky and fog | One `WorldEnvironment` per biome (sky colours, fog colour and density, sun colour and angle). Fade between them when a player crosses a border (an `Area3D` per biome). Use the regular depth and height fog; volumetric fog isn't available in browser builds |
 | Glow | Cubes named `_glow` in Blockbench get an emissive material (voidstone, stellarite, runes, crystals) |
