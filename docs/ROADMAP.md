@@ -35,7 +35,7 @@ Every Markdown file in the repo, most important first. The order is **Proposed**
 | 5a | [ACCOUNTS-AND-DATA.md](ACCOUNTS-AND-DATA.md) | Accounts, wallet linking, IMP coins, mint tokens, and the Supabase database shared with impz.club. | Draft |
 | 5b | [GODOT.md](GODOT.md) | Building the game in Godot: what carries over from the Three.js test, project layout, platform, milestones G0–G8. | Draft |
 | 6 | [ART-DIRECTION.md](ART-DIRECTION.md) | The art style: cartoon stylised 3D for the world, 2D pixel art for menus and inventory, the 32 reference listings, and a checklist for every 3D asset. | Draft |
-| 6a | [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md) | Blockbench voxel models for tools, weapons, creatures and items: quality rules, FBX export into Godot, checklist. | Draft |
+| 6a | [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md) | Blockbench voxel models for tools, weapons, creatures and items: quality rules, `.glb` export into Godot, checklist. | Draft |
 | 6b | [BLOCKBENCH-STUDY.md](BLOCKBENCH-STUDY.md) | Research: the 26 mcmodels.net reference listings (D-052), how pros build, texture, animate and optimise Blockbench models, and how that maps onto our tools and creatures. | Draft |
 | 7 | [01-activities.md](01-activities.md) | What players do in the world, and what each activity produces. | Draft |
 | 8 | [05-skirmish.md](05-skirmish.md) | The Pokémon-style battle system, fought by tamed animals. | Draft |
@@ -105,10 +105,12 @@ For a main row, **Status** is the doc's status. For a sub row, it is the topic's
 | AD.5 | ↳ Non-holders | Decided (D-049): a basic Imp model | Its texture is still to make | | |
 | **GD** | **[Godot](GODOT.md)** | **Draft** | Phones, water shader licence, Godot version | 00 | User addition, 2026-10-21 |
 | GD.1 | ↳ Platform: the browser | Decided (D-046) | n/a: on the Compatibility renderer, first web export works | | |
-| **BB** | **[Blockbench models](MODELS-BLOCKBENCH.md)** | **Draft** | Imp height, stations, FBX or glTF | ART | User addition, 2026-10-21 |
+| **BB** | **[Blockbench models](MODELS-BLOCKBENCH.md)** | **Draft** | Imp height, stations | ART | User addition, 2026-10-22 |
 | BB.1 | ↳ Stylised world, slight-voxel items and enemies | Decided (D-047) | n/a | | |
 | BB.2 | ↳ Reference listings | Decided (D-052) | Study in BLOCKBENCH-STUDY is Proposed | | |
 | BB.3 | ↳ Texel density: 2 pixels per unit | Decided (D-053) | n/a | | |
+| BB.4 | ↳ Every tier of a tool has its own shape and detail | Decided (D-114, D-115) | All 56 tools made | | |
+| BB.5 | ↳ Into Godot as `.glb`, not FBX | Decided (D-116) | Creature animations not tested yet | | |
 | **03** | **[Games](03-games.md)** | **Draft** | How each minigame plays and its prizes (Proposed) | 00, 02 | User additions, 2026-10-21 |
 | 03.1 | ↳ Four minigames, dig first | Decided (D-096) | n/a | | |
 | 03.2 | ↳ Prizes, caps and fees | Decided (D-097, D-098) | Amounts | | |
@@ -225,5 +227,6 @@ On 2026-10-30 the work moved to the club-impz repo (D-117), next to J00BA's Club
 | User additions | 2026-10-21 | Economy | Coins from selling to a merchant (D-073), sell prices by tier and kind (D-074), coins buy cosmetics, inventory rows, energy refills and wood hilts (D-075), three limits on refills (D-076), inventory rows double in price (D-077), mint token chance 0.1% and 1 token per mint (D-078). | No report |
 | User additions | 2026-10-21 | Godot project in the repo | The Godot test project copied into `game/`, and the repo made private (D-079). The asset pack is the free CC0 Quaternius kit. | No report |
 | User additions | 2026-10-21 | Everything left | Overview answered (D-080 to D-086), design only and build in Godot (D-087), skirmish (D-088 to D-095), games (D-096 to D-098), trade (D-099 to D-102), trophies and leather (D-103, D-104), lumbering (D-105 to D-108), fishing (D-109 to D-112). 03–05 drafted, overview In review. | [report](reports/2026-10-21-design-session.md) |
+| User additions | 2026-10-22 | Blockbench tools | Every tier of a tool has its own shape and detail, e.g. a demon on the Dreadstone pickaxe (D-114), for every tool (D-115). All 56 tools made in Blockbench and put in the Imp's hand as `.glb`, not FBX (D-116). MODELS-BLOCKBENCH and GODOT updated to match. | No report |
 | User addition | 2026-10-22 | Proposals for open decisions | Real prices as multiples of one base price (02), potions (02), farming details (01), the dig's board (03), 2 moves at level 1 (05). Impling food raised as an Open question. All **Proposed**: nothing decided. | [Report](reports/2026-10-22-proposals.md) |
 | Review | 2026-10-30 | Pass 5, after the move to club-impz | The work moved to the club-impz repo (D-117). Stale lines about the Three.js test, test values, wood hilts and the renderer brought up to date in 00, 01, 02, ACCOUNTS-AND-DATA, ART-DIRECTION, GODOT, BUILD-ROADMAP and this file. Folder paths updated for the new layout. Two broken links in 01 fixed. J00BA's docs listed, and every clash with DECISIONS.md written up. Statuses unchanged. | [Report](reports/2026-10-30-pass-5.md) |

@@ -2,7 +2,7 @@
 
 | Status | Last pass | Depends on |
 |---|---|---|
-| Draft | User addition, 2026-10-20 | ART-DIRECTION, GODOT, 02 |
+| Draft | User addition, 2026-10-22 | ART-DIRECTION, GODOT, 02 |
 
 > Claude: read `docs/CLAUDE.md` before working from this file. Read this whole file before making, editing, exporting or reviewing any Blockbench model.
 >
@@ -26,7 +26,8 @@
 - **Tools, weapons, creatures and items** are made in **Blockbench**: pickaxes, swords, axes, the creatures, and other items.
 - The style is **voxel, inspired by Hypixel and Minecraft** (D-044), with a **slight voxel feel**, chosen because it is easier to model (D-047).
 - **The world stays stylised cartoon**, like the test project's assets (D-047). Items and enemies are made to sit in that world.
-- Models are saved as **FBX** and imported into **Godot** (D-037).
+- Models go into **Godot** (D-037) as **glTF binary (`.glb`)**, exported by Blockbench itself (**D-116**, which replaces the FBX format in D-044). Blockbench stays the modelling tool.
+- **Every tier of a tool has its own shape and detail**, not only its own colours, themed on its metal and gem, its animal or its wood (**D-114** for pickaxes, **D-115** for every tool). Example: the Dreadstone pickaxe has a small demon engraved at the top centre of its head.
 - The aim is the **highest quality** Blockbench work we can do.
 - **Implings are left out** (D-016). They are already made.
 - We make our own models (D-018).
@@ -35,28 +36,30 @@
 
 ## 2. What gets a Blockbench model (Proposed list)
 
-Taken from the decided systems. Each tier set is **one model with one texture per tier** (section 6), not one model per tier.
+Taken from the decided systems. **Decided (D-114, D-115): every tier of a tool is its own model with its own texture** (section 6).
 
-| Group | Models | From |
-|---|---|---|
-| Pickaxes | 1 model, 10 tier textures (Stone to Stellarite) | D-006, D-020 |
-| Sickles | 1 model, 10 tier textures | D-024 |
-| Bows | 1 model, 16 tier textures | D-030, D-032 |
-| Axes, swords | 1 model each, tiers not decided | D-044 (lumbering is not designed yet) |
-| Hunting animals | 16 creatures, Hare to Eclipse Dragon | D-032 |
-| Items in the world | Dropped ore, ingots on the anvil, hides on the tanning rack, bundles on the drying rack | D-005, D-022, D-029 |
-| Stations | Furnace, anvil, drying rack, tanning rack | **Open question**: world or item? (section 10) |
+| Group | Models | From | State |
+|---|---|---|---|
+| Pickaxes | 10 models, Stone to Stellarite | D-006, D-020, D-114 | Made and in the game (2026-10-22) |
+| Axes | 10 models, Stone to Stellarite | D-106, D-115 | Made and in the game |
+| Sickles | 10 models, Stone to Stellarite | D-024, D-063, D-115 | Made and in the game |
+| Bows | 16 models, one per animal, Hare to Eclipse Dragon | D-030, D-032, D-115 | Made and in the game |
+| Fishing rods | 10 models, one per wood | D-110, D-115 | Made and in the game |
+| Swords | Tiers not decided | D-044 | Not made |
+| Hunting animals | 16 creatures, Hare to Eclipse Dragon | D-032 | Not made |
+| Items in the world | Dropped ore, ingots on the anvil, hides on the tanning rack, bundles on the drying rack | D-005, D-022, D-029 | Not made |
+| Stations | Furnace, anvil, drying rack, tanning rack | **Open question**: world or item? (section 10) | Not made |
 
 The inventory icons stay **2D pixel art at 48×48** (D-015). A Blockbench model does not replace its icon.
 
 ## 3. Project setup in Blockbench (Proposed)
 
-- **Format: Generic Model.** It allows any rotation and exports FBX and glTF. Don't use the Java Block/Item format: it limits rotations to 22.5° steps and is made for Minecraft resource packs, not for Godot.
+- **Format: Generic Model.** It allows any rotation and exports glTF (and FBX). Don't use the Java Block/Item format: it limits rotations to 22.5° steps and is made for Minecraft resource packs, not for Godot.
 - **Scale: 16 Blockbench units = 1 metre in Godot** (one Minecraft block). Every model is built against the same reference:
   - Keep a **scale dummy** in each project: a box the height of the player's Imp, hidden before export. **Open question:** the Imp's height in metres in Godot.
 - **Pivot points first.** Before animating, put each group's pivot where it really bends: a shoulder, a knee, the base of a tail, the grip of a pickaxe.
 - **Names.** Lower case with underscores: `body`, `head`, `leg_front_left`, `tail`, `handle`, `head_metal`. The same name for the same part across all creatures, so animations and code can be reused.
-- **Keep the source.** Every model's `.bbmodel` file is committed next to its export. The FBX is a build output. The `.bbmodel` is what gets edited.
+- **Keep the source.** Every model's `.bbmodel` file is committed. The `.glb` is a build output. The `.bbmodel`, or the script that writes it (section 6), is what gets edited.
 
 ## 4. What makes a pro Blockbench model (Proposed: the quality rules)
 
@@ -99,26 +102,36 @@ These are the habits that separate top Hypixel-style models from beginner ones.
 - **The "poof" on defeat (D-028)** is a particle effect in Godot, not a Blockbench animation.
 - **Same bone names on every creature**, so Godot code can say "play `hit`" on any of them.
 
-## 5. Export to FBX and import into Godot (Proposed)
+## 5. Export to glTF and import into Godot (Decided format, D-116; steps tested on the tools)
 
-1. Blockbench: **File → Export → Export FBX**. Hide the scale dummy first.
-2. Keep the texture as a separate PNG next to the FBX, with the same base name.
-3. Godot (4.3 or later) imports the FBX directly. In the import settings:
-   - check the **scale** (16 units = 1 m): the model should stand next to the Imp at the right size,
-   - turn on animation import for creatures,
-   - set the materials as in GODOT.md section 7: **Texture Filter Nearest**, **Compress Mode Lossless**, mipmaps off.
+**Why GLB, not FBX (D-116):** both were tested on the pickaxes on 2026-10-22. Blockbench's GLB carries its **Nearest** pixel filter into Godot and imports crisp. Its FBX imports blurry.
+
+1. Blockbench: **File → Export → Export glTF Model**, binary (`.glb`), with the texture embedded. Hide the scale dummy first. Animations off for tools, on for creatures.
+2. Copy the `.glb` into the game, in `godot-game/models/blockbench/<kind>s/` (section 8). Godot only loads files inside `godot-game/`.
+3. In the `.glb`'s import settings, set **Embedded Image Handling: Embed as Uncompressed** (`gltf/embedded_image_handling=3` in the `.glb.import` file). This is required:
+   - The default, **Extract Textures**, saves the texture as a separate PNG. Godot then imports that PNG as a 3D texture, **VRAM-compressed with mipmaps**, which smears the pixels.
+   - Embed as Uncompressed keeps it as plain RGBA with no mipmaps and the Nearest filter. Nothing else needs setting by hand.
+   - After changing an import setting, delete the model's files in `godot-game/.godot/imported/`, or Godot may skip the re-import.
 4. Check the model in the real scene, under the game's lighting, next to the Imp.
 
-**Test on the first model (Proposed):** export one creature as both FBX and glTF (`.glb`). Godot's glTF import is its most reliable route and keeps animations well. If FBX has problems (wrong scale, missing animations, broken textures), raise it, because changing D-044 is the user's call.
+**Tested on 2026-10-22:** all 56 tools, in the main scene, held by the Imp: right scale (16 units = 1 m), crisp pixels, no errors.
 
-## 6. Tier variants (Proposed)
+**Still to test (Proposed):** creatures with animations. glTF is Godot's most reliable route for animations, so the first creature is the check.
 
-Pickaxes have 10 tiers, sickles 10, bows 16. Make **one model** per tool and **one texture per tier**:
+**Draw calls.** Blockbench's GLB keeps every box as its own mesh, so a held tool draws as 12 to 29 pieces. That's fine for one tool in hand. **Proposed:** if many players end up on screen in the web build, merge each model's meshes into one when it loads.
 
-- Each tier's texture uses the same UV layout, only the colours change. The colours come from that tier's ingot or item icon.
-- In Godot, a `Pickaxe` scene picks its texture by tier. This is the same idea as `godot-game/assets/models/source/pickaxe-skins.json` in the Three.js build.
-- Higher tiers may add pixels (sparkles, a spiral, stars) the way the ingot icons do, but **inside the same UV layout**.
-- If a tier needs a different shape (for example a Stellarite pickaxe with a crystal on top), that's a second model. Keep it rare.
+## 6. Tier variants (Decided, D-114 and D-115)
+
+Each tier of a tool is **its own model and its own texture**, with its own shape and detail. This replaces the earlier plan of one model with one texture per tier.
+
+- **Themed on what the tier is made of.** Metal tools (pickaxes, axes, sickles) on their metal and its gem (D-012 pairings). Bows on their animal, carrying its trophy. Rods on their wood, carrying its log's marks. Low tiers are plain and practical; high tiers are ornate and magical.
+- **Colours only from the icons.** Metal and handle from the tool's icon, gems from `godot-game/assets/sprites/source/items/gemstone_*.png`, bow decorations from the trophy icons, rod marks from the log icons. Handles follow the hilt (D-058).
+- **Built by scripts from data tables**, not by hand, so a tier is a row of data and every model follows the same rules. The scripts are in `godot-game/assets/models/source/blockbench/tools/`:
+  - `build_pickaxe_bbmodel.py` (Stone) and `build_pickaxe_metal_bbmodel.py` (the metal tiers),
+  - `bbsprite.py`, shared by the rest: it draws a head from a small pixel drawing, merges it into few boxes, and lights it automatically (light from the top left, edge highlights, painted shadow at joins),
+  - `build_axe_sickle_bbmodel.py` and `build_bow_rod_bbmodel.py`.
+- Each set also gets a **lineup** (`<kind>s_lineup.bbmodel`, every tier side by side) and a preview picture, to check the tiers together.
+- In Godot, the tool's id picks its file (`gathering/tool_art.gd`, `ToolArt.model()`). There is no shared tool scene that swaps textures.
 
 ## 7. Budgets (Proposed)
 
@@ -126,7 +139,7 @@ Boxes are cheap: 12 triangles each.
 
 | Model | Boxes | Texture |
 |---|---|---|
-| Held tool | 8–30 | 64×64 or 128×128 |
+| Held tool | 8–30 (the 56 tools use 12–29) | 64×64 or 128×128 |
 | Small item (ore, ingot, hide) | 2–10 | 32×32 or 64×64 |
 | Small creature (Hare, Fox) | 15–40 | 128×128 |
 | Large creature (Behemoth, Dragon) | 40–150 | 256×256 |
@@ -136,13 +149,22 @@ Texture sizes are for 2 pixels per unit (D-053).
 ## 8. Files (Proposed)
 
 ```
-models/blockbench/
-  tools/      pickaxe.bbmodel, pickaxe.fbx, pickaxe_stone.png … pickaxe_stellarite.png
-  creatures/  hare.bbmodel, hare.fbx, hare.png …
-  items/      …
+godot-game/assets/models/source/blockbench/   sources (D-021, moved by D-117)
+  tools/      build_*.py, bbsprite.py      the scripts that write the models
+              pickaxe.bbmodel, pickaxe_stone.png       the Stone pickaxe
+              <kind>_<tier>.bbmodel, .png              every other tool, e.g. axe_dreadstone
+              <kind>s_lineup.bbmodel, *_preview.png    all tiers side by side
+              export/                                   Blockbench's .glb exports (and the test .fbx)
+  creatures/  <name>.bbmodel, .png, build_<name>_bbmodel.py
+
+godot-game/models/blockbench/            what the game loads
+  pickaxes/ axes/ sickles/ bows/ rods/   <kind>_<tier>.glb and its .glb.import
+  creatures/                             <name>.glb
+
+godot-game/assets/models/mobs/, trees/   J00BA's Blockbench sources (.bbmodel)
 ```
 
-`godot-game/assets/models/source/` is where model sources live (D-021, moved by D-117). When the Godot project moves into the repo (GODOT.md, section 5), the game reads from here or copies the exports in.
+The `<tier>` part is the tool's material: `stone` to `stellarite` for metal tools, the animal for bows (`bow_eclipse_dragon`), the wood for rods. It is the tool's id in `GameData` without its kind. The `.fbx` files in `export/` were the D-116 test and aren't used.
 
 ## 9. Review checklist (Proposed)
 
@@ -158,11 +180,11 @@ Run this on every Blockbench model before its PR is marked ready. Note the resul
 
 **Fits the game**
 - [ ] Right size next to the Imp in Godot.
-- [ ] Looks crisp, not blurry (Nearest filter, Lossless compression).
-- [ ] For tier sets: one model, one texture per tier, same UV layout.
+- [ ] Looks crisp, not blurry: exported as `.glb` and imported with Embed as Uncompressed (section 5).
+- [ ] For tier sets: each tier has its own shape and detail, themed on its material (D-114, D-115), and the lineup reads as one set.
 
 **Tech**
-- [ ] `.bbmodel` source committed with the export.
+- [ ] `.bbmodel` source (and its script, if any) committed with the export.
 - [ ] Pivots at the joints. Bones named by the shared names.
 - [ ] Creatures: `idle`, `walk`, `attack`, `hit`, and the loops loop.
 - [ ] Within the budget in section 7, or the PR explains why not.
@@ -176,7 +198,8 @@ ART-DIRECTION was written for a smooth, painted, cartoon look in Three.js (D-014
 |---|---|
 | "No pixel-art textures on 3D models" (section 2, Proposed) | Doesn't apply. Voxel models **are** pixel-textured. |
 | "Big bevelled facets", "painted gradients" (section 3, Proposed) | Replaced by section 4 here: boxes, edge highlights, hue-shifted pixel shading. |
-| Three.js materials, `.glb` files (sections 7, 10, Proposed) | Replaced by Godot settings (GODOT.md section 7) and FBX (D-044). |
+| Three.js materials (sections 7, 10, Proposed) | Replaced by Godot settings (GODOT.md section 7). |
+| `.glb` files (section 10, Proposed) | **Still applies.** Blockbench models go into Godot as `.glb` (D-116). |
 | Chunky shapes, warm light with coloured shadows, saturated accents (section 3, Proposed) | **Still apply**, and section 4 here follows them. |
 
 **Decided (D-047): voxel items and enemies in a stylised cartoon world.** "Slight voxel feel" means the models are built from boxes, but they should look like they belong next to the test project's smooth, painted assets. **Proposed** ways to make that work:
@@ -191,11 +214,12 @@ ART-DIRECTION was written for a smooth, painted, cartoon look in Three.js (D-014
 
 1. **Imp height** in Godot, so every model can be scaled against it.
 2. **Stations** (furnace, anvil, racks): Blockbench, or world-style? They stand in the world, so world-style is **Proposed**.
-3. **FBX or glTF** after the first test export (section 5)?
 
 Answered on 2026-10-20: the world stays stylised cartoon (D-047).
 
 Answered on 2026-10-21: 2 texture pixels per unit (D-053).
+
+Answered on 2026-10-22: glTF (`.glb`), not FBX (D-116). Every tier gets its own model (D-114, D-115).
 
 ## Pass history
 | Pass | Change |
@@ -203,3 +227,4 @@ Answered on 2026-10-21: 2 texture pixels per unit (D-053).
 | User addition, 2026-10-20 | Doc created. Blockbench voxel models for tools, weapons, creatures and items, exported as FBX into Godot (D-044). Quality rules, pipeline, budgets and checklist are Proposed. Status Draft. |
 | User addition, 2026-10-20 (later) | World stays stylised cartoon, items and enemies have a slight voxel feel (D-047). Section 10 rewritten with how they fit together. World-style question removed. |
 | User addition, 2026-10-21 | Link to BLOCKBENCH-STUDY (D-052). Texel density decided: 2 pixels per unit (D-053). Sections 4.1, 7, 9 and 10 updated to match; open question 1 removed. |
+| User addition, 2026-10-22 | All 56 tools made and put in the game. Each tier gets its own model (D-114, D-115): sections 2, 6, 8 and 9 rewritten. Models go into Godot as `.glb`, not FBX (D-116): sections 1, 3, 5 and 10 updated, open question 3 answered. Section 5 now holds the tested export and import steps. |
