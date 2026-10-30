@@ -499,6 +499,13 @@ def paint_face(c, f, w, h, ppu, rng):
     ii = np.clip(np.round(idx), 0, len(r) - 1).astype(int)
     lut = np.array(r, np.int16)
     out[..., :3] = lut[ii]
+    if o.get("bands"):
+        # two-colour bands across the face (awnings, banners): every other band uses the second ramp
+        alt, width = o["bands"]
+        band = (np.floor(along * ppu / width) % 2 == 1)
+        lut2 = np.array(alt, np.int16)
+        ii2 = np.clip(np.round(idx) - mat.base + len(alt) // 2, 0, len(alt) - 1).astype(int)
+        out[..., :3] = np.where(band[..., None], lut2[ii2], out[..., :3])
     out[..., 3] = 255
     if o.get("alpha_fn"):
         o["alpha_fn"](out, f, w, h, rng)
