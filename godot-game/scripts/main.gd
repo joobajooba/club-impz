@@ -42,6 +42,8 @@ func _ready() -> void:
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
 	if args.has("perf"):
 		_perf_probe(float(args["perf"]))
+	if args.has("portal_test"):
+		_portal_test()
 
 
 func change_world(world_name: String, spawn_name: String) -> void:
@@ -118,4 +120,22 @@ func _perf_probe(seconds: float) -> void:
 		for c in sc.tree_cells.values(): tm += c.get_child_count()
 		print("PERF   foliage cells %d (%d multimeshes), tree cells %d (%d multimeshes), terrain chunks %d" % [
 			sc.foliage_cells.size(), fm, sc.tree_cells.size(), tm, current_world.terrain.chunks.size()])
+	get_tree().quit()
+
+
+# debug: walk the player into the nearest portal twice (there and back) and log each world
+func _portal_test() -> void:
+	for i in 2:
+		await get_tree().create_timer(4.0).timeout
+		var portal: Node3D = null
+		for n in current_world.find_children("*", "Node3D", true, false):
+			if "target_world" in n:
+				portal = n
+				break
+		if portal == null:
+			print("PORTAL_TEST no portal in ", current_world_name)
+			return
+		player.place_at(Transform3D(Basis(), portal.global_position))
+		await get_tree().create_timer(3.0).timeout
+		print("PORTAL_TEST now in ", current_world_name)
 	get_tree().quit()
