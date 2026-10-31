@@ -26,7 +26,13 @@ var args := {}
 func _ready() -> void:
 	add_to_group("game_main")
 	print("club impz: start args ", OS.get_cmdline_user_args())
-	for a in OS.get_cmdline_user_args():
+	var user_args := OS.get_cmdline_user_args()
+	# web builds take the same flags from the url query: ?world=resource&biome=frost
+	if OS.has_feature("web"):
+		var query: String = str(JavaScriptBridge.eval("window.location.search")).trim_prefix("?")
+		if query != "":
+			user_args = PackedStringArray(Array(query.split("&")))
+	for a in user_args:
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	var start: String = args.get("world", "hub")
