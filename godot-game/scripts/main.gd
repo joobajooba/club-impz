@@ -40,6 +40,8 @@ func _ready() -> void:
 	fade_rect.color.a = 0.0
 	if args.has("shot"):
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
+	if args.has("perf"):
+		_perf_probe(float(args["perf"]))
 
 
 func change_world(world_name: String, spawn_name: String) -> void:
@@ -92,4 +94,28 @@ func _take_screenshot(path: String, delay: float) -> void:
 	DirAccess.make_dir_recursive_absolute(abs_path.get_base_dir())
 	img.save_png(abs_path)
 	print("screenshot saved: ", abs_path)
+	get_tree().quit()
+
+
+func _perf_probe(seconds: float) -> void:
+	## Prints average FPS and draw calls after the world has settled, then quits (used for the performance pass).
+	await get_tree().create_timer(6.0).timeout
+	var frames := 0
+	var draws := 0
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < seconds * 1000.0:
+		await get_tree().process_frame
+		frames += 1
+		draws += RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
+	var secs := (Time.get_ticks_msec() - t0) / 1000.0
+	print("PERF %s %s: %.1f fps, %d draw calls, %d objects" % [current_world_name, args.get("biome", "-"), frames / secs, draws / max(frames, 1),
+		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME)])
+	if current_world.get("scatter"):
+		var sc = current_world.scatter
+		var fm := 0
+		var tm := 0
+		for c in sc.foliage_cells.values(): fm += c.get_child_count()
+		for c in sc.tree_cells.values(): tm += c.get_child_count()
+		print("PERF   foliage cells %d (%d multimeshes), tree cells %d (%d multimeshes), terrain chunks %d" % [
+			sc.foliage_cells.size(), fm, sc.tree_cells.size(), tm, current_world.terrain.chunks.size()])
 	get_tree().quit()

@@ -150,7 +150,7 @@ func _build_chunk(c: Vector2i) -> void:
 	mi.name = "chunk_%d_%d" % [c.x, c.y]
 	mi.mesh = mesh
 	mi.material_override = material
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # terrain only receives shadows (fewer draw calls)
 	add_child(mi)
 	chunks[c] = mi
 	chunk_built.emit(c)

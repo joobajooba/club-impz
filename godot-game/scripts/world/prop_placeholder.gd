@@ -23,6 +23,7 @@ func _ready() -> void:
 	body.collision_layer = 4
 	add_child(body)
 	call("_build_" + kind)
+	MeshMerge.merge_children(self)  # one or two draw calls per placeholder
 
 
 func box(size: Vector3, pos: Vector3, col: Color, collide := true, rot_y := 0.0, emissive := 0.0) -> MeshInstance3D:

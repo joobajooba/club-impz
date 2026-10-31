@@ -8,7 +8,7 @@ extends Node3D
 ## - Same seed per cell and rule, so the world looks the same every load.
 ## - Every plant and tree uses shaders/foliage_wind.gdshader (wind on the leaf cards, still trunks).
 
-const FOLIAGE_CELL := 48.0
+const FOLIAGE_CELL := 64.0
 const TREE_CELL := 128.0
 
 var world: Node
@@ -66,6 +66,11 @@ func _process(_delta: float) -> void:
 	_update_cells(p, TREE_CELL, tree_view + TREE_CELL * 0.5, tree_cells, true)
 	# trunk colliders round the player
 	var pc := Vector2i(floori(p.x / TREE_CELL), floori(p.z / TREE_CELL))
+	# only the tree cells next to the player cast shadows (fewer draw calls in the shadow pass)
+	for c in tree_cells:
+		var near := absi(c.x - pc.x) <= 1 and absi(c.y - pc.y) <= 1
+		for mmi in tree_cells[c].get_children():
+			(mmi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if near else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for c in collider_cells.keys():
 		if absi(c.x - pc.x) > 1 or absi(c.y - pc.y) > 1:
 			collider_cells[c].queue_free()

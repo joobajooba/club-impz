@@ -44,7 +44,7 @@ func setup(d: Dictionary, start_biome: String) -> void:
 	sun.name = "sun"
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 70.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL  # one shadow pass for the web build
 	add_child(sun)
 	for b in biome_data["biomes"]:
 		var e := _make_emitter(b, biome_data["biomes"][b].get("particles", ""))
