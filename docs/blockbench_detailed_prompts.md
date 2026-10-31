@@ -101,6 +101,7 @@ Every existing model uses **2 texture pixels per Blockbench unit** (32 pixels pe
 | World assets: trees, ore veins, rocks, foliage, mobs, dragons, NPCs, props | **2** | Matches all existing mob models |
 | Held items: tools, weapons | **4** | Seen up close in the player's hand and in previews, so they get finer detail |
 | Worn armour | **2** | Must match the character it sits on |
+| Playable Imp (and its traits) | **4** | Seen up close all the time |
 
 - **Never stretch** a texture. A face that is 6 × 4 units gets exactly a 12 × 8 pixel UV area (at 2 px/unit).
 - Half unit cubes (0.5) are fine and get 1 pixel. Don't go smaller than 0.5 units on world assets.
@@ -146,7 +147,7 @@ These keep models detailed but still light enough for a browser game (see `game_
 | Armour piece | 10 to 40 | 64 or 128, one per piece |
 | Small mob | 20 to 50 | 64 or 128 |
 | Large mob, NPC | 40 to 130 | 128 or 256 |
-| Imp (player, base) | 45 to 70, plus 5 to 40 per trait | 128 |
+| Imp (player, base) | 45 to 70, plus 5 to 40 per trait | 256 |
 | Dragon | 100 to 250 | 256 |
 | Prop (crate, bench, sign) | 10 to 60 | 64 or 128 |
 | Building | 100 to 500 | 256 or 512 |
@@ -1097,7 +1098,7 @@ The Impz are the player characters (an NFT holder plays as their Imp). They must
 | Spade tip | in `tail_tip` | A 2.5 × 2.5 × 0.5 cube rotated 45°, plus a 1 × 1 × 0.5 neck | White, shaded pale blue grey |
 
 - **Cubes:** 45 to 70 for the base Imp. Each trait adds 5 to 40.
-- **Texture:** 128 × 128, 2 px/unit, one per body colour (see below).
+- **Texture:** 256 × 256, 4 px/unit, one per body colour (see below).
 
 **Painting the Imp:**
 
@@ -1153,7 +1154,7 @@ body:             round belly with pecs and navel, mitten fists, stubby legs wit
 tail:             <n> segments, spade tip, leaves behind the left hip
 traits:           head <...>, back <...>, clothing <...>, eyes <...>, each on its slot
 cubes:            <n> (45 to 70 base, + traits)
-texture:          128, 2 px/unit, 6 shade ramp from the body colour, dark rim on edges
+texture:          256, 4 px/unit, 6 shade ramp from the body colour, dark rim on edges
 animations:       idle, walk, run, jump, fall, swing, chop, mine, hit, wave
 groups:           imp rig above + scale_dummy
 ```
@@ -1179,7 +1180,7 @@ traits:           fez on head_slot between the horns: stepped red cylinder
                   tassel as 3 small hanging cubes on the Imp's left side (the viewer's
                   right, as in the 2D art), in its own group so it sways
 cubes:            58 base + 7 fez
-texture:          128, 2 px/unit
+texture:          256, 4 px/unit
 animations:       idle (breathe, blink, tail and tassel sway), walk, run, jump,
                   fall, swing, chop, mine, hit, wave
 groups:           imp rig + scale_dummy
@@ -1307,3 +1308,4 @@ J00BA's answers to the first draft's open questions.
 | Gathering feedback | Trees shake with a `hit` animation. Ore veins don't animate (sections 3.1 and 3.2) |
 | Armour files | One file per piece (section 3.7) |
 | Leaf cores on trees | None. Trees use inner cards, not solid core cubes, and nothing but bark strips, stubs and small details touches the trunk. `frostbark_tree` is the reference (section 3.1) |
+| Imp texel density | 4 px/unit on 256, approved by J00BA 2026-10-31 |
