@@ -1,5 +1,5 @@
 {
-  "_doc": "Seeded scatter rules (docs/world_build_notes.md). density = word from game_worlds.md 4.10 (spacing in biomes.json) or spacing = metres. meshes = [alias, weight]. avoid: path / wet / water / steep. recolor = [dark, light] gradient map on leaf cards. petal = colour for red petals (placeholder flowers). trunk_tint / tint multiply. patch = noise mask {freq, threshold}. require: mask channel minimum (wet, special, litter). height = [min, max] metres. near = [landmark, radius]. kind tree gets a trunk collider and the tree view distance.",
+  "_doc": "Seeded scatter rules (docs/world_build_notes.md). density = word from game_worlds.md 4.10 (spacing in biomes.json) or spacing = metres. meshes = [alias, weight]. avoid: path / wet / water / steep. recolor = [dark, light] gradient map on leaf cards. petal = colour for red petals (placeholder flowers). trunk_tint / tint multiply. patch = noise mask {freq, threshold}. require: mask channel minimum (wet, special, litter). height = [min, max] metres. near = [landmark, radius]. exclude = {landmark: radius} overrides exclusion_radius for this rule. kind tree gets a trunk collider and the tree view distance.",
   "exclusion_radius": {"castle": 42, "village_square": 17, "market": 16, "crafting_area": 13, "portal": 8, "spawn_point": 5,
     "portal_clearing": 16, "stone_ruin": 12, "waterfall": 10, "standing_stones": 14, "obsidian_cave": 16, "frozen_waterfall": 14,
     "ice_spire": 14, "stone_arch": 22, "pillar_ring": 20, "giant_titanwood": 14, "hollow_tree": 20, "dreadstone_pit": 18, "sunken_ruins": 16},
@@ -21,10 +21,10 @@
     "maple_3": "res://assets/models/trees/maple_tree_3.glb"
   },
   "rules": [
-    {"id": "hub_grass", "spacing": 1.7, "biomes": ["hub"], "density": "dense", "meshes": [["carpet", 1], ["tuft_s", 2], ["tuft_m", 2]], "scale": [0.9, 1.1], "avoid": ["path", "special", "steep"]},
+    {"id": "hub_grass", "spacing": 1.06, "biomes": ["hub"], "density": "carpet", "meshes": [["carpet", 3], ["tuft_s", 2], ["tuft_m", 2]], "scale": [0.9, 1.15], "avoid": ["path"], "path_max": 0.08, "exclude": {"castle": 0, "village_square": 0, "market": 0, "crafting_area": 0, "spawn_point": 0, "portal": 4}},
     {"id": "hub_bush", "spacing": 4.24, "biomes": ["hub"], "density": "scattered", "meshes": [["bush_s", 2], ["bush_l", 1]], "scale": [0.9, 1.2], "avoid": ["path", "special", "steep"], "patch": {"freq": 0.05, "threshold": 0.15}},
     {"id": "hub_rose", "biomes": ["hub"], "spacing": 3.58, "meshes": [["rose", 1]], "scale": [0.9, 1.1], "avoid": ["path", "special"], "require": {"near_path": 6.0}},
-    {"id": "hub_tree", "kind": "tree", "biomes": ["hub"], "spacing": 26.0, "meshes": [["oak", 1], ["birch", 1]], "scale": [0.9, 1.15], "avoid": ["path", "special", "steep"], "clear": 16.0},
+    {"id": "hub_tree", "kind": "tree", "biomes": ["hub"], "spacing": 17.0, "meshes": [["oak", 1], ["birch", 1]], "scale": [0.9, 1.15], "avoid": ["path", "special", "steep"], "clear": 16.0},
 
     {"id": "forest_grass", "spacing": 1.06, "biomes": ["forest"], "density": "carpet", "meshes": [["carpet", 3], ["tuft_s", 2], ["tuft_m", 2]], "scale": [0.9, 1.15], "avoid": ["path", "wet", "steep"]},
     {"id": "dry_grass_tuft", "spacing": 1.7, "biomes": ["forest", "mountain"], "density": "dense", "meshes": [["tuft_l", 1]], "scale": [0.8, 1.1], "recolor": ["#6a760f", "#c8b448"], "patch": {"freq": 0.04, "threshold": 0.35}, "avoid": ["path", "wet"]},

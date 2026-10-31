@@ -17,7 +17,13 @@ const WORLDS := {
 @onready var player: CharacterBody3D = $imp_player
 @onready var fade_rect: ColorRect = $fade_layer/fade_rect
 
+## Camera mode (key 7) lets you fly around without the imp. It is a dev / screenshot tool: in an MMO a free
+## camera in the shipped game would let anyone scout the whole map, so release builds only get it when this is on.
+@export var camera_mode_in_release := false
+
 var current_world: Node = null
+const FREE_CAMERA := preload("res://scripts/player/free_camera.gd")
+var free_cam: Camera3D = null
 var current_world_name := ""
 var busy := false
 var args := {}
@@ -52,10 +58,39 @@ func _ready() -> void:
 		_portal_test()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_camera_mode") and not busy:
+		if OS.is_debug_build() or camera_mode_in_release:
+			set_camera_mode(free_cam == null)
+			get_viewport().set_input_as_handled()
+
+
+func set_camera_mode(on: bool) -> void:
+	## Swap the view between the imp's follow camera and a free flying camera. The imp is frozen in place meanwhile.
+	if on and free_cam == null:
+		free_cam = FREE_CAMERA.new()
+		free_cam.name = "free_camera"
+		free_cam.transform = player.camera.global_transform  # main is a plain Node, so this is the world transform
+		free_cam.fov = player.camera.fov
+		add_child(free_cam)
+		free_cam.make_current()
+		player.frozen = true
+		if current_world and current_world.has_method("set_view_focus"):
+			current_world.set_view_focus(free_cam)
+	elif not on and free_cam != null:
+		player.camera.make_current()
+		free_cam.queue_free()
+		free_cam = null
+		player.frozen = false
+		if current_world and current_world.has_method("set_view_focus"):
+			current_world.set_view_focus(player)
+
+
 func change_world(world_name: String, spawn_name: String) -> void:
 	## Fade to black, swap the world scene, place the player at the target spawn, fade back in.
 	if busy:
 		return
+	set_camera_mode(false)
 	busy = true
 	player.frozen = true
 	var tw := create_tween()

@@ -78,6 +78,14 @@ func set_player(p: Node3D) -> void:
 			c.set_player(p)
 
 
+func set_view_focus(f: Node3D) -> void:
+	## The local view (player, or the free camera in camera mode). Terrain meshes, the foliage build order, tree
+	## shadows and weather particles follow it; colliders stay round the player.
+	terrain.set_focus(f)
+	scatter.set_focus(f)
+	environment.set_focus(f)
+
+
 func ground_height(x: float, z: float) -> float:
 	return terrain.data.height(x, z)
 

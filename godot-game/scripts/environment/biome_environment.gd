@@ -26,6 +26,7 @@ var auto_fading := false
 var cur := {}
 var sun: DirectionalLight3D
 var player: Node3D
+var focus: Node3D
 var current := ""
 var from := {}
 var to := {}
@@ -76,6 +77,10 @@ func setup(d: Dictionary, start_biome: String) -> void:
 
 func set_player(p: Node3D) -> void:
 	player = p
+
+
+func set_focus(f: Node3D) -> void:
+	focus = f
 
 
 func set_biome(b: String, instant := false) -> void:
@@ -187,9 +192,10 @@ func _process(delta: float) -> void:
 		for k in to:
 			v[k] = _lerp_val(from[k], to[k], f)
 		_apply(v)
-	if player:
+	var view: Node3D = focus if is_instance_valid(focus) else player
+	if view:
 		for k in emitters:
-			emitters[k].global_position = player.global_position + Vector3(0, 4, 0)
+			emitters[k].global_position = view.global_position + Vector3(0, 4, 0)
 
 
 func _make_emitter(b: String, kind: String) -> CPUParticles3D:

@@ -47,6 +47,8 @@ func place_at(xform: Transform3D) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if frozen:
+		return  # world change fade or camera mode: the free camera owns the mouse and keys
 	if event.is_action_pressed("toggle_fast_sprint"):
 		fast_sprint = not fast_sprint
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
