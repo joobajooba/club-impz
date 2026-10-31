@@ -145,7 +145,7 @@ func _make_water() -> void:
 		var mat := ShaderMaterial.new()
 		mat.shader = shader
 		mat.set_shader_parameter("deep_color", deep)
-		mat.set_shader_parameter("shallow_color", deep.lerp(Color("#bff0e6"), 0.45))
+		mat.set_shader_parameter("shallow_color", deep.lerp(Color("#bff0e6"), 0.25))
 		# depth under the plane, 1 m per pixel (no depth texture in web builds)
 		var dw := int(ceil(size.x))
 		var dd := int(ceil(size.y))

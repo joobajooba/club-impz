@@ -12,7 +12,7 @@ uniform vec4 foam_color : source_color = vec4(0.9, 0.97, 1.0, 1.0);
 uniform float alpha = 0.85;
 uniform float flow = 0.0;
 uniform float wave_height = 0.04;
-uniform float deep_depth = 2.5;         // depth (m) where the deepest band starts
+uniform float deep_depth = 1.5;         // depth (m) where the deepest band starts
 uniform sampler2D depth_map : filter_linear, repeat_disable;
 uniform vec4 rect = vec4(0.0, 0.0, 1.0, 1.0);  // x0, z0, width, depth of depth_map in world metres
 uniform bool use_depth = false;

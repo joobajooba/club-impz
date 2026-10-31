@@ -439,6 +439,10 @@ func _post_process(hs: PackedFloat32Array, nx: int, nz: int) -> void:
 				if w["name"] == "forest_upper_pool" and absf(x - 214.0) <= 2.0 and absf(z - lip_z) <= 5.0:
 					hs[k] = lvl - 0.05  # the lip the waterfall pours over
 					continue
+				if inside and path_dist[k] < 3.5:  # paths through water (the swamp) stay dry and walkable
+					hs[k] = maxf(hs[k], lvl + 0.25)
+					floor_h[k] = maxf(floor_h[k], lvl + 0.25)
+					continue
 				if inside:
 					if hs[k] < lvl + 0.3:
 						hs[k] = minf(hs[k], lvl - 0.5)
