@@ -1,8 +1,9 @@
 class_name TerrainWorld
 extends Node3D
 ## Chunked heightmap terrain for the Compatibility renderer.
-## - 64 x 64 m chunks with 2 m vertex spacing and smooth normals, built a few per frame around the player.
-## - A HeightMapShape3D collider for the chunks next to the player.
+## - 64 x 64 m chunks with 2 m vertex spacing and smooth normals, built a few per frame nearest the view first
+##   (the player, or the free camera). With keep_loaded every chunk of the world is built and kept.
+## - A HeightMapShape3D collider for the chunks next to the local player.
 ## - A low detail far mesh (8 m spacing) of the whole world, hidden close to the camera, so distant peaks and
 ##   landmarks stay visible (fog hides most of it).
 ## - One Texture2DArray with the 28 ground textures (terrain_textures.md section 2) and the terrain shader.
@@ -18,6 +19,7 @@ const VERTS := 33  # CHUNK / STEP + 1
 @export var view_chunks := 4           # chunk radius kept visible (64 m each)
 @export var build_per_frame := 2
 @export var far_mesh := true
+@export var keep_loaded := true        # build the whole world once and never drop chunks (always visible)
 
 var data: WorldData
 var material: ShaderMaterial
@@ -26,6 +28,7 @@ var chunks := {}                       # Vector2i -> MeshInstance3D
 var colliders := {}                    # Vector2i -> StaticBody3D
 var queue: Array[Vector2i] = []
 var player: Node3D
+var focus: Node3D                      # what the local view follows (player or free camera)
 var _layer_array: Texture2DArray
 
 
@@ -86,25 +89,32 @@ func set_player(p: Node3D) -> void:
 	player = p
 
 
+func set_focus(f: Node3D) -> void:
+	focus = f
+
+
 func _process(_delta: float) -> void:
 	if data == null or player == null:
 		return
+	var view := (focus if is_instance_valid(focus) else player).global_position
+	var vc := Vector2i(floori((view.x - data.origin.x) / CHUNK), floori((view.z - data.origin.y) / CHUNK))
 	var pc := Vector2i(floori((player.global_position.x - data.origin.x) / CHUNK), floori((player.global_position.z - data.origin.y) / CHUNK))
 	var max_x := int(ceil(data.size.x / CHUNK))
 	var max_z := int(ceil(data.size.y / CHUNK))
-	# queue missing chunks, nearest first
+	# queue missing chunks, nearest the view first
 	var want := {}
-	for dz in range(-view_chunks, view_chunks + 1):
-		for dx in range(-view_chunks, view_chunks + 1):
-			var c := pc + Vector2i(dx, dz)
+	var r := maxi(max_x, max_z) if keep_loaded else view_chunks
+	for dz in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			var c := vc + Vector2i(dx, dz)
 			if c.x < 0 or c.y < 0 or c.x >= max_x or c.y >= max_z:
 				continue
-			if dx * dx + dz * dz > (view_chunks + 0.5) * (view_chunks + 0.5):
+			if not keep_loaded and dx * dx + dz * dz > (view_chunks + 0.5) * (view_chunks + 0.5):
 				continue
 			want[c] = true
 			if not chunks.has(c) and not queue.has(c):
 				queue.append(c)
-	queue.sort_custom(func(a, b): return (a - pc).length_squared() < (b - pc).length_squared())
+	queue.sort_custom(func(a, b): return (a - vc).length_squared() < (b - vc).length_squared())
 	var built := 0
 	while not queue.is_empty() and built < build_per_frame:
 		var c: Vector2i = queue.pop_front()
@@ -113,7 +123,7 @@ func _process(_delta: float) -> void:
 			built += 1
 	# drop chunks that are far away
 	for c in chunks.keys():
-		if not want.has(c) and (c - pc).length() > view_chunks + 1.5:
+		if not keep_loaded and not want.has(c) and (c - vc).length() > view_chunks + 1.5:
 			chunks[c].queue_free()
 			chunks.erase(c)
 	# colliders only next to the player

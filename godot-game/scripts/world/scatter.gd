@@ -1,10 +1,13 @@
 class_name Scatter
 extends Node3D
 ## Deterministic, data driven scatter of foliage and trees (data/scatter.json + data/biomes.json).
-## - Foliage: one MultiMeshInstance3D per plant per 48 m cell, built round the player, shrinking out at the
-##   foliage view distance (about 50 m), no shadows.
-## - Trees: one MultiMeshInstance3D per tree per 128 m cell with a visibility range, and cylinder trunk
-##   colliders in the cells next to the player.
+## - Foliage: one MultiMeshInstance3D per plant per 64 m cell, no shadows. Trees: one per tree per 128 m cell.
+## - persistent (default): every cell of the world is built once, nearest the view first and spread over frames,
+##   and never unloaded or faded, so foliage is always visible (camera mode, other players far away). The old
+##   streaming mode (build round the player, shrink out at the view distance) is kept behind persistent = false.
+## - Cylinder trunk colliders only in the cells next to the local player (physics, not looks).
+## - Fully client side and deterministic: same seed per cell and rule, so every client sees the same world and
+##   nothing needs to be sent over the network.
 ## - Same seed per cell and rule, so the world looks the same every load.
 ## - Every plant and tree uses shaders/foliage_wind.gdshader (wind on the leaf cards, still trunks).
 
@@ -25,6 +28,10 @@ var foliage_cells := {}        # Vector2i -> Node3D
 var tree_cells := {}
 var collider_cells := {}
 var player: Node3D
+var focus: Node3D              # what the local view follows: the player, or the free camera
+var persistent := true
+var build_queue: Array = []    # [cell coord, cell size, trees?] still to build (persistent mode)
+const BUILD_BUDGET_USEC := 6000
 var patch_noise := FastNoiseLite.new()
 var wind_shader: Shader
 
@@ -51,26 +58,53 @@ func setup(w: Node, d: WorldData) -> void:
 	var radii: Dictionary = js.get("exclusion_radius", {})
 	for key in d.layout.get("landmarks", {}):
 		var p: Array = d.layout["landmarks"][key]
-		exclusions.append([Vector2(p[0], p[1]), float(radii.get(key, 7.0))])
+		exclusions.append([Vector2(p[0], p[1]), float(radii.get(key, 7.0)), key])
+	if persistent:
+		_queue_all(TREE_CELL, true)
+		_queue_all(FOLIAGE_CELL, false)
+
+
+func _queue_all(cell: float, trees: bool) -> void:
+	var x0 := floori(data.origin.x / cell)
+	var z0 := floori(data.origin.y / cell)
+	var x1 := floori((data.origin.x + data.size.x) / cell)
+	var z1 := floori((data.origin.y + data.size.y) / cell)
+	for cz in range(z0, z1 + 1):
+		for cx in range(x0, x1 + 1):
+			if data.in_bounds((cx + 0.5) * cell, (cz + 0.5) * cell, -cell):
+				build_queue.append([Vector2i(cx, cz), cell, trees])
+
+
+func is_fully_built() -> bool:
+	return build_queue.is_empty()
 
 
 func set_player(p: Node3D) -> void:
 	player = p
 
 
+func set_focus(f: Node3D) -> void:
+	focus = f
+
+
 func _process(_delta: float) -> void:
 	if player == null or data == null:
 		return
 	var p := player.global_position
-	_update_cells(p, FOLIAGE_CELL, foliage_view + FOLIAGE_CELL * 0.75, foliage_cells, false)
-	_update_cells(p, TREE_CELL, tree_view + TREE_CELL * 0.5, tree_cells, true)
-	# trunk colliders round the player
-	var pc := Vector2i(floori(p.x / TREE_CELL), floori(p.z / TREE_CELL))
-	# only the tree cells next to the player cast shadows (fewer draw calls in the shadow pass)
+	var view := (focus if is_instance_valid(focus) else player).global_position
+	if persistent:
+		_build_queued(view)
+	else:
+		_update_cells(view, FOLIAGE_CELL, foliage_view + FOLIAGE_CELL * 0.75, foliage_cells, false)
+		_update_cells(view, TREE_CELL, tree_view + TREE_CELL * 0.5, tree_cells, true)
+	# only the tree cells next to the view cast shadows (fewer draw calls in the shadow pass)
+	var vc := Vector2i(floori(view.x / TREE_CELL), floori(view.z / TREE_CELL))
 	for c in tree_cells:
-		var near := absi(c.x - pc.x) <= 1 and absi(c.y - pc.y) <= 1
+		var near := absi(c.x - vc.x) <= 1 and absi(c.y - vc.y) <= 1
 		for mmi in tree_cells[c].get_children():
 			(mmi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if near else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# trunk colliders round the local player only
+	var pc := Vector2i(floori(p.x / TREE_CELL), floori(p.z / TREE_CELL))
 	for c in collider_cells.keys():
 		if absi(c.x - pc.x) > 1 or absi(c.y - pc.y) > 1:
 			collider_cells[c].queue_free()
@@ -81,6 +115,25 @@ func _process(_delta: float) -> void:
 			if not collider_cells.has(c):
 				collider_cells[c] = _build_colliders(c)
 				return
+
+
+func _build_queued(view: Vector3) -> void:
+	## Persistent mode: build queued cells nearest the view first, within a small time budget per frame
+	## (at least one cell per frame), and keep them for the life of the world.
+	if build_queue.is_empty():
+		return
+	var v := Vector2(view.x, view.z)
+	build_queue.sort_custom(func(a, b):
+		return Vector2((a[0].x + 0.5) * a[1], (a[0].y + 0.5) * a[1]).distance_squared_to(v) \
+			< Vector2((b[0].x + 0.5) * b[1], (b[0].y + 0.5) * b[1]).distance_squared_to(v))
+	var t0 := Time.get_ticks_usec()
+	while not build_queue.is_empty():
+		var job: Array = build_queue.pop_front()
+		var store := tree_cells if job[2] else foliage_cells
+		if not store.has(job[0]):
+			store[job[0]] = _build_cell(job[0], job[1], job[2])
+		if Time.get_ticks_usec() - t0 > BUILD_BUDGET_USEC:
+			break
 
 
 func _update_cells(p: Vector3, cell: float, radius: float, store: Dictionary, trees: bool) -> void:
@@ -131,8 +184,9 @@ func _build_cell(c: Vector2i, cell: float, trees: bool) -> Node3D:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.name = "%s_%s" % [rule["id"], alias]
 			mmi.multimesh = mm
-			var view: float = rule.get("view", tree_view if trees else foliage_view)
-			mmi.visibility_range_end = view + cell * 0.75
+			if not persistent:
+				var view: float = rule.get("view", tree_view if trees else foliage_view)
+				mmi.visibility_range_end = view + cell * 0.75
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if trees else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			node.add_child(mmi)
 	return node
@@ -171,7 +225,7 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 			if not biomes.has(WorldData.BIOMES[data.biome_pick(x, z, roll)]):
 				continue
 			var m := data.mask_at(x, z)
-			if avoid.has("path") and m.r > 0.2: continue
+			if avoid.has("path") and m.r > float(rule.get("path_max", 0.2)): continue
 			if avoid.has("wet") and m.g > 0.3: continue
 			if avoid.has("special") and m.b > 0.25: continue
 			var h := data.height(x, z)
@@ -191,7 +245,7 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 			if rule.has("near"):
 				var lm: Array = data.layout["landmarks"].get(rule["near"][0], [1e9, 1e9])
 				if Vector2(x, z).distance_to(Vector2(lm[0], lm[1])) > float(rule["near"][1]): continue
-			elif _excluded(x, z, float(rule.get("clear", 0.0)), trees): continue
+			elif _excluded(x, z, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {})): continue
 			var alias: String = aliases[0][0]
 			var acc := 0.0
 			for a in aliases:
@@ -204,9 +258,10 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 	return out
 
 
-func _excluded(x: float, z: float, extra: float, trees: bool) -> bool:
+func _excluded(x: float, z: float, extra: float, trees: bool, override: Dictionary = {}) -> bool:
+	## override = per-rule {landmark: radius} replacing the global exclusion_radius (e.g. hub grass hugs the buildings).
 	for e in exclusions:
-		var r: float = e[1]
+		var r: float = float(override.get(e[2], e[1]))
 		if trees:
 			r = maxf(r, extra)
 		if Vector2(x, z).distance_to(e[0]) < r:
@@ -277,8 +332,12 @@ func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
 		mat.set_shader_parameter("sway_height", maxf(0.3, info["height"]))
 		mat.set_shader_parameter("wind_strength", (0.45 if trees else 1.0) * wind if card else (0.08 * wind if not trees else 0.0))
 		var view: float = rule.get("view", tree_view if trees else foliage_view)
-		mat.set_shader_parameter("fade_start", view - 8.0 if not trees else view + 100.0)
-		mat.set_shader_parameter("fade_end", view if not trees else view + 140.0)
+		if persistent:  # always visible: no shrink-out at the view distance
+			mat.set_shader_parameter("fade_start", 1.0e7)
+			mat.set_shader_parameter("fade_end", 1.1e7)
+		else:
+			mat.set_shader_parameter("fade_start", view - 8.0 if not trees else view + 100.0)
+			mat.set_shader_parameter("fade_end", view if not trees else view + 140.0)
 		if rule.has("recolor") and card:
 			mat.set_shader_parameter("recolor", 1.0)
 			mat.set_shader_parameter("recolor_dark", Color(rule["recolor"][0]))

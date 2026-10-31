@@ -78,6 +78,14 @@ func set_player(p: Node3D) -> void:
 			c.set_player(p)
 
 
+func set_view_focus(f: Node3D) -> void:
+	## The local view (player, or the free camera in camera mode). Terrain meshes, the foliage build order, tree
+	## shadows and weather particles follow it; colliders stay round the player.
+	terrain.set_focus(f)
+	scatter.set_focus(f)
+	environment.set_focus(f)
+
+
 func ground_height(x: float, z: float) -> float:
 	return terrain.data.height(x, z)
 
@@ -137,11 +145,26 @@ func _make_water() -> void:
 	for w in terrain.data.layout.get("water", []):
 		var r: Array = w["rect"]
 		var plane := PlaneMesh.new()
-		plane.size = Vector2(r[2] - r[0], r[3] - r[1])
-		plane.subdivide_width = 0
+		var size := Vector2(r[2] - r[0], r[3] - r[1])
+		plane.size = size
+		plane.subdivide_width = maxi(0, int(size.x / 2.0) - 1)  # 1 vertex per 2 m for the waves
+		plane.subdivide_depth = maxi(0, int(size.y / 2.0) - 1)
+		var deep := Color(terrain.data.biome_data["biomes"][w["biome"]]["water"])
 		var mat := ShaderMaterial.new()
 		mat.shader = shader
-		mat.set_shader_parameter("water_color", Color(terrain.data.biome_data["biomes"][w["biome"]]["water"]))
+		mat.set_shader_parameter("deep_color", deep)
+		mat.set_shader_parameter("shallow_color", deep.lerp(Color("#bff0e6"), 0.25))
+		# depth under the plane, 2 px per metre (no depth texture in web builds)
+		var dw := int(ceil(size.x * 2.0))
+		var dd := int(ceil(size.y * 2.0))
+		var img := Image.create(dw, dd, false, Image.FORMAT_RF)
+		for pz in dd:
+			for px in dw:
+				var d: float = w["level"] - terrain.data.height(r[0] + (px + 0.5) / 2.0, r[1] + (pz + 0.5) / 2.0)
+				img.set_pixel(px, pz, Color(maxf(d, 0.0), 0, 0))
+		mat.set_shader_parameter("depth_map", ImageTexture.create_from_image(img))
+		mat.set_shader_parameter("rect", Vector4(r[0], r[1], dw / 2.0, dd / 2.0))
+		mat.set_shader_parameter("use_depth", true)
 		var mi := MeshInstance3D.new()
 		mi.name = w["name"]
 		mi.mesh = plane
@@ -157,7 +180,7 @@ func _make_water() -> void:
 		quad.size = Vector2(10.0, top - bottom + 0.6)
 		var mat := ShaderMaterial.new()
 		mat.shader = shader
-		mat.set_shader_parameter("water_color", Color("#5ab0e8"))
+		mat.set_shader_parameter("deep_color", Color("#5ab0e8"))
 		mat.set_shader_parameter("flow", 1.6)
 		var mi := MeshInstance3D.new()
 		mi.name = "waterfall"
