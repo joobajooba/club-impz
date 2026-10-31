@@ -57,11 +57,11 @@ func _setup_noise() -> void:
 		all[i].noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	n_warp.frequency = 1.0 / 90.0
 	n_hill.frequency = 1.0 / 140.0
-	n_hill.fractal_octaves = 4
-	n_ridge.frequency = 1.0 / 110.0
-	n_ridge.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	n_ridge.fractal_octaves = 4
-	n_detail.frequency = 1.0 / 28.0
+	n_hill.fractal_octaves = 3
+	n_ridge.frequency = 1.0 / 160.0
+	n_ridge.fractal_type = FastNoiseLite.FRACTAL_FBM  # was RIDGED: knife edged ridges
+	n_ridge.fractal_octaves = 3
+	n_detail.frequency = 1.0 / 60.0
 	n_mesa.frequency = 1.0 / 70.0
 	n_island.frequency = 1.0 / 45.0
 	n_litter.frequency = 1.0 / 40.0
@@ -126,8 +126,8 @@ func g2(x: float, z: float, c: Vector2, sigma: float) -> float:
 
 
 func h_forest(x: float, z: float) -> float:
-	var h := 6.0 + n_hill.get_noise_2d(x, z) * 7.0 + n_detail.get_noise_2d(x, z) * 0.8
-	h += g2(x, z, landmarks["stone_ruin"], 22.0) * 9.0
+	var h := 6.0 + n_hill.get_noise_2d(x, z) * 4.0 + n_detail.get_noise_2d(x, z) * 0.3
+	h += g2(x, z, landmarks["stone_ruin"], 30.0) * 5.0
 	h += smoothstep(195.0, 226.0, x) * 7.0  # rises towards the mountain; the river falls off it (waterfall)
 	# winding river: lower river (water 3.0) below the waterfall, upper pool (water 10.0) above it
 	var dz := absf(z - river_z(x))
@@ -142,30 +142,30 @@ func h_forest(x: float, z: float) -> float:
 
 
 func h_mountain(x: float, z: float) -> float:
-	var h := 18.0 + (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 58.0 + n_detail.get_noise_2d(x, z) * 2.0
-	h += g2(x, z, landmarks["highest_peak"], 46.0) * 105.0
-	h += g2(x, z, Vector2(470, -60), 30.0) * 40.0
-	h -= g2(x, z, landmarks["obsidian_cave"], 18.0) * 14.0  # volcanic hollow round the obsidian cave
+	var h := 18.0 + (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 34.0 + n_detail.get_noise_2d(x, z) * 0.5
+	h += g2(x, z, landmarks["highest_peak"], 70.0) * 70.0
+	h += g2(x, z, Vector2(470, -60), 40.0) * 24.0
+	h -= g2(x, z, landmarks["obsidian_cave"], 24.0) * 8.0  # volcanic hollow round the obsidian cave
 	return h
 
 
 func h_frost(x: float, z: float) -> float:
 	var h := 9.0 + n_hill.get_noise_2d(x, z) * 4.0 + n_detail.get_noise_2d(x * 2.0, z) * 0.6
 	# ice cliffs along the south side, with the frozen waterfall on their face
-	h += smoothstep(-150.0, -175.0, z) * 24.0
+	h += smoothstep(-140.0, -190.0, z) * 14.0
 	# frozen lake (flat ice) and a small open pool
 	var dl := Vector2(x, z).distance_to(landmarks["frozen_lake"])
-	h = lerp(6.0, h, smoothstep(44.0, 62.0, dl))
+	h = lerp(6.0, h, smoothstep(40.0, 72.0, dl))
 	var dp := Vector2(x, z).distance_to(Vector2(706, -40))
-	h = lerp(5.2, h, smoothstep(8.0, 16.0, dp))
-	h += g2(x, z, landmarks["ice_spire"], 14.0) * 10.0
+	h = lerp(5.2, h, smoothstep(8.0, 22.0, dp))
+	h += g2(x, z, landmarks["ice_spire"], 20.0) * 6.0
 	return h
 
 
 func h_plains(x: float, z: float) -> float:
-	var h := 10.0 + n_hill.get_noise_2d(x * 0.8, z * 0.8) * 5.0
-	var mesa := smoothstep(0.42, 0.5, n_mesa.get_noise_2d(x, z))
-	h += mesa * 17.0
+	var h := 10.0 + n_hill.get_noise_2d(x * 0.8, z * 0.8) * 3.0
+	var mesa := smoothstep(0.3, 0.62, n_mesa.get_noise_2d(x, z))
+	h += mesa * 7.0
 	# dry riverbed
 	var rz := -120.0 + 40.0 * sin(x / 70.0)
 	h -= (1.0 - smoothstep(3.0, 9.0, absf(z - rz))) * 1.8
@@ -181,7 +181,7 @@ func h_plains(x: float, z: float) -> float:
 
 func h_swamp(x: float, z: float) -> float:
 	var h := 1.9 + n_hill.get_noise_2d(x * 1.5, z * 1.5) * 1.1 + n_detail.get_noise_2d(x, z) * 0.3
-	h += smoothstep(0.25, 0.45, n_island.get_noise_2d(x, z)) * 2.2
+	h += smoothstep(0.15, 0.5, n_island.get_noise_2d(x, z)) * 1.6
 	h += g2(x, z, landmarks["hollow_tree"], 22.0) * 2.5
 	h -= g2(x, z, landmarks["dreadstone_pit"], 16.0) * 2.0
 	return h
@@ -201,7 +201,7 @@ func height_at(x: float, z: float, s: float, d_path: float) -> float:
 	h = lerp(6.0, h, smoothstep(12.0, 26.0, Vector2(x, z).distance_to(landmarks["portal_clearing"])))
 	# ring of tall mountains round the edge
 	var e := minf(minf(z + RD / 2.0, RD / 2.0 - z), minf(x + 10.0, RW - x))
-	h += (1.0 - smoothstep(6.0, 46.0, e)) * (60.0 + n_detail.get_noise_2d(x, z) * 12.0)
+	h += pow(1.0 - smoothstep(4.0, 80.0, e), 1.6) * (40.0 + n_hill.get_noise_2d(x * 0.5, z * 0.5) * 6.0)  # low, rounded border hills
 	return h
 
 
@@ -351,7 +351,7 @@ func _bake_hub() -> void:
 				h = lerp(2.0, h, smoothstep(14.0, 26.0, Vector2(x, z).distance_to(lm[key])))
 			h = lerp(2.5, h, smoothstep(30.0, 44.0, Vector2(x, z).distance_to(lm["castle"])))
 			var e := minf(minf(x + HW / 2.0, HW / 2.0 - x), minf(z + HW / 2.0, HW / 2.0 - z))
-			h += (1.0 - smoothstep(4.0, 22.0, e)) * (14.0 + n_detail.get_noise_2d(x, z) * 4.0)  # green hills round the edge
+			h += (1.0 - smoothstep(2.0, 36.0, e)) * (14.0 + n_hill.get_noise_2d(x * 0.5, z * 0.5) * 4.0)  # green hills round the edge
 			var hv := clampi(int(round((h + H_OFFSET) * H_SCALE)), 0, 65535)
 			img.set_pixel(gx, gz, Color8(hv >> 8, hv & 255, 0, 0))
 	img.save_png(ProjectSettings.globalize_path("res://data/hub_terrain.png"))
