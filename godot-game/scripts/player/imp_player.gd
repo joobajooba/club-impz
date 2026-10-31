@@ -24,6 +24,7 @@ var cam_pitch := -0.32
 var target_zoom := 7.5
 var bob_time := 0.0
 var frozen := false
+var fast_sprint := false
 
 
 func _ready() -> void:
@@ -46,6 +47,8 @@ func place_at(xform: Transform3D) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_fast_sprint"):
+		fast_sprint = not fast_sprint
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
 		cam_yaw -= event.relative.x * orbit_sensitivity
 		cam_pitch = clamp(cam_pitch - event.relative.y * orbit_sensitivity, -1.25, 0.45)
@@ -60,7 +63,7 @@ func _physics_process(delta: float) -> void:
 	var dir := (Basis(Vector3.UP, cam_yaw) * Vector3(input.x, 0, input.y))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	var speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
+	var speed := (sprint_speed * (5.0 if fast_sprint else 1.0)) if Input.is_action_pressed("sprint") else walk_speed
 	var accel := acceleration if is_on_floor() else air_control
 	var target := dir * speed
 	velocity.x = move_toward(velocity.x, target.x, accel * speed * delta)

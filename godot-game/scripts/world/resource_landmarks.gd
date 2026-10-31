@@ -135,15 +135,18 @@ func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Arra
 	if h < data.water_level(x, z) + 0.2:
 		return false
 	var slope := 1.0 - data.normal(x, z).y
-	if slope > 0.55:
+	if slope > 0.3:  # walkable ground only
 		return false
+	for d in [Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3)]:
+		if 1.0 - data.normal(x + d.x, z + d.y).y > 0.45:  # not at the foot of a cliff
+			return false
 	if relaxed:
 		return true
 	match biome:
-		"forest": return slope > 0.12 or m.g > 0.3          # rock outcrops and riverbanks
-		"mountain": return slope > 0.25                       # cliff faces
-		"frost": return z < -130.0 and slope > 0.15           # ice cliffs
-		"plains": return h > 18.0 or slope > 0.22             # mesas
+		"forest": return slope > 0.06 or m.g > 0.3          # rocky bumps and riverbanks
+		"mountain": return h > 26.0                           # high ground
+		"frost": return z < -120.0                            # near the ice cliffs
+		"plains": return h > 14.0 or slope > 0.12             # mesa tops and edges
 		"swamp": return h > data.water_level(x, z) + 0.1 and h < data.water_level(x, z) + 0.9  # muddy banks
 	return true
 
