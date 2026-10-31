@@ -144,7 +144,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | `portal.tscn` (glowing ring) | Hub, resource world | Portal model and effect |
 | `*_vein_placeholder` (coal, tin, copper, iron, gold, obsidian, titanite, dreadstone) | Resource world | `<ore>_vein.glb` (`blockbench_detailed_prompts.md` section 3.2) |
 | `hickory_tree_placeholder` (recoloured oak) | Mountain, frost | `hickory_tree` |
-| `frostbark_tree_placeholder` (pine, white canopy) | Frost | `frostbark_tree` (a model exists outside the repo, not committed yet) |
+| `frostbark_tree_placeholder` (pine, white canopy) | Frost | `frostbark_tree.glb` (now in `assets/models/trees/`, not yet swapped into `scatter.json`) |
 | `titanwood_tree_placeholder`, `giant_titanwood` (scaled pine) | Plains, swamp | `titanwood_tree` |
 | `runewood_tree_placeholder` (recoloured oak) | Swamp | `runewood_tree` |
 | `gembark_tree_placeholder` (recoloured maple) | Plains | `gembark_tree` |
