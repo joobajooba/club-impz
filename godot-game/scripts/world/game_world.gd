@@ -146,16 +146,16 @@ func _make_water() -> void:
 		mat.shader = shader
 		mat.set_shader_parameter("deep_color", deep)
 		mat.set_shader_parameter("shallow_color", deep.lerp(Color("#bff0e6"), 0.25))
-		# depth under the plane, 1 m per pixel (no depth texture in web builds)
-		var dw := int(ceil(size.x))
-		var dd := int(ceil(size.y))
+		# depth under the plane, 2 px per metre (no depth texture in web builds)
+		var dw := int(ceil(size.x * 2.0))
+		var dd := int(ceil(size.y * 2.0))
 		var img := Image.create(dw, dd, false, Image.FORMAT_RF)
 		for pz in dd:
 			for px in dw:
-				var d: float = w["level"] - terrain.data.height(r[0] + px + 0.5, r[1] + pz + 0.5)
+				var d: float = w["level"] - terrain.data.height(r[0] + (px + 0.5) / 2.0, r[1] + (pz + 0.5) / 2.0)
 				img.set_pixel(px, pz, Color(maxf(d, 0.0), 0, 0))
 		mat.set_shader_parameter("depth_map", ImageTexture.create_from_image(img))
-		mat.set_shader_parameter("rect", Vector4(r[0], r[1], dw, dd))
+		mat.set_shader_parameter("rect", Vector4(r[0], r[1], dw / 2.0, dd / 2.0))
 		mat.set_shader_parameter("use_depth", true)
 		var mi := MeshInstance3D.new()
 		mi.name = w["name"]
