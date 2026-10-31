@@ -18,6 +18,13 @@ const RW := 1280.0
 const RD := 512.0
 const BAND := 256.0
 const BLEND := 22.5
+const WATER := [
+	{"name": "forest_river", "rect": [0, 40, 214, 120], "level": 3.0, "biome": "forest"},
+	{"name": "forest_upper_pool", "rect": [214, 40, 262, 120], "level": 10.0, "biome": "forest"},
+	{"name": "frost_open_pool", "rect": [690, -56, 722, -24], "level": 6.4, "biome": "frost"},
+	{"name": "plains_watering_hole", "rect": [880, 40, 920, 80], "level": 9.0, "biome": "plains"},
+	{"name": "swamp_water", "rect": [1010, -256, 1280, 256], "level": 1.75, "biome": "swamp"}
+]
 
 var n_warp := FastNoiseLite.new()
 var n_hill := FastNoiseLite.new()
@@ -213,7 +220,10 @@ func _bake_resource() -> void:
 	# coarse distance to the main path on the 2 m grid
 	path_dist.resize(nx * nz)
 	path_dist.fill(9999.0)
-	for p in main_path:
+	var path_pts := PackedVector2Array(main_path)
+	for br in branches:
+		path_pts.append_array(br["points"])
+	for p in path_pts:
 		var r := 50.0
 		for gz in range(maxi(0, int((p.y + RD / 2.0 - r) / STEP)), mini(nz, int((p.y + RD / 2.0 + r) / STEP) + 1)):
 			for gx in range(maxi(0, int((p.x - r) / STEP)), mini(nx, int((p.x + r) / STEP) + 1)):
@@ -221,16 +231,23 @@ func _bake_resource() -> void:
 				var k := gz * nx + gx
 				if d < path_dist[k]:
 					path_dist[k] = d
-	var img := Image.create(nx, nz, false, Image.FORMAT_RGBA8)
+	var hs := PackedFloat32Array()
+	var ss := PackedFloat32Array()
+	hs.resize(nx * nz)
+	ss.resize(nx * nz)
 	for gz in nz:
 		for gx in nx:
 			var x := gx * STEP
 			var z := gz * STEP - RD / 2.0
 			var s := warped_s(x, z)
-			var h := height_at(x, z, s, path_dist[gz * nx + gx])
-			var hv := clampi(int(round((h + H_OFFSET) * H_SCALE)), 0, 65535)
-			var sv := clampi(int(round(s * S_SCALE)), 0, 65535)
-			img.set_pixel(gx, gz, Color8(hv >> 8, hv & 255, sv >> 8, sv & 255))
+			ss[gz * nx + gx] = s
+			hs[gz * nx + gx] = height_at(x, z, s, path_dist[gz * nx + gx])
+	_post_process(hs, nx, nz)
+	var img := Image.create(nx, nz, false, Image.FORMAT_RGBA8)
+	for k in nx * nz:
+		var hv := clampi(int(round((hs[k] + H_OFFSET) * H_SCALE)), 0, 65535)
+		var sv := clampi(int(round(ss[k] * S_SCALE)), 0, 65535)
+		img.set_pixel(k % nx, k / nx, Color8(hv >> 8, hv & 255, sv >> 8, sv & 255))
 	img.save_png(ProjectSettings.globalize_path("res://data/resource_terrain.png"))
 
 	# mask, 1 m per pixel
@@ -266,13 +283,7 @@ func _bake_resource() -> void:
 		"size": [RW, RD], "origin": [0.0, -RD / 2.0], "step": STEP, "h_offset": H_OFFSET, "h_scale": H_SCALE, "s_scale": S_SCALE,
 		"landmarks": _v2dict(landmarks), "main_path": _pts(main_path),
 		"branches": branches.map(func(b): return {"to": b["to"], "points": _pts(b["points"])}),
-		"water": [
-			{"name": "forest_river", "rect": [0, 40, 214, 120], "level": 3.0, "biome": "forest"},
-			{"name": "forest_upper_pool", "rect": [214, 40, 262, 120], "level": 10.0, "biome": "forest"},
-			{"name": "frost_open_pool", "rect": [690, -56, 722, -24], "level": 6.4, "biome": "frost"},
-			{"name": "plains_watering_hole", "rect": [880, 40, 920, 80], "level": 9.0, "biome": "plains"},
-			{"name": "swamp_water", "rect": [1010, -256, 1280, 256], "level": 1.75, "biome": "swamp"}
-		],
+		"water": WATER,
 		"waterfall": {"x": 214.0, "z": river_z(214), "top": 10.0, "bottom": 3.0},
 		"spawn_point": [36.0, 0.0],
 	}
@@ -369,3 +380,168 @@ func _bake_hub() -> void:
 	var f := FileAccess.open("res://data/hub_layout.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(layout, "  "))
 	f.close()
+
+
+# ---- post-process: smooth, limit slopes, enclose water ----
+
+func _edge_e(x: float, z: float) -> float:
+	return minf(minf(z + RD / 2.0, RD / 2.0 - z), minf(x + 10.0, RW - x))
+
+
+func _post_process(hs: PackedFloat32Array, nx: int, nz: int) -> void:
+	var wf: Vector2 = landmarks["waterfall"]
+	# per-cell rules: 0 normal, 1 path corridor, 2 exempt (edge ring, ice cliffs, waterfall)
+	var kind := PackedByteArray()
+	kind.resize(nx * nz)
+	for gz in nz:
+		for gx in nx:
+			var x := gx * STEP
+			var z := gz * STEP - RD / 2.0
+			var k := gz * nx + gx
+			if Vector2(x, z).distance_to(wf) < 6.0:
+				kind[k] = 2
+			elif path_dist[k] < 6.0:
+				kind[k] = 1  # paths win over the cliff and edge exceptions so every branch stays walkable
+			elif _edge_e(x, z) < 46.0 or (x >= 512.0 and x <= 768.0 and z < -150.0):
+				kind[k] = 2
+	# 3 passes of a 5x5 box blur, skipping the edge ring
+	for pass_i in 3:
+		var src := hs.duplicate()
+		for gz in range(2, nz - 2):
+			for gx in range(2, nx - 2):
+				if _edge_e(gx * STEP, gz * STEP - RD / 2.0) < 46.0:
+					continue
+				var sum := 0.0
+				for dz in range(-2, 3):
+					var row := (gz + dz) * nx + gx
+					for dx in range(-2, 3):
+						sum += src[row + dx]
+				hs[gz * nx + gx] = sum / 25.0
+	var floor_h := PackedFloat32Array()
+	floor_h.resize(nx * nz)
+	floor_h.fill(-1000.0)
+	_slope_limit(hs, kind, floor_h, nx, nz)
+	# water: sink the bed under each plane and wall it in with banks above the level
+	var lip_z := river_z(214.0)
+	for w in WATER:
+		var r: Array = w["rect"]
+		var lvl: float = w["level"]
+		var x0 := int(r[0] / STEP)
+		var x1 := int(r[2] / STEP)
+		var z0 := int((r[1] + RD / 2.0) / STEP)
+		var z1 := int((r[3] + RD / 2.0) / STEP)
+		for gz in range(maxi(0, z0 - 2), mini(nz, z1 + 3)):
+			for gx in range(maxi(0, x0 - 2), mini(nx, x1 + 3)):
+				var k := gz * nx + gx
+				var inside := gx >= x0 and gx <= x1 and gz >= z0 and gz <= z1
+				var x := gx * STEP
+				var z := gz * STEP - RD / 2.0
+				if w["name"] == "forest_upper_pool" and absf(x - 214.0) <= 2.0 and absf(z - lip_z) <= 5.0:
+					hs[k] = lvl - 0.05  # the lip the waterfall pours over
+					continue
+				if inside:
+					if hs[k] < lvl + 0.3:
+						hs[k] = minf(hs[k], lvl - 0.5)
+					if gx == x0 or gx == x1 or gz == z0 or gz == z1:
+						hs[k] = maxf(hs[k], lvl + 0.4)
+						floor_h[k] = maxf(floor_h[k], lvl + 0.4)
+				elif not _in_lower_water(x, z, lvl):
+					hs[k] = maxf(hs[k], lvl + 0.4)
+					floor_h[k] = maxf(floor_h[k], lvl + 0.4)
+	# dry land next to a raised bank can sit far below it: raise it on a slope cone out from the banks
+	var is_water := PackedByteArray()
+	is_water.resize(nx * nz)
+	for w in WATER:
+		var r: Array = w["rect"]
+		for gz in range(maxi(0, int((r[1] + RD / 2.0) / STEP)), mini(nz, int((r[3] + RD / 2.0) / STEP) + 1)):
+			for gx in range(maxi(0, int(r[0] / STEP)), mini(nx, int(r[2] / STEP) + 1)):
+				if hs[gz * nx + gx] < w["level"]:
+					is_water[gz * nx + gx] = 1
+	for pass_i in 20:
+		var changed := 0
+		for gz in range(1, nz - 1):
+			for gx in range(1, nx - 1):
+				var k := gz * nx + gx
+				if is_water[k] == 1 or kind[k] == 2:
+					continue
+				var c := maxf(maxf(floor_h[k - 1], floor_h[k + 1]), maxf(floor_h[k - nx], floor_h[k + nx])) - 1.4
+				if c > floor_h[k] + 0.001:
+					floor_h[k] = c
+					changed += 1
+		if changed == 0:
+			break
+	for k in nx * nz:
+		if is_water[k] == 0:
+			hs[k] = maxf(hs[k], floor_h[k])
+	_slope_limit(hs, kind, floor_h, nx, nz)
+	_validate(hs, kind, nx, nz)
+
+
+func _in_lower_water(x: float, z: float, lvl: float) -> bool:
+	## true if (x, z) sits inside another water rect whose level is lower (the river below the waterfall)
+	for w in WATER:
+		var r: Array = w["rect"]
+		if w["level"] < lvl and x >= r[0] and x <= r[2] and z >= r[1] and z <= r[3]:
+			return true
+	return false
+
+
+func _slope_limit(hs: PackedFloat32Array, kind: PackedByteArray, floor_h: PackedFloat32Array, nx: int, nz: int) -> void:
+	for pass_i in 40:
+		var changed := 0
+		for gz in nz:
+			for gx in nx:
+				var k := gz * nx + gx
+				if kind[k] == 2 or hs[k] > 70.0:
+					continue
+				var rise := 2.0 * (0.36 if kind[k] == 1 else 0.70)
+				var lo := hs[k]
+				if gx > 0: lo = minf(lo, hs[k - 1] + rise)
+				if gx < nx - 1: lo = minf(lo, hs[k + 1] + rise)
+				if gz > 0: lo = minf(lo, hs[k - nx] + rise)
+				if gz < nz - 1: lo = minf(lo, hs[k + nx] + rise)
+				lo = maxf(lo, floor_h[k])
+				if lo < hs[k] - 0.001:
+					hs[k] = lo
+					changed += 1
+		if changed == 0:
+			break
+
+
+func _validate(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: int) -> void:
+	var steep := 0
+	var max_path := 0.0
+	var lim := 2.0 * tan(deg_to_rad(44.0))
+	for gz in nz - 1:
+		for gx in nx - 1:
+			var k := gz * nx + gx
+			for n in [k + 1, k + nx]:
+				var d := absf(hs[k] - hs[n])
+				if kind[k] != 2 and kind[n] != 2 and maxf(hs[k], hs[n]) <= 70.0 and d > lim:
+					steep += 1
+					print("  steep at ", gx * STEP, ", ", gz * STEP - RD / 2.0, " h ", snappedf(hs[k], 0.1), "/", snappedf(hs[n], 0.1))
+				if path_dist[k] < 3.0 and path_dist[n] < 3.0:
+					var g := rad_to_deg(atan(d / 2.0))
+					if g > 22.0:
+						print("  steep path at ", gx * STEP, ", ", gz * STEP - RD / 2.0, " grade ", snappedf(g, 0.1), " kind ", kind[k], "/", kind[n], " h ", snappedf(hs[k], 0.1), "/", snappedf(hs[n], 0.1))
+					max_path = maxf(max_path, g)
+	var leaks := 0
+	for w in WATER:
+		var r: Array = w["rect"]
+		var lvl: float = w["level"]
+		for gz in range(maxi(0, int((r[1] + RD / 2.0) / STEP)), mini(nz, int((r[3] + RD / 2.0) / STEP) + 1)):
+			for gx in range(maxi(0, int(r[0] / STEP)), mini(nx, int(r[2] / STEP) + 1)):
+				var k := gz * nx + gx
+				if hs[k] >= lvl or kind[k] == 2:
+					continue
+				for o in [[1, 0], [-1, 0], [0, 1], [0, -1]]:
+					var ax: int = gx + o[0]
+					var az: int = gz + o[1]
+					if ax < 0 or az < 0 or ax >= nx or az >= nz:
+						continue
+					var x := ax * STEP
+					var z := az * STEP - RD / 2.0
+					var out: bool = x < r[0] or x > r[2] or z < r[1] or z > r[3]
+					if out and hs[az * nx + ax] < lvl and not _in_lower_water(x, z, lvl):
+						leaks += 1
+	print("BAKE CHECK steep cells >44 deg: %d (target 0), max path grade: %.1f deg (target <= 22), water leaks: %d (target 0)" % [steep, max_path, leaks])
