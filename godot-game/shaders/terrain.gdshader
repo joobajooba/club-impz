@@ -9,7 +9,7 @@ shader_type spatial;
 //   high ground, scree, special patches, steep rock and paths.
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_disabled;
 
-uniform sampler2DArray layers : source_color, filter_nearest_mipmap, repeat_enable;
+uniform sampler2DArray layers : source_color, filter_nearest_mipmap_anisotropic, repeat_enable;
 uniform sampler2D mask_map : filter_linear, repeat_disable;
 uniform vec4 mask_rect = vec4(0.0, -256.0, 1280.0, 512.0);
 uniform int fixed_biome = -1;
@@ -56,6 +56,18 @@ void vertex() {
 	sdepth = UV.x;
 }
 
+// triplanar sample at 32 px per metre (one 128 px tile = 4 m), so slopes don't stretch
+vec3 tri_sample(float layer) {
+	if (wnrm.y > 0.97) {
+		return texture(layers, vec3(wpos.xz / 4.0, layer)).rgb;  // flat ground: one sample
+	}
+	vec3 w = pow(abs(wnrm), vec3(8.0));
+	w /= (w.x + w.y + w.z);
+	return texture(layers, vec3(wpos.zy / 4.0, layer)).rgb * w.x
+		+ texture(layers, vec3(wpos.xz / 4.0, layer)).rgb * w.y
+		+ texture(layers, vec3(wpos.xy / 4.0, layer)).rgb * w.z;
+}
+
 void fragment() {
 	if (near_cut > 0.0 && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
 		discard;
@@ -98,14 +110,7 @@ void fragment() {
 		layer = r_path[b];
 		steep = false;
 	}
-	vec3 col;
-	if (steep) {
-		vec3 an = abs(wnrm);
-		vec2 uv = an.x > an.z ? wpos.zy : wpos.xy;
-		col = texture(layers, vec3(uv / 4.0, float(r_steep[b]))).rgb;
-	} else {
-		col = texture(layers, vec3(wpos.xz / 4.0, float(layer))).rgb;
-	}
+	vec3 col = tri_sample(float(steep ? r_steep[b] : layer));
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
