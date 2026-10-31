@@ -399,17 +399,55 @@ func _post_process(hs: PackedFloat32Array, nx: int, nz: int) -> void:
 			var z := gz * STEP - RD / 2.0
 			var k := gz * nx + gx
 			var s := warped_s(x, z)
-			if Vector2(x, z).distance_to(wf) < 6.0:
+			if _at_waterfall(x, z):
 				kind[k] = 2
 			elif path_dist[k] < 6.0:
 				kind[k] = 1  # paths win over the rugged areas so every branch stays walkable
-			elif (s >= 256.0 and s <= 512.0 and hs[k] > 40.0) or _edge_e(x, z) < 46.0:
+			elif (s >= 256.0 and s <= 512.0 and hs[k] > 40.0) or _edge_e(x, z) < 46.0 or _in_fall_cliff(x, z):
 				kind[k] = 3
+	var carved := hs.duplicate()  # riverbed, swamp hollows and pools before the blur fills them in
 	_blur5(hs, nx, nz, 5)
 	_slope_limit(hs, kind, nx, nz)
 	_blur5(hs, nx, nz, 2)  # round off the creases the limiter leaves
 	_slope_limit(hs, kind, nx, nz)  # the blur can push rugged slopes into the normal cells next to them
+	_recarve(hs, carved, nx, nz)
 	_shape_water(hs, kind, nx, nz)
+
+
+func _recarve(hs: PackedFloat32Array, carved: PackedFloat32Array, nx: int, nz: int) -> void:
+	## Inside each water rect, cells that were under water before smoothing get their carved height back
+	## (lightly blurred among themselves), so the river and the swamp keep their water. _shape_water then
+	## softens the shores.
+	for w in WATER:
+		var r: Array = w["rect"]
+		var lvl: float = w["level"]
+		var c := _rect_cells(r, nx, nz)
+		for gz in range(c[2], c[3] + 1):
+			for gx in range(c[0], c[1] + 1):
+				var k := gz * nx + gx
+				if carved[k] < lvl:
+					var sum := 0.0
+					var cnt := 0
+					for dz in range(-1, 2):
+						for dx in range(-1, 2):
+							var j := clampi(gz + dz, 0, nz - 1) * nx + clampi(gx + dx, 0, nx - 1)
+							sum += minf(carved[j], lvl)
+							cnt += 1
+					hs[k] = minf(hs[k], sum / cnt)
+
+
+func _at_waterfall(x: float, z: float) -> bool:
+	## The waterfall cliff: the 10 m wide fall and the full width of the river channel under it (the 7 m drop
+	## from the upper pool to the river has to happen here, so it is exempt from the slope and shore rules).
+	var wf: Vector2 = landmarks["waterfall"]
+	return absf(x - wf.x) < 6.0 and absf(z - wf.y) < 14.0
+
+
+func _in_fall_cliff(x: float, z: float) -> bool:
+	## The cliff line either side of the waterfall where the lower forest (river, 3 m) steps up to the upper pool
+	## (10 m) along their shared rect border: rugged (37 deg) instead of the 24 deg / gentle shore rules.
+	var wf: Vector2 = landmarks["waterfall"]
+	return absf(x - wf.x) < 8.0 and absf(z - wf.y) < 27.0
 
 
 func _blur5(hs: PackedFloat32Array, nx: int, nz: int, passes: int) -> void:
@@ -431,10 +469,12 @@ func _rect_cells(r: Array, nx: int, nz: int) -> Array:
 		maxi(0, int(ceil((r[1] + RD / 2.0) / STEP))), mini(nz - 1, int(floor((r[3] + RD / 2.0) / STEP)))]
 
 
-func _side_free(w: Dictionary, px: float, pz: float) -> bool:
-	## A rect side needs no shore margin when it runs into the edge ring or into another water rect.
+func _side_free(w: Dictionary, px: float, pz: float, other_water := true) -> bool:
+	## A rect side needs no shore margin when it runs into the edge ring or (other_water) into another water rect.
 	if _edge_e(px, pz) < 46.0:
 		return true
+	if not other_water:
+		return false
 	for o in WATER:
 		if o["name"] == w["name"]:
 			continue
@@ -473,6 +513,11 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 		var free_e := _side_free(w, r[2] + 3.0, cz)
 		var free_n := _side_free(w, cx, r[1] - 3.0)
 		var free_s := _side_free(w, cx, r[3] + 3.0)
+		# sides shared with water at another level are only open at the waterfall itself; elsewhere land
+		# separates the two (a 7 m step between the river and the upper pool otherwise)
+		var edge_w := _side_free(w, r[0] - 3.0, cz, false)
+		var edge_e := _side_free(w, r[2] + 3.0, cz, false)
+		var wf: Vector2 = landmarks["waterfall"]
 		var c := _rect_cells(r, nx, nz)
 		for gz in range(c[2], c[3] + 1):
 			for gx in range(c[0], c[1] + 1):
@@ -483,8 +528,9 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 				var z := gz * STEP - RD / 2.0
 				var margin := 6.0 + n_detail.get_noise_2d(x, z) * 4.0
 				var d := 1e9
-				if not free_w: d = minf(d, x - r[0])
-				if not free_e: d = minf(d, r[2] - x)
+				var at_fall := _at_waterfall(x, z)
+				if not (edge_w or (free_w and at_fall)): d = minf(d, x - r[0])
+				if not (edge_e or (free_e and at_fall)): d = minf(d, r[2] - x)
 				if not free_n: d = minf(d, z - r[1])
 				if not free_s: d = minf(d, r[3] - z)
 				if d > margin:
@@ -503,7 +549,9 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 		elif dist_out[k] < 12.0:
 			var lvl: float = WATER[near[k]]["level"]
 			var bank: float = lerp(lvl + 0.12 + dist_out[k] * 0.12, hs[k], smoothstep(0.0, 12.0, dist_out[k]))
-			hs[k] = maxf(maxf(hs[k], bank), lvl + 0.12)
+			hs[k] = maxf(hs[k], bank)
+			if _needs_bank(k, near[k], dist_out[k], nx):
+				hs[k] = maxf(hs[k], lvl + 0.12)
 	# f. 2 passes of a 3x3 blur near the shores, then re-clamp each side of the waterline
 	for pass_i in 2:
 		var src := hs.duplicate()
@@ -526,8 +574,8 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 				if kind[k] == 2:
 					continue
 				var wet := label[k] >= 0
-				var shore := (dist_in[k] < 8.0) if wet else (dist_out[k] < 12.0)
-				var rise := 0.3 if shore else 2.0 * (0.30 if kind[k] == 1 else 0.75 if kind[k] == 3 else 0.45)
+				var shore := wet or dist_out[k] < 12.0  # every wet cell: the whole bed is a smooth bowl
+				var rise := 0.3 if shore and kind[k] != 3 else 2.0 * (0.30 if kind[k] == 1 else 0.75 if kind[k] == 3 else 0.45)
 				var lo := hs[k]
 				var hi := -1e9
 				for j in [k - 1, k + 1, k - nx, k + nx]:
@@ -541,7 +589,7 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 					if shore:
 						v = maxf(v, hi)
 					v = minf(v, lvl - 0.1)
-				elif dist_out[k] < 12.0:
+				elif dist_out[k] < 12.0 and _needs_bank(k, near[k], dist_out[k], nx):
 					v = maxf(v, WATER[near[k]]["level"] + 0.1)
 				if absf(v - hs[k]) > 0.001:
 					hs[k] = v
@@ -557,6 +605,17 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 			if absf(x - 214.0) <= 2.0 and absf(z - lip_z) <= 5.0:
 				hs[gz * nx + gx] = 10.0 - 0.05
 	_validate(hs, kind, label, dist_in, dist_out, nx, nz)
+
+
+func _needs_bank(k: int, wi: int, d_out: float, nx: int) -> bool:
+	## Dry land must stay above a water level only where that water's plane is (inside its rect) or right at the
+	## waterline; further out the bank just blends back into the land (no wall where the 12 m band ends).
+	if d_out < 4.0:
+		return true
+	var r: Array = WATER[wi]["rect"]
+	var x := (k % nx) * STEP
+	var z := (k / nx) * STEP - RD / 2.0
+	return x >= r[0] and x <= r[2] and z >= r[1] and z <= r[3]
 
 
 func _chamfer(label: PackedInt32Array, nx: int, nz: int, inside: bool, near: PackedInt32Array) -> PackedFloat32Array:
@@ -648,7 +707,8 @@ func _validate(hs: PackedFloat32Array, kind: PackedByteArray, label: PackedInt32
 				if path_dist[k] < 3.0 and path_dist[nb] < 3.0:
 					max_path = maxf(max_path, rad_to_deg(atan(d / 2.0)))
 				var shore_k := (dist_in[k] < 8.0) if label[k] >= 0 else (dist_out[k] < 8.0)
-				if shore_k and kind[k] != 2 and kind[nb] != 2 and d > max_shore:
+				var cliff := kind[k] == 3 or kind[nb] == 3  # rugged (incl. the waterfall cliff line) may be steeper
+				if shore_k and not cliff and kind[k] != 2 and kind[nb] != 2 and d > max_shore:
 					max_shore = d
 					shore_at = Vector2(gx * STEP, gz * STEP - RD / 2.0)
 	var leaks := 0
