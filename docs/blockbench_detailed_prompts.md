@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v4 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v5 · Owner: J00BA · Last updated: 2026-10-31
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -203,14 +203,14 @@ Each category has:
 
 ### 3.1 Trees
 
-**Analysis.** Trees are the biggest foliage in the world and the main lumbering node, so they must look rich from far away and up close. The references show the key moves: a **chunky trunk with a big root flare**, a **deep, overlapping canopy of dark leaf cores covered in alpha leaf cards** with a soft, feathery outline (see **Leaves the Hytale way**), and **small ground details** (moss, roots, debris) that tie the tree to the ground. A tree with a smooth ball or perfect cone canopy is wrong.
+**Analysis.** Trees are the biggest foliage in the world and the main lumbering node, so they must look rich from far away and up close. The references show the key moves: a **chunky trunk with a big root flare**, a **clean trunk with nothing stuck to it**, a **deep, overlapping canopy built only from alpha leaf cards** (no solid leaf blocks) with a soft, feathery outline (see **Leaves the Hytale way**), and **small ground details** (moss, roots, debris) that tie the tree to the ground. A tree with a smooth ball or perfect cone canopy is wrong.
 
 **Anatomy (build order).**
 
 1. `roots`: 4 to 8 root cubes flaring out from the trunk base, stepping down to the ground. Some overlap the ground plane slightly.
-2. `trunk`: 2 to 6 stacked trunk sections that get a little thinner going up, offset by 0.5 to 1 unit so the trunk isn't perfectly straight. Add bark strip cubes (0.5 to 1 unit proud) on the sides.
-3. `branches`: 2 to 6 branches. Rotated cubes coming out of the trunk at 20° to 50°, each ending inside a canopy cluster.
-4. `canopy`: the leaves. Shape depends on the tree type (table below). Built the Hytale way: a dark solid **leaf core** inside, covered with many **leaf cards** (thin alpha cutout planes painted with needle or leaf sprays). Follow **Leaves the Hytale way** below exactly.
+2. `trunk`: 2 to 6 stacked trunk sections that get a little thinner going up, offset by 0.5 to 1 unit so the trunk isn't perfectly straight. Each section starts exactly where the one below ends and sits **inside the footprint** of the one below. Add bark strip cubes (0.5 to 1 unit proud) flush on the sides. Nothing else touches the trunk: see **Clean trunks and branches** below.
+3. `branches`: 2 to 6 branches. Rotated cubes coming out of the trunk at 20° to 50°, each ending inside a canopy cluster. Every branch piece starts inside the trunk or the branch it grows from, so nothing floats.
+4. `canopy`: the leaves. Shape depends on the tree type (table below). Built the Hytale way from many **leaf cards** only (thin alpha cutout planes painted with needle or leaf sprays). **No solid leaf core cubes.** Follow **Leaves the Hytale way** below exactly.
 5. `details`: moss patches on roots, mushrooms, fallen leaves, small stones, hanging vines, fruit, cones, tier specific extras (ice, runes, gems).
 
 **Movement.**
@@ -233,17 +233,17 @@ The first pine built from this doc had the right trunk but the wrong leaves: **f
 | Trunk hidden inside the canopy; it shows only below the lowest tier and in **1 to 3 small glimpses** higher up | Trunk visible between every tier |
 | Outline made of **alpha cutout needle sprays**, soft and feathery | Hard square cube edges |
 | Painted **needle sprays and leaf clumps**, each with a light tip and a dark base | Random pixel noise or speckle |
-| **Smooth gradient:** dark core, mid body, light tips; top of the tree lighter than the bottom | Flat dark green with bright dots |
+| **Smooth gradient:** dark inside, mid body, light tips; top of the tree lighter than the bottom | Flat dark green with bright dots |
 | Soft, low contrast highlights, slightly blue or teal for conifers, warm for broadleaf | Neon yellow green highlight pixels |
 | Narrow spire with a single pointed **leader** at the top | Rounded or flat top |
 | A few small accents: brown cones, orange dead needles, bare stub branches poking out low down | No accents, or lots of busy accents |
 
 *How to build it with cubes*
 
-1. **Leaf core.** Inside each tier (or each cluster for broadleaf trees), place 1 to 3 solid cubes painted in the **darkest two shades** of the leaf ramp. They fill the inside so you never see through the canopy to the sky. Cores of neighbouring tiers touch or overlap.
-2. **Leaf cards.** Cover the core with **thin cubes (0 to 0.5 units thick)** that use alpha textured faces, like Hytale's foliage planes. Each card is 6 to 16 units long and 4 to 10 wide.
+1. **No leaf core.** Don't put solid cubes inside tiers or clusters. They end up wrapped round the trunk and branches as random blocks (J00BA removed every one by hand from `frostbark_tree`). Fill the inside with **inner cards** instead: 3 to 5 cards per tier (or cluster) starting at the trunk or branch, painted in the darkest shades of the leaf ramp, plus 2 **top cards** above them.
+2. **Leaf cards.** Build each tier or cluster from **thin cubes (0 to 0.5 units thick)** that use alpha textured faces, like Hytale's foliage planes. Each card is 6 to 16 units long and 4 to 10 wide.
    - Conifer tier: **8 to 16 cards** radiating round the trunk like a skirt, each **rotated 15° to 35° downward** and twisted 5° to 15° so no two match. Add **crossed pairs** (two cards at 90° to each other) at the tips so the tier looks full from every angle.
-   - Broadleaf cluster: 4 to 10 cards at mixed angles round each core, plus crossed pairs sticking out of the edges.
+   - Broadleaf cluster: 6 to 10 cards at mixed angles round the cluster centre, plus crossed pairs sticking out of the edges.
    - Top faces of a tier also get 2 to 4 flat or gently tilted cards so the top is not bare.
 3. **Overlap.** Each tier starts **inside the tier below**: the next tier's cards begin at about half the height of the tier under it. Going up, tiers get narrower and slightly brighter.
 4. **Leader and tip.** End conifers with a thin vertical leader (1 to 2 units wide) wrapped in 2 to 4 small crossed cards that come to a point.
@@ -255,25 +255,42 @@ The first pine built from this doc had the right trunk but the wrong leaves: **f
 - **Needle spray (conifers):** draw a central twig 1 pixel wide, then needles as 1 pixel diagonal strokes 2 to 5 pixels long fanning out on both sides, angled towards the tip. Stack 3 to 5 sprays per card, overlapping. Each needle is darker at the base and lighter at the end. The card's outline follows the needle tips, everything else is transparent.
 - **Leaf clump (broadleaf):** groups of leaf shapes 3 to 6 pixels each (oval, pointed or five point for maple), each with a 1 pixel light edge on the top side and a darker shadow under it.
 - **Gradient on every card:** dark near the trunk end, lighter at the tip. Upper tiers use the lighter half of the ramp, lower tiers the darker half.
-- **Leaf core faces:** the two darkest ramp shades with soft needle shapes painted in, so gaps between cards look deep, not black.
+- **Inner cards:** the two darkest ramp shades with soft needle or leaf shapes painted in, so gaps between the outer cards look deep, not black.
 - **Ramp:** 6 to 8 shades with small steps between them (no big jumps). For conifers, shift shadows towards teal and blue and keep the lightest shade a soft green, never neon. Highlights only on the **top and outer** 2 to 3 pixels of each spray.
 - **Accents:** at most 1 to 3% of pixels: brown cones, orange or rust dead needles, the odd lighter new growth tip.
-- **Texture space:** paint **3 to 6 card variants** and **1 core swatch**, and reuse them across every card by sharing UVs. A 256 texture is enough for a whole pine.
+- **Texture space:** paint **3 to 6 card variants** (one of them dark, for inner cards), and reuse them across every card by sharing UVs. A 256 texture is enough for a whole pine.
+
+**Clean trunks and branches.**
+
+Claude's first trees had random blocks stuck all over the trunk: the solid leaf cores of each tier, each one wider than the trunk and turned to a random angle, so with the cards hidden the trunk looked like a stack of green boxes. J00BA fixed `frostbark_tree.bbmodel` by hand, and it is the reference for every tree. Its trunk is only stacked `trunk_*` sections, flush `bark_strip_*` cubes, 2 low `stub_branch_*` cubes and a few small `ice_crystal_bark_*` details. Its canopy is only thin cards (`tier_<n>_card_*`, `_cross`, `inner_card_*`, `top_card_*`) plus snow and icicles.
+
+*When building a tree:*
+
+1. **Trunk.** Only `trunk_<n>` sections. Each one starts at the `to` height of the one below and fits inside its footprint (taper and offset inwards, never a lip sticking out).
+2. **On the trunk,** only: `bark_strip_<n>` (thin, flush against a face, 0.5 to 1 unit proud), 1 to 3 small `stub_branch_<n>` low down that start inside the trunk, and the tree's small signature details (2 to 4 cubes, under 2 units thick, like ice crystals or runes). Nothing else.
+3. **Branches** are chains of rotated cubes. Each piece starts inside the trunk or the piece before it.
+4. **No solid cube in the canopy.** No `*_core*`, `centre_core`, `lobe_*_core` or filler blocks. Every leaf element is a card (one size is 0) or a thin card (0.5 or less). Solid cubes allowed above ground are only the trunk, branches, bark strips, stubs, the leader, and the small details listed above.
+
+*When checking or fixing an existing tree:*
+
+1. Run `python3 tools/clean_tree_trunks.py` (or pass the file). It lists, per model, the leaf cores (`core`), any other solid cube that the trunk or a branch runs through (`wraps`), branch pieces that don't touch the trunk or another branch (`floating`), and trunk sections with a gap or a lip (`step`).
+2. Run `python3 tools/clean_tree_trunks.py --fix` to delete every leaf core cube, the groups they leave empty and their animation tracks. Fix `wraps`, `floating` and `step` by hand: delete the stray cube, or move it so it starts inside the trunk or branch.
+3. Re-export with `python3 tools/bbmodel_to_gltf.py <file>` and look at the tree with the leaf cards hidden. The trunk must read as one clean, tapering column, like `frostbark_tree`.
 
 **Canopy shapes.**
 
 | Shape | Build | Used for |
 | --- | --- | --- |
-| Cone (conifer) | 8 to 16 drooping skirt tiers (core + 8 to 16 cards each), overlapping 40 to 60%, each narrower going up, ending in a pointed leader | Pine, frostbark, titanwood |
-| Round dome | 8 to 16 clusters (core + 4 to 10 cards each) packed into a dome, wider in the middle, clusters bulge out unevenly | Oak, maple, hickory |
+| Cone (conifer) | 8 to 16 drooping skirt tiers (8 to 16 cards + 3 to 5 inner cards each), overlapping 40 to 60%, each narrower going up, ending in a pointed leader | Pine, frostbark, titanwood |
+| Round dome | 8 to 16 clusters (6 to 10 cards each) packed into a dome, wider in the middle, clusters bulge out unevenly | Oak, maple, hickory |
 | Tall oval | Like the dome but narrow and tall, smaller clusters, a few more gaps | Birch |
 | Drooping | Dome or oval, plus long hanging cards (4 to 12 units) along the edges, painted as trailing leaf strands | Swamp trees, runewood, willow types |
-| Layered crown | Several thick, sloped canopy pads (core + cards) at different heights on thick branches | Gembark, worldbark |
+| Layered crown | Several thick, sloped canopy pads (layered cards) at different heights on thick branches | Gembark, worldbark |
 
 **Texture recipe.**
 
 - **Bark:** vertical grain lines 1 pixel wide, darker grooves every 3 to 5 pixels, a few knots (ring of 2 to 3 shades), lighter top faces on root steps. Base is darker and has moss (green clusters) creeping up 4 to 10 pixels. End grain (the top of cut faces) shows rings.
-- **Leaves:** see **Leaves the Hytale way** above: needle sprays or leaf clumps on alpha cards, a dark core, a smooth dark to light gradient, soft highlights and very few accents.
+- **Leaves:** see **Leaves the Hytale way** above: needle sprays or leaf clumps on alpha cards, dark inner cards, a smooth dark to light gradient, soft highlights and very few accents.
 
 **Tree tiers.** Use these defaults for each lumbering tree in `resource_gathering.md`. The user's words override them.
 
@@ -298,14 +315,14 @@ name / id:        <tree>_tree            (e.g. pine_tree)
 tier / biome:     <T1..T10> / <biome>
 size:             <height> tall, canopy <width> wide, trunk <width> at base
 silhouette:       <cone | round dome | tall oval | drooping | layered crown>, ragged stepped outline
-trunk:            <sections>, lean <direction>, root flare with <n> roots, bark strips
+trunk:            <sections>, lean <direction>, root flare with <n> roots, flush bark strips, nothing else on it
 branches:         <n> rotated branches at <angles>, each ending in a cluster
-canopy:           <n> tiers/clusters, each a dark leaf core + <n> alpha leaf cards, cards droop 15 to 35°,
+canopy:           <n> tiers/clusters, each <n> alpha leaf cards + 3 to 5 dark inner cards, no solid cubes, cards droop 15 to 35°,
                   tiers overlap 40 to 60%, trunk hidden except <1 to 3> glimpses, pointed leader (conifers)
 ground details:   <moss, mushrooms, stones, fallen leaves, cones>
 bark texture:     <ramp>, vertical grain, grooves every 3 to 5 px, knots, moss at base
 leaf texture:     <ramp, 6 to 8 small steps>, <needle sprays | leaf clumps> on alpha cards, dark base to light tip,
-                  dark core swatch, soft highlights on top and outer edges only, accents <= 3%
+                  dark inner card variant, soft highlights on top and outer edges only, accents <= 3%
 signature detail: <from tier table or user>
 budget:           <cubes>, texture <size>, 2 px/unit, shared UV for repeated clusters
 groups:           <tree> > roots, trunk, branches, canopy, details
@@ -322,16 +339,16 @@ size:             144 tall, canopy 56 wide at the bottom, trunk 10 wide at base
 silhouette:       narrow cone, 12 tiers, jagged outline, 3 tiny clusters at a ragged tip
 trunk:            5 sections tapering 10 → 4 wide, slight lean north east, 6 roots stepping out to 18 wide
 branches:         no visible branches, tier clusters attach to trunk; 2 dead stub branches low down
-canopy:           13 drooping skirt tiers, each a dark core + 10 to 14 alpha cards tilted 20 to 30° down,
+canopy:           13 drooping skirt tiers, each 10 to 14 alpha cards tilted 20 to 30° down + 3 to 5 dark inner cards,
                   crossed card pairs at the tips, tiers overlap 50%, bottom tier 56 wide, trunk visible
                   below the lowest tier and in 2 small glimpses higher up, thin pointed leader on top
 ground details:   2 pine cones, 4 needle litter flecks, moss on 3 roots, 1 small mushroom
 bark texture:     warm brown ramp (7 shades), vertical grain, grooves, 2 knots, moss creeping 6 px up
 leaf texture:     dark green ramp with teal blue shadows (7 small steps), 5 needle spray card variants
-                  + 1 core swatch, needles dark at the base and soft light green at the tips, lower tiers
+                  (1 dark, for inner cards), needles dark at the base and soft light green at the tips, lower tiers
                   darker than upper tiers, a few brown cones and rust dead needles, no neon highlights
 signature detail: stepped root flare, ragged tip, cones
-budget:           ~240 cubes, 256 texture, 2 px/unit, card and core UVs shared across all tiers
+budget:           ~240 cubes, 256 texture, 2 px/unit, card UVs shared across all tiers
 groups:           pine_tree > roots, trunk, canopy (tier_1..tier_12), details
 animations:       hit (0.4s shake, canopy pivot at y 20, trunk pivot at y 0)
 ```
@@ -939,6 +956,7 @@ Check every item before handing a model over. If one fails, fix it.
 - [ ] Correct size compared with the 18 unit imp (section 1.3).
 - [ ] Stands on y = 0, centred on x = 0, z = 0. Characters face north (−z).
 - [ ] Within the cube budget (section 1.7).
+- [ ] Trees: `python3 tools/clean_tree_trunks.py` reports 0 for `core`, `wraps`, `floating` and `step`. With the cards hidden, the trunk is one clean tapering column with only bark strips, stubs and small details on it (section 3.1, **Clean trunks and branches**).
 - [ ] Plants: built from alpha cards fanning from a base point (section 3.4.2), with the card count from section 3.4.4, and compared side by side with the closest reference in section 3.4.1.
 
 **Texture**
@@ -1028,3 +1046,4 @@ J00BA's answers to the first draft's open questions.
 | Tree and foliage wind | Godot wind shader, no Blockbench sway animation (section 3.1) |
 | Gathering feedback | Trees shake with a `hit` animation. Ore veins don't animate (sections 3.1 and 3.2) |
 | Armour files | One file per piece (section 3.7) |
+| Leaf cores on trees | None. Trees use inner cards, not solid core cubes, and nothing but bark strips, stubs and small details touches the trunk. `frostbark_tree` is the reference (section 3.1) |
