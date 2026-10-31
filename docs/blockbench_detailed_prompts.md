@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v5 · Owner: J00BA · Last updated: 2026-10-31
+> Status: draft v6 · Owner: J00BA · Last updated: 2026-10-31
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -20,7 +20,7 @@ Make me a voidstone sword.
 
 **For Claude:** when you get a request like this, do these steps in order. Do not skip any.
 
-1. **Find the category** in section 3 (trees, ore veins, rocks, foliage, tools, weapons, armour, NPCs, mobs, dragons, props, textures, effects). If it fits more than one, use the closest and borrow from the others.
+1. **Find the category** in section 3 (trees, ore veins, rocks, foliage, tools, weapons, armour, NPCs, mobs, dragons, props, textures, effects, Impz). If it fits more than one, use the closest and borrow from the others. For anything with a face (NPCs, mobs, dragons, Impz), also read section 3.14.
 2. **Read the global rules** (section 1) and the build method (section 2). They apply to every asset.
 3. **Expand the request** into a full build spec using the category's **prompt template**. Every field gets a value. Values the user gave win. Everything else comes from the category's defaults, the tier and biome tables, and the reference analysis.
 4. **Show the expanded spec** to the user at the top of your reply (short, in the template's layout), then build. Don't wait for approval unless the request is truly unclear.
@@ -59,7 +59,9 @@ These are the reference images J00BA supplied, and what to copy from each.
 | **Eagle** | Body built from layered feather slabs, wing that overlaps the body, white head with a hooked yellow beak, tiny yellow talons. Feathers painted as rows of light-edged pixel feathers. |
 | **Pigeon** | Simple boxy body, but rich texture: gradient from blue grey to darker, feather rows, a big round orange eye with a dark pupil and a white highlight pixel, small head tuft. Proof that texture carries the detail. |
 | **Fennec fox NPC** | Huge head and ears, big glossy eyes with highlight pixels, small body, clothes painted on with straps, buckles and stitching. Warm, friendly NPC look. |
-| **Green imp** | The base imp: big cube head, giant dark eyes with highlights, pointy ears sticking out sideways, leafy tuft on top, short body and stubby limbs. This is the scale and charm reference for all characters. |
+| **Green imp** | The base imp: big cube head, giant dark eyes with highlights, pointy ears sticking out sideways, leafy tuft on top, short body and stubby limbs. This is the scale and charm reference for all characters. The playable Impz follow section 3.14.6 and `implingz_collection.md`. |
+| **16 mob and NPC screenshots** (goblin, polar bear, void bear, crocodile, 5 skeletons, 2 snakes, plant monster, ice golem, troll, ram, sheep) | **The main reference for characters.** Few large cubes, detail in the texture, exaggerated heads, painted faces, one big silhouette breaker per character. Full analysis in section 3.14.1. |
+| **Leaf-folk villagers** (Hytale Kweebecs) and a forest spirit | **The style reference for the Impz:** big square head, ears straight out sideways, painted face with big glossy eyes, short blocky body, accessories made from cards. Section 3.14.6. |
 | **Frost dragon** | Dark body covered in pale blue ice crystal shards sticking out at angles. Green translucent looking wings. Open mouth with red inside. |
 | **Void dragon** (being ridden) | Huge curved horns made from chained, rotated segments. Wing membranes with ragged holes. Glowing purple eyes and mouth. White bone spikes along the wing arms. Shows how big a dragon is next to a player. |
 | **Basic sword** | Clean steel blade with a light centre line (fuller), soft gradient from dark at the base to light at the tip, simple cross guard, brown wrapped grip, round pommel. |
@@ -144,6 +146,7 @@ These keep models detailed but still light enough for a browser game (see `game_
 | Armour piece | 10 to 40 | 64 or 128, one per piece |
 | Small mob | 20 to 50 | 64 or 128 |
 | Large mob, NPC | 40 to 130 | 128 or 256 |
+| Imp (player, base) | 45 to 70, plus 5 to 40 per trait | 128 |
 | Dragon | 100 to 250 | 256 |
 | Prop (crate, bench, sign) | 10 to 60 | 64 or 128 |
 | Building | 100 to 500 | 256 or 512 |
@@ -162,6 +165,7 @@ Follow the repo naming rules: lowercase, `_` instead of spaces. Source files are
 | Weapons | `godot-game/assets/models/weapons/` |
 | Armour | `godot-game/assets/models/armour/` |
 | NPCs | `godot-game/assets/models/npcs/` |
+| Impz and Imp traits | `godot-game/assets/models/impz/` |
 | Mobs | `godot-game/assets/models/mobs/` |
 | Dragons | `godot-game/assets/models/mobs/` (they are mobs) |
 | Props and buildings | `godot-game/assets/models/props/`, `godot-game/assets/models/buildings/` |
@@ -746,6 +750,8 @@ groups:           match imp bone names
 
 ### 3.8 NPC characters
 
+> Read section 3.14 first for proportions, faces, texture painting and accessories.
+
 **Analysis.** NPCs live in the hub world: shop keepers, challenge givers, crafting station keepers (`game_worlds.md` section 3.2). The fennec NPC and the green imp show the look: **big head, big shiny eyes, small body, expressive face, clothes that say their job**. NPCs should look friendly and readable from across the village square, with a clear job prop (apron and hammer, satchel and scroll, fishing hat and rod).
 
 **Anatomy.**
@@ -794,6 +800,8 @@ groups:           blacksmith_npc > body > head (jaw, ear_right, ear_left), arm_r
 
 ### 3.9 Mobs and creatures
 
+> Read section 3.14 first. Section 3.14.1 analyses the 16 mob and NPC references.
+
 **Analysis.** Mobs are hunted in the resource world. The existing files (`cow`, `pig`, `highland_cow`, `wolf`, `ogre`) set the structure, and the eagle and pigeon references set the texture bar. Keep the existing rig layout and make textures **richer** than the existing ones.
 
 **Rig layout (copy from the existing mobs).**
@@ -839,6 +847,7 @@ groups:           <rig from the table above> + scale_dummy
 - **Wings:** arm bones as thin cubes, membranes as thin (0.5) panels between them, with alpha holes and tears on older or evil dragons. Bone spikes at the wing joints.
 - **Spine:** a row of spikes or plates from head to tail tip, getting smaller towards the tail.
 - **Element armour:** crystals, scales, plates or flames that stick out at angles across the back, shoulders and tail.
+- **From the void dragon screenshot:** round scales painted as rings with a dark outline and a light centre, rows of purple crystal shard cards along the spine and wing arms, long pale curved tusks made of segments with a dark tip, three tall thin horns rising off the back of the head, a single glowing eye, salmon wing membranes with ragged burnt holes, and dark curved claws on pale toes.
 
 **Element themes.**
 
@@ -942,6 +951,255 @@ animation:        <play: scale / spin / rise / fade>, <length>
 texture:          32 or 64, 2 px/unit
 ```
 
+### 3.14 Character models (NPCs, mobs and Impz)
+
+**Read this before building anything with a face:** NPCs (section 3.8), mobs (section 3.9), dragons (section 3.10) and the Impz themselves (section 3.14.6). Sections 3.8 to 3.10 give each type's rig, animations and spec template. This section gives the look: proportions, cube counts, how heads and faces are built and painted, how textures are shaded, and how accessories make a silhouette.
+
+**The big lesson from the references:** Hytale characters are built from **few, large, clean cubes**, and almost all of the detail is in the **texture**. A villager is about 30 cubes plus some leaf cards. A skeleton is about 40. What makes them read is (1) **exaggerated proportions** (a huge head, or a tiny head on huge shoulders), (2) **a face painted like an illustration** (big glossy eyes, thick brows, teeth), and (3) **one or two big accessories** that break the box outline (ears, horns, a mane, a hat, a backpack, antlers). Spend cubes on the silhouette, spend pixels on everything else.
+
+#### 3.14.1 What the character references teach
+
+J00BA supplied in-game screenshots of 16 mobs and NPCs, plus 5 leaf-folk villager references (Hytale's Kweebecs) and a forest spirit. Every character Claude makes must match them in **design quality**. Sizes are given compared with the 18 unit Imp. Cube counts are estimates from the screenshots.
+
+| Reference | Type | Proportions | Cubes | What to copy |
+| --- | --- | --- | --- | --- |
+| **Leaf-folk villagers** (5 shots: wooden bucket hat with a leaf propeller, sprout curl, leaf tuft with teal scarf, pink petal skirt, big backpack merchant) | Small NPC, the main reference for **Impz** | Head ≈ 40% of the height (crown to chin), a bit wider than the torso. Torso ≈ 40%, legs ≈ 20%. Ears span ≈ 1.8 × the head width | 25 to 45, plus 10 to 30 leaf cards | One big square head with a flat top. Long flat pointed ears sticking straight out sideways from the upper sides of the head. Big glossy dark eyes set **low and wide**, thick painted brows, tiny mouth. A lighter lower face (muzzle and cheeks) under a darker skin cap. Thick square arms hanging straight to the hips. Short stubby legs, bare feet with **toes painted** as a pale row on the front face. Natural accessories built from alpha cards: leaf collars, leaf skirts, a petal skirt, a curl on top made of 3 to 4 chained rotated segments. Full analysis in section 3.14.6 |
+| **Merchant with backpack** (from the villager set) | NPC | Same small body, but the **backpack is bigger than the whole body** and rises above the head | 60 to 90 | Personality through accessories: a huge pack with things hanging off it (a blade, gadgets, a plant on top), goggles with cyan lenses over the eyes, a wide hat, a rolled scarf. From the front, the pack frames the character like a doorway. Proves one oversized prop is enough to make an NPC unforgettable |
+| **Forest spirit** (antlered, wooden mask face) | Tall NPC or boss | Head ≈ 22% of the height, long tapered snout. Antlers add ≈ 60% more height | 70 to 120 | Antlers built from chained rotated segments that branch and end in **spirals**, with small leaf cards and yellow flower cards along them. Glowing amber eyes under a heavy angled brow. Mossy beard and moss pads on the shoulders as alpha fringe. Leather belt with a skull buckle. Digitigrade legs (backward knee) ending in pale hooves |
+| **Goblin** | Small two legged mob | Head ≈ 35% of the height and as wide as the shoulders. Each eye ≈ 30% of the face width | 30 to 45 | Eyes are the face: huge round amber eyes (orange ring, dark pupil, white highlight) at the top corners of the head. Ears stick out sideways **and up**, dark maroon inside. Two white buck teeth as separate cubes under a short muzzle. Pale feathery eyebrows as alpha cards sticking up. Long stringy dark beard or loincloth as alpha strands. Leather neck band and wrist wraps. Pale toe claws |
+| **Polar bear** | Large four legged mob | Head cube ≈ 45% of the front width. Muzzle sticks out ≈ ⅓ of the head depth | 25 to 40 | Head is one cube, muzzle a smaller cube on its front, black nose cube on the muzzle, mouth cube below with a painted lip line and teeth. Small eyes under a **darker brow shading** that makes a grumpy look. Small ear cubes on the top corners. Paws are wider than the legs, with **4 dark claw pixels** painted on the front edge. Cream fur with warm tan shading low down, fur strand noise everywhere |
+| **Void bear** | Large four legged mob | As the polar bear, plus a mane that doubles the head's width | 40 to 70 (mane is 20 to 40 alpha cards) | A **mane of curling swirl cards** (pale lavender) framing the head like a lion. Glowing magenta eyes (`_glow`) with an angry brow. Fur strands painted as clear directional strokes, darker purple in the creases. Pink gums and fangs. Same claw painting as the polar bear |
+| **Crocodile** | Low four legged mob | Body length ≈ 4 × the height. Legs splay out sideways | 40 to 60 | Rows of rectangular scutes on the back, each with a light top edge. Yellow-lime highlights on a green ramp, pale yellow underbelly and jaw. Raised eye bumps on the head. Small yellow alpha frills along the back. Claws are stacked rotated cubes with a **pale base and dark tip**. A row of white teeth cubes along a pale jaw |
+| **Skeletons** (pirate captain, pirate with bandana, raider with helmet, ghoul, hooded necromancer) | Two legged mob | Skull ≈ 28% of the height, a full sized head cube on a slim body. Limbs ≈ half the width of a normal arm. Boots ≈ 1.4 × the shin width | 35 to 60 | The skull is a bone-white cube with **deep black sockets** and **glowing cyan eyes** (a 2×2 near-white core inside a ring of saturated cyan). Teeth painted as a grid of white blocks with dark gaps on a separate, slightly lowered jaw cube. Ribs show through gaps in the clothing. Clothes are a shell over the body with **torn alpha hems** and holes. Each one is told apart by **one headpiece**: tricorn with a skull emblem and gold trim, red bandana with a skull, leather helmet with iron straps, coral growth, a deep hood. Beards as alpha strands (teal seaweed). The necromancer's robe hem burns: orange `_glow` edges and ember spots |
+| **Snakes** (black hooded, brown) | Small mob | Raised neck ≈ 2 × the head width tall, coils on the ground | 12 to 25 | The raised body is a stack of 3 to 5 cubes with a pale banded belly. The head is wider and flatter than the neck, with **yellow eye pixels on the sides**, two white fang cubes and a darker hood. Coils are stepped cubes looping around the base. Small and simple: the texture (bands, scales, the pale belly) carries it |
+| **Plant monster** (flytrap) | Rooted mob | Head bulb ≈ 50% of the height, on a thick stem | 30 to 50 (half are leaf cards) | Red bulb head with **vertical lobes** painted as bands with a bright highlight down each one. The mouth opens across the front with two rows of cream teeth cubes and a dark red inside. Serrated leaf cards fan out from the back of the head and in a rosette at the base (same card method as section 3.4) |
+| **Ice golem** | Floating construct | No legs. Body ≈ the Imp's height, hovering | 15 to 25 | Built from **cubes rotated 45°** (diamonds) instead of a body. Three glowing orbs on the core cube (`_glow`). Icicle cards hang under every cube. Small ice cubes **float detached** around it. Pale cyan texture with white streak highlights and darker blue inner cracks, frosty edges |
+| **Troll** | Large two legged mob | Head ≈ 18% of the height and **sunk between the shoulders** (the shoulder tops sit above the jaw). Shoulders ≈ 2.2 × the head width. Forearms and fists are the biggest parts | 80 to 130 | Huge underbite with tusks (white rotated cubes). Red beard. A skull trophy on one shoulder. Leather shoulder armour with iron studs and **fur trim as alpha fringe**. Iron bands with rivets on the wrists and boots. Mottled blue skin with darker spots. Small eyes, one glowing orange. Pink ears. Shows how armour pieces layered over the body make a brute read as dangerous |
+| **Ram** | Medium four legged mob | Horns span ≈ 2 × the head width | 40 to 70 (horns are 6 to 10 segments each side) | Curled gold horns made of **chained rotated segments**, painted with ridged growth rings across them and darker tips. White face with grey-blue blotches and a bright muzzle highlight. Ears stick out sideways, pink inside. Dark shaggy wool body with a fringe at the bottom. A small spiky tuft on the head |
+| **Sheep** | Small four legged mob | Wool body ≈ 1.4 × the head width | 20 to 30 | The wool is one big cube slightly larger than everything else, with a **stepped wool cap** on top of a dark face cube. Very expressive cartoon eyes: white with a dark pupil and a darker lid line. Ears straight out sideways. Thin dark legs with wool cuffs |
+
+The void dragon screenshot that came with these is covered in section 3.10.
+
+#### 3.14.2 Proportions
+
+Pick the body type first. It sets the head size, which sets everything else.
+
+| Body type | Head (crown to chin) | Head width | Limbs | Examples |
+| --- | --- | --- | --- | --- |
+| **Chibi** (cute, friendly, small) | 40 to 50% of the height | Wider than the torso | Thick square arms to the hips, legs 15 to 20% of the height | Impz, leaf-folk villagers, goblin, imp NPCs |
+| **Slim** (creepy, agile) | 25 to 30% | Wider than the torso | Thin limbs, half the normal width; big boots, hands and shoulder pads to frame them | Skeletons, ghouls |
+| **Brute** (strong, dangerous) | 15 to 20%, set low between the shoulders | Narrower than the shoulders by half | Forearms and fists bigger than the upper arms; short thick legs | Troll, ogre (`ogre.bbmodel`) |
+| **Beast** (four legged) | Head cube 40 to 50% of the front width | Muzzle sticks out ⅓ of the head depth | Legs as thick columns, paws or hooves wider than the leg | Bears, ram, sheep, wolf, cow |
+| **Serpent / rooted / construct** | The head is the main shape | n/a | None or replaced (coils, stem, floating cubes) | Snakes, plant monster, ice golem |
+
+- **The head is never smaller than it would be on a real animal.** If unsure, make it bigger.
+- **Keep the body simple so the head and accessories stand out.** A torso is 1 to 3 cubes (chest, belly, hips), not 10.
+- **Give every limb a wider end:** a hand, fist, paw, hoof or boot that is 1.2 to 1.5 times the width of the limb. This is what makes Hytale characters feel planted.
+- **Check the silhouette from the front and the side as a solid black shape.** It should tell you the species and the job.
+
+#### 3.14.3 Building the head and face
+
+**Geometry (cubes):** only the big features.
+
+1. `head_box`: one cube. Flat top, square front. This is the canvas for the face.
+2. Muzzle, snout or beak: one or two smaller cubes on the front (bears, ram, crocodile, forest spirit). Chibi faces have **no muzzle cube**; it is painted.
+3. Nose: one small cube on the muzzle for beasts. Painted for chibi faces.
+4. Jaw: its own group (`jaw`) with a pivot at the back, so the mouth can open. Monsters show the jaw slightly lowered.
+5. Teeth and tusks: separate small cubes when they stick out (goblin buck teeth, troll tusks, snake fangs, plant monster teeth). Painted when they don't (skeleton teeth, bear teeth).
+6. Ears: 2 to 3 stepped cubes per ear, each smaller than the last, tilted up or down by 15 to 22.5°. The inner face is painted darker.
+7. Brows: painted. Only use a brow cube on brutes and beasts where the brow overhangs the eyes (`ogre.bbmodel` has one).
+8. Hair, manes, beards, eyebrow tufts, leaf tufts: alpha cards (cubes 0 units thick), the same way plants are built in section 3.4.
+9. Horns and antlers: chains of 3 to 10 rotated segments, each smaller and turned a bit more than the last (like the dragon horns in section 3.10).
+
+**Painting the face** (at 2 px/unit, so a 9 unit wide head gives an 18 pixel wide face):
+
+| Feature | How to paint it |
+| --- | --- |
+| **Eyes (chibi)** | 4 to 6 px wide, 4 to 5 px tall, set low and wide on the face (the eye line sits 40 to 45% up from the chin), 3 to 5 px apart. A dark outer ring, then the iris (dark teal, amber or the character's colour), a darker pupil, **one 2×2 or 2×1 highlight in the top corner on the light side**, and one single lighter reflection pixel in the opposite bottom corner. A 1 px dark lid line along the top |
+| **Eyes (glowing)** | Skeletons, void creatures, spirits: a black socket 4 to 5 px wide, a 2×2 near-white core, a ring of saturated colour around it, then a darker ring fading into the socket. Put them on a thin cube named `eye_glow` sitting just in front of the face (0.01 to 0.1 units) so Godot can make it emissive |
+| **Eyes (beasts)** | Smaller (2×2 to 3×3), dark with one highlight pixel, under a band of darker fur that sets the mood (angled down to the nose = angry, flat = calm) |
+| **Brows** | A thick painted stroke, 2 px tall, 1 px above the eye. The angle is the expression: down toward the nose = angry, up toward the nose = worried, flat = calm. Can be a contrasting colour (green brows on a red face, like the leaf-folk) |
+| **Mouth** | Chibi: a 1 to 2 px dark mark, no lips. Monsters: a wide dark line with a row of teeth (white blocks with 1 px dark gaps, the bottom row slightly shaded) |
+| **Cheeks and muzzle** | A lighter band across the lower face (leaf-folk, bears, ram), or a soft blush of 2 to 4 pixels under each eye |
+| **Nose (chibi)** | Two darker pixels or a soft shadow under where the nose would be. No cube |
+
+#### 3.14.4 Painting character textures
+
+Everything in section 1.5 applies. On top of that:
+
+1. **Gradient down every limb and the body:** the top of each part is one or two shades lighter than the bottom. Feet, hands and the hem of clothes are the darkest (the leaf-folk arms darken toward the hands, the polar bear darkens toward the paws).
+2. **The light side:** light comes from the top front left, so the character's right side (the viewer's left) is lit and its left side is half a shade darker.
+3. **Skin:** a soft 5 to 6 shade ramp with faint vertical streaks (1 px lines one shade off) so it never looks flat. Brutes get mottled spots, ghouls get blotches.
+4. **Fur and wool:** short 1 px strands in 3 shades all flowing one way (down and back), lighter on the back, darker on the belly. Wool is curly clusters of 2 to 3 px blobs with a light top.
+5. **Scales:** rows of rounded or rectangular scales, each with a light top edge and a dark bottom edge, smaller toward the head and tail. Lighter belly.
+6. **Bone:** warm off-white with grey-brown cracks and darker grooves at the joints. Never pure white.
+7. **Cloth:** folds as darker vertical lines, stitching as dashed 1 px lines at the edges, a pattern band (woven belt, trim, emblem) on at least one piece. Torn hems are **hard alpha zigzags with 1 to 2 holes**, darker at the frayed edge.
+8. **Leather:** a darker edge line, stitching, a scuffed lighter patch on worn spots. Metal straps and buckles with a 1 px highlight and rust in the corners.
+9. **Detail density:** the face gets the most detail, then the chest and hands, then the legs. The back can be simpler, but never flat.
+
+#### 3.14.5 Accessories and silhouette
+
+The references are told apart by their accessories far more than by their bodies (five skeletons share almost one body). Every character gets:
+
+- **One silhouette breaker** that is big enough to read from 20 blocks away: ears, horns, antlers, a mane, a wide hat, a hood, a huge backpack, a weapon, a shell of armour.
+- **One or two small story details** seen up close: a skull emblem, a necklace, a belt buckle, a scarf, goggles, a flower on an antler, a trophy skull on the shoulder.
+- **Something that moves:** hair cards, a tail, a scarf end, a torn hem, a beard, hanging items. Give it its own group so the idle animation can sway it.
+
+Build rules for accessories:
+
+- **Hats and helmets** are a separate group on the head (`hat`), slightly larger than the head on all sides they cover (0.25 to 0.5 units). Brims are thin cubes. Emblems are painted.
+- **Clothes** are a shell 0.25 to 0.5 units larger than the body part they cover. Skirts, robes and tunics hang below the hips as their own cube with a torn or ruffled alpha edge.
+- **Leaf and petal clothing** (leaf collars, leaf skirts, petal skirts) uses the plant card method from section 3.4: 6 to 16 cards fanned around the neck or waist, each one a painted leaf.
+- **Fur trim** on armour is a row of alpha fringe cards along the edge (the troll's shoulders and wrists).
+- **Backpacks and big props** get their own group on the body. Things hanging off them are separate small cubes or cards.
+
+#### 3.14.6 Impz
+
+The Impz are the player characters (an NFT holder plays as their Imp). They must look like **their Imp from the IMPLINGZ collection**, rebuilt in the Hytale style. `implingz_collection.md` is the source of truth for **what** an Imp looks like (horns, ears, eyes, tail, body colours, every trait). This section says **how** to build it, using the leaf-folk villagers as the style reference. Where the two docs differ on the look, `implingz_collection.md` wins.
+
+**What to take from the leaf-folk villagers** (take the method, not the design: no leaf hats, bark textures or leaf skirts on the base Imp):
+
+1. **One big square head** with a flat top, a bit wider than the torso, about 45% of the height (crown to the soles).
+2. **Ears that stick straight out sideways** from the upper sides of the head, long and flat, tapering in 3 steps, with a darker inner face. They double the head's width and are what makes the silhouette.
+3. **The face is painted, not modelled.** Eyes, brows and mouth are all pixels on the front face of `head_box`. Only the horns, ears and hair or hats are geometry.
+4. **Big glossy eyes set low and wide**, with a big highlight.
+5. **A short blocky body**: one torso cube, thick square arms that hang straight to the hips, short stubby legs, feet with a pale row of painted toes.
+6. **Soft skin painting**: a gentle lit-to-shade gradient, faint streaks, darker toward the hands and feet.
+7. **Small curly parts made of chained rotated segments** (the villager's sprout curl). The Imp uses this for its horns and tail.
+8. **Accessories made from cards** (leaf collars, petal skirts). The Imp uses this for hair traits like Blonde and Afro, and for capes and torn clothing.
+
+**What stays Imp** (from `implingz_collection.md` section 2, never change it):
+
+- **Two big crescent horns** that curve out from the sides of the skull and then up to a point. Off-white, shaded with cream greys. Gold or ice blue on the Gold and Diamond bodies.
+- **The angry face:** a thick dark upper lid that slopes **down toward the nose**, so the eyes glare. The default eye is white with a coloured pupil. **Not** the villagers' soft, sad look.
+- **No lighter muzzle band** on the playable Imp. The collection art has one flat skin colour on the face. (NPC imps may use one.)
+- **A small dark mark for a mouth**, no nose.
+- **A round belly** with painted pecs and a navel.
+- **Mitten-like fists** with one finger line.
+- **A thin tail** in the body's dark shade, with a white **spade tip**, leaving the body behind the Imp's left hip (the viewer's right).
+- **The body colour** from the 10 body values, exactly.
+
+**Base Imp dimensions** (Blockbench units, at 2 px/unit). The crown of the head is at y = 18, which matches the 18 unit Imp height in section 1.3 and the `scale_dummy_imp`. The horns go above that.
+
+| Part | Group | Size (w × h × d) | Position and notes |
+| --- | --- | --- | --- |
+| Legs | `leg_right`, `leg_left` | 2.5 × 3.5 × 3 each | y 0 to 3.5, 0.5 apart. Pivot at the hip (y 3.5) |
+| Toes | in the leg groups | 2.5 × 1 × 0.5 | A small step on the front of each foot, toes painted on it |
+| Torso | `body` | 6 × 6 × 4.5 | y 3.5 to 9.5. Pivot at the hips |
+| Belly | `body` | 5 × 4 × 0.5 | On the front of the torso, y 4 to 8. Pecs and navel painted on it |
+| Arms | `arm_right`, `arm_left` | 2 × 4 × 2 | Shoulders at y 9.5, hanging to y 5.5. Pivot at the shoulder |
+| Fists | `hand_right`, `hand_left` | 2.5 × 2.5 × 2.5 | At the end of each arm, y 3 to 5.5, so the fists hang at the hips. One finger line painted |
+| Head | `head` | 9 × 8.5 × 8 | y 9.5 to 18. Pivot at the neck (y 9.5). The face is 18 × 17 px |
+| Skull cap | `head` | 8 × 0.5 × 7 | On top of the head, with the darker widow's peak painted down the front face |
+| Ears | `ear_right`, `ear_left` | 3 steps: 2 × 3 × 1, then 1.5 × 2 × 0.75, then 1 × 1 × 0.5 | Out from the upper sides of the head (y 13 to 16), tilted up 15 to 22.5°. Tips about 4.5 units out from the head, so the ears span about 18 units, the same as the Imp's height (the 2D art has the same ratio) |
+| Horns | `horn_right` > `horn_right_mid` > `horn_right_tip`, same left | 4 segments per horn, 2 to 2.5 long, getting thinner: 2, 1.75, 1.25, then 0.75 units square | Rooted on the upper sides of the skull, curving out then up. Each segment rotated 20 to 30° more than the last. Tips reach about y 22 |
+| Tail | `tail` > `tail_mid` > `tail_tip` | 5 to 6 segments of 1 × 1 × 1.5 | Leaves the body behind the left hip, curves out and up |
+| Spade tip | in `tail_tip` | A 2.5 × 2.5 × 0.5 cube rotated 45°, plus a 1 × 1 × 0.5 neck | White, shaded pale blue grey |
+
+- **Cubes:** 45 to 70 for the base Imp. Each trait adds 5 to 40.
+- **Texture:** 128 × 128, 2 px/unit, one per body colour (see below).
+
+**Painting the Imp:**
+
+| Part | How to paint it |
+| --- | --- |
+| **Skin ramp** | The 2D art uses 3 flat tones per body (main, mid, deep). Turn them into a **6 shade ramp**: deep, a step between deep and mid, mid, a step between mid and main, **main**, and a highlight one step lighter than main and hue shifted warmer. Keep **main** exactly as in the collection doc so the Imp reads as its colour. Paint the base Imp once with ramp indexes, then swap the ramp per body. Gold and Diamond get their own painted texture with glossy streaks (gold) or faceted light and dark patches (diamond), and recoloured horns |
+| **Outline feel** | The 2D art has black outlines. In 3D, darken the **outer 1 px of each visible face edge by one ramp step** and use the **deep** shade (never `#000000`) for lid lines, the mouth and the pec and navel lines |
+| **Light** | The Imp's right side (the viewer's left) is lit, its left side is one step darker, as in the 2D art. Top faces lightest, bottoms darkest |
+| **Eyes** | On the front face, around y 13.5 to 15.5. Each eye is 5 px wide, 4 px tall, with 3 to 4 px between them. White (`#f4f2ee`, not pure white) with a 2×2 pupil at the **inner side** (toward the nose) in the Eyes trait's pupil colour, ringed by its glow colour, with a 1 px glint. A **2 px deep shade lid** across the top, sloping down 1 to 2 px toward the nose. The Eyes trait swaps this paint (pupil colours) or adds thin geometry over it (eyewear), as in `implingz_collection.md` section 8. Blink with a skin coloured `eyelid` cube in its own group |
+| **Mouth** | A 2 × 1 px deep shade mark, centred 2 px above the chin |
+| **Skull cap** | When the Head trait is None: a darker cap of the mid shade with fine vertical streaks, ending in a V shaped widow's peak down the front face |
+| **Ears** | Outer face in the skin ramp, inner face one or two steps darker, lighter tip |
+| **Horns** | Off-white ramp from `#d8d6d2` (base, in shade) to `#fefdfb` (tip, lit), with thin curved growth rings across each segment like the ram's horns, and a darker contact shadow where they meet the skull |
+| **Body** | Round belly lit from the top left, pecs as a soft deep shade "X", a navel 2 px tall. Faint vertical streaks on the arms and legs |
+| **Toes and fists** | A row of 3 to 4 toes painted on the front of each foot, one step lighter than the foot with deep shade gaps. One finger line on each fist |
+| **Tail** | The deep shade along its length, a lighter top edge, and the spade in white shaded pale blue grey |
+
+**Rig and trait slots.** Traits are separate models (or groups) that attach to named bones, so they can be swapped in Godot (`implingz_collection.md` section 8).
+
+```
+imp > body > head (ear_right, ear_left, horn_right > horn_right_mid > horn_right_tip,
+                   horn_left > ..., eyelid, head_slot, face_slot)
+           > arm_right > hand_right (hand_right_slot)
+           > arm_left > hand_left (hand_left_slot)
+           > tail > tail_mid > tail_tip
+           > back_slot
+    > leg_right ; leg_left
+scale_dummy
+```
+
+- `head_slot` (top of the head, between the horns) holds Head traits. `face_slot` holds eyewear. `back_slot` (between the shoulders) holds Back traits. `hand_right_slot` holds tools and weapons. Clothing is a shell on the body, arms and legs groups.
+- **Animations:** `idle` (breathe, blink, tail sway), `walk`, `run`, `jump`, `fall`, `swing` (tool or weapon), `chop`, `mine`, `hit`, `wave`.
+
+**Imp traits in the Hytale style.** Use section 3.14.5 for the build method and `implingz_collection.md` for every shape and colour.
+
+- **Hair** (Blonde, Afro, Bob, Slick, Spiky, Hawk): clusters of stepped cubes for the volume, plus alpha strand cards on the edges so the hair breaks the head's square outline, like the leaf-folk tufts. The horns pass through the Afro.
+- **Hats** (Cap, Fez, Crown, Sea Captain, Soldier, MAYC Brim): sit between the horns, 0.25 to 0.5 units bigger than the skull, emblems painted. The Straw Hat brim sits over the horn roots.
+- **Clothing:** a shell 0.25 to 0.5 units bigger than the body, with folds, stitching and one pattern band. Long coats and dresses hang below the hips as their own cube.
+- **Wings and capes:** wings are rotated segment chains with membrane panels (like the dragons). Capes are their own group hanging from `back_slot`, with a hard alpha hem.
+- **Glowing eyes** (Lazer, Neon Beam): an `eye_glow` cube as in section 3.14.3. The beam itself is a Godot effect.
+
+**Imp NPCs** (shop keepers, crafters in the hub) use the same base Imp, but may borrow more from the leaf-folk: a lighter muzzle band, softer brows, one oversized job accessory (a backpack, an apron, a huge hat). Use the NPC spec in section 3.8.
+
+```
+IMP BUILD SPEC
+name / id:        imp_<body>                     (e.g. imp_cyan) or imp_trait_<type>_<value>
+body colour:      <one of the 10>, ramp main <hex> / mid <hex> / deep <hex>
+proportions:      chibi, head 9 × 8.5 × 8, crown at y 18, horns to y 22
+head:             painted face: angry eyes (<eye trait>), lid sloping to the nose, tiny mouth,
+                  skull cap <bald streaks | covered by head trait>
+ears / horns:     3 step ears out sideways, 4 segment crescent horns <white | gold | ice blue>
+body:             round belly with pecs and navel, mitten fists, stubby legs with toes
+tail:             <n> segments, spade tip, leaves behind the left hip
+traits:           head <...>, back <...>, clothing <...>, eyes <...>, each on its slot
+cubes:            <n> (45 to 70 base, + traits)
+texture:          128, 2 px/unit, 6 shade ramp from the body colour, dark rim on edges
+animations:       idle, walk, run, jump, fall, swing, chop, mine, hit, wave
+groups:           imp rig above + scale_dummy
+```
+
+**Example.** "Make me a cyan Imp with a fez and red pupils."
+
+```
+IMP BUILD SPEC
+name / id:        imp_cyan (base) + imp_trait_head_fez
+body colour:      Cyan, main #48ffe1 / mid #07846f / deep #033029
+                  ramp #033029 #055a4c #07846f #27c2a8 #48ffe1 #a8ffdc
+proportions:      chibi, head 9 × 8.5 × 8, crown at y 18, horns to y 22
+head:             Red Pupils: white eyes, 2×2 red pupils (#d02b06 / #d83a39) at the inner
+                  side ringed in peach (#fbdfcd), 1 px glint, 2 px deep lid sloping to the nose,
+                  2 × 1 px mouth, skull cap hidden under the fez
+ears / horns:     3 step ears tilted up 20°, inner faces #07846f;
+                  4 segment off-white horns with growth rings
+body:             belly cube with pecs and navel, fists with one finger line,
+                  4 painted toes per foot
+tail:             6 segments in #033029 with a lighter top edge, white spade tip
+traits:           fez on head_slot between the horns: stepped red cylinder
+                  (3 cubes), #ce1d1d / #821c25 / #48070d, highlight #f63535,
+                  tassel as 3 small hanging cubes on the Imp's left side (the viewer's
+                  right, as in the 2D art), in its own group so it sways
+cubes:            58 base + 7 fez
+texture:          128, 2 px/unit
+animations:       idle (breathe, blink, tail and tassel sway), walk, run, jump,
+                  fall, swing, chop, mine, hit, wave
+groups:           imp rig + scale_dummy
+```
+
+#### 3.14.7 Cube counts at a glance
+
+| Character | Cubes | Where the cubes go |
+| --- | --- | --- |
+| Snake, small critter | 12 to 25 | Body segments, coils, fangs |
+| Sheep, pig size mob | 20 to 35 | Body, head, wool cap steps, legs |
+| Imp (base) | 45 to 70 | Horn and tail segments, ear steps, toes, belly |
+| Villager style NPC | 30 to 60 + 10 to 30 cards | Head, ears, accessory cards |
+| Skeleton | 35 to 60 | Skull and jaw, thin limbs, boots, clothes shell, headpiece |
+| Bear, ram | 30 to 70 | Muzzle, paws, horn segments or mane cards |
+| Troll, ogre | 60 to 130 | Armour plates, studs, fur fringe, tusks, trophies |
+| Merchant with backpack, forest spirit | 60 to 120 | The big accessory (pack contents, antler branches) |
+
+If a character is over budget, take cubes off the body first and keep them on the head and the silhouette breaker.
+
 ---
 
 ## 4. Quality checklist
@@ -958,6 +1216,8 @@ Check every item before handing a model over. If one fails, fix it.
 - [ ] Within the cube budget (section 1.7).
 - [ ] Trees: `python3 tools/clean_tree_trunks.py` reports 0 for `core`, `wraps`, `floating` and `step`. With the cards hidden, the trunk is one clean tapering column with only bark strips, stubs and small details on it (section 3.1, **Clean trunks and branches**).
 - [ ] Plants: built from alpha cards fanning from a base point (section 3.4.2), with the card count from section 3.4.4, and compared side by side with the closest reference in section 3.4.1.
+- [ ] Characters: proportions match the body type in section 3.14.2, the face is painted as in section 3.14.3, there is one silhouette breaker and one small story detail (section 3.14.5), and it was compared side by side with the closest reference in section 3.14.1.
+- [ ] Impz: horns, ears, angry eyes, belly, fists and spade tail all present, body colour "main" exactly as in `implingz_collection.md`, and traits sit on their slots without clipping the horns (section 3.14.6).
 
 **Texture**
 
