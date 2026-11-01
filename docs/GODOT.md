@@ -45,7 +45,7 @@ On 2026-10-20 Claude looked at the local test project (`Documents/map-world-test
 | Inventory | `ui/inventory_ui.tscn` | Inventory screen, opened with I |
 | Controls | `project.godot` input map | Sprint, jump (Space), inventory (I) |
 | Free asset pack | `FBX/`, `FBX (Unity)/`, `glTF/`, `OBJ/`, most of `Textures/`, `Preview_*.jpg`, `License_Standard.txt` | Quaternius's **Stylized Nature MegaKit, free version** (68 of 116 models). Licence **CC0 1.0** (public domain): free to use, change, ship and share. It was not bought. |
-| Water shader | `Shaders/EA_CoolWater.gdshader`, `Materials/EA_Water_Tropical.tres`, `Textures/EA_Foam_Voronoi.tres`, `Textures/EA_Water_Normal.tres` | Added after the kit. **Open question:** where it came from, and its licence. |
+| Water shader | `shaders/EA_CoolWater.gdshader`, `Materials/EA_Water_Tropical.tres`, `Textures/EA_Foam_Voronoi.tres`, `Textures/EA_Water_Normal.tres` | Added after the kit. **Open question:** where it came from, and its licence. |
 
 The kit ships each model in four formats. Godot needs only one, so the others could be removed later to keep the repo small. **Open question**, not done.
 

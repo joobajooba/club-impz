@@ -315,7 +315,7 @@ These are suggestions for the later prompt, not decisions. They follow MODELS-BL
 **Rules to keep the traits faithful**
 - Take every colour from this doc's tables, the way MODELS-BLOCKBENCH says a model takes its colours from its icon.
 - Keep the 2D lighting idea: the Imp's right side (the viewer's left) is lit, the other side is shaded.
-- Keep the black outline feel with a dark rim on edges, as the existing Imp model does.
+- Paint every trait in the house texture style of `blockbench_detailed_prompts.md` section 1.5.1 (J00BA's imp, `docs/images/imp_style_reference.png`): soft gradients, lighter centres and darker edges, **no** dark rim or outline. This replaces the 2D art's black outlines in 3D (J00BA, 2026-11-01).
 - Keep the angry face: angled lids, inward-pointing glare.
 - Test every trait against the worst cases: Bone Wings with Cape-length clothes, Afro or Straw Hat with each eyewear, Blonde with each Back trait, Battle Armour pads with each wing.
 
