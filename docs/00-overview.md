@@ -26,7 +26,7 @@ The first working version (*Collect, raise and battle your Implingz…*) no long
 - **Decided (D-045 to D-048):** only Imp holders can find mint tokens. The game is played in the browser. The world is stylised cartoon; items and enemies have a slight voxel feel. Implings are on Robinhood Chain and will move to ApeChain.
 - **Decided (D-049, D-050):** players without an Imp play as a basic Imp model. Staking is finished for now.
 - **Decided (D-080 to D-112, 2026-10-21):** tamed animals battle in turn-based skirmish and the Imp is the trainer. Players trade in-game with a 5% fee. Desktop first, two short check-ins a day. New pillars and core loop (sections 3 and 4). Skirmish, games and trade are drafted in 03–05. Lumbering and fishing are designed in 02.
-- **From the Three.js prototype** (this repo): a third-person world where players walk around and gather. Jump and emotes are built (PR #5).
+- **The build:** the Three.js prototype proved a third-person world with gathering, jump and emotes (COLLAB_IMPZ PR #5). It was removed on 2026-10-22 (D-113). The Godot game in `godot-game/` has the walk, jump and all five gathering skills (BUILD-ROADMAP). Emotes and the chat panel are not rebuilt in Godot yet.
 
 ## 3. Design pillars
 Pillars are the rules every feature is judged against. If a feature doesn't serve one, it gets cut.

@@ -302,7 +302,7 @@ Two kinds:
 
 These are suggestions for the later prompt, not decisions. They follow MODELS-BLOCKBENCH (D-044, D-047).
 
-**Start from the base Imp.** `models/blockbench/creatures/implingz_voxel_character_model.bbmodel` is the HD Imp already built from the pixel-art portrait. Each trait should be a separate model (or a separate group) that **attaches to a named bone** on that Imp, so traits can be swapped in Godot.
+**Start from the base Imp.** `godot-game/assets/models/source/blockbench/creatures/implingz_voxel_character_model.bbmodel` is the HD Imp already built from the pixel-art portrait. Each trait should be a separate model (or a separate group) that **attaches to a named bone** on that Imp, so traits can be swapped in Godot.
 
 | Trait type | Attach to | Notes |
 |---|---|---|

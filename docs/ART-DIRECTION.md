@@ -33,14 +33,14 @@
 
 | It is… | Art form | Examples in the game today |
 |---|---|---|
-| An icon in a menu, the inventory or the HUD | 2D pixel art, 48×48 PNG | `sprites/items/` (ores, ingots, gems, prestige), `sprites/pickaxes/` |
-| Something standing in the world | 3D model | Ore veins (`models/tin_orevein.fbx`, `models/copper_vein.glb`), the furnace, the anvil, the cave floor and walls |
-| Something the player holds or wears in the world | 3D model | The pickaxe (`models/pickaxe.glb`) |
-| The player and any creature | 3D model | The character (`models/character.glb`) |
+| An icon in a menu, the inventory or the HUD | 2D pixel art, 48×48 PNG | `godot-game/assets/sprites/source/items/` (ores, ingots, gems, prestige), `godot-game/assets/sprites/source/pickaxes/` |
+| Something standing in the world | 3D model | Ore veins (`godot-game/assets/models/source/copper_vein.glb`; every other tier is drawn in code, `godot-game/gathering/vein_art.gd`), the furnace, the anvil, the cave floor and walls |
+| Something the player holds or wears in the world | 3D model | The tools (Blockbench, MODELS-BLOCKBENCH; `godot-game/assets/models/source/pickaxe.glb` was the Three.js test's pickaxe) |
+| The player and any creature | 3D model | The character (`godot-game/assets/models/source/character.glb`) |
 
 ### Rules where the two meet (Proposed)
 
-- **One item, one colour story.** When an item exists as both a 2D icon and a 3D model (an ore, an ingot, a gem, a pickaxe), the 3D model takes its main colours from the icon. `docs/CLAUDE.md` already says the picture is the source of truth for how an item looks. So: open the PNG, take its two or three main colours, and build the 3D materials from them. The pickaxe skins already do this (`models/pickaxe-skins.json` colours each part from its sprite).
+- **One item, one colour story.** When an item exists as both a 2D icon and a 3D model (an ore, an ingot, a gem, a pickaxe), the 3D model takes its main colours from the icon. `docs/CLAUDE.md` already says the picture is the source of truth for how an item looks. So: open the PNG, take its two or three main colours, and build the 3D materials from them. The pickaxe skins already do this (`godot-game/assets/models/source/pickaxe-skins.json` colours each part from its sprite).
 - **Same silhouette idea.** The 3D model and the icon should be recognisable as the same thing at a glance. Example: Void Stone's icon is a dark purple spiral, so its 3D vein should carry a spiral motif, not just be a purple rock.
 - **No pixel art in the 3D world.** Do not put pixel-art textures on 3D models, and never use `THREE.NearestFilter` on a world texture. Pixels belong to the 2D layer only.
 - **No 3D renders as icons.** Inventory icons stay hand-made pixel art at 48×48. Do not swap in rendered screenshots of the 3D models.
@@ -87,7 +87,7 @@ The references rule these out. If an asset looks like one of these, it is off-st
 - **No detail smaller than the camera can read.** At the scene's camera distance, a detail thinner than about **2 cm** (the character is **1.15 m** tall in the build) turns into flicker. Paint it instead of modelling it.
 
 ### Scale reference
-- The player character is scaled to **1.15 m** tall in `main.js`. That is a build value, not a design decision. Use it as the reference until the character is final.
+- The player character was scaled to **1.15 m** tall in the Three.js test (`main.js`, removed by D-113). That is a build value, not a design decision. The Imp's height in Godot is still open (MODELS-BLOCKBENCH section 11). Use it as the reference until the character is final.
 - Real-world sizes are a starting point only. Props near the player (barrels, chests, veins) can be scaled up 10–25% so they read well from the camera.
 
 ---
@@ -136,7 +136,7 @@ Sampled from the reference previews on 2026-10-14. They are a starting point, no
 | Creature, orange fur | `#BD753B` | Animated Stylized Cat |
 
 ### Ore tiers
-The ten ore tiers are **Decided** (D-005). Their 3D colours must come from each tier's icons in `sprites/items/` (the `nugget_` and `gemstone_` files), following section 2. Do not pick tier colours from this table or from the tier's name. See `02-resources.md` for what each icon shows.
+The ten ore tiers are **Decided** (D-005). Their 3D colours must come from each tier's icons in `godot-game/assets/sprites/source/items/` (the `nugget_` and `gemstone_` files), following section 2. Do not pick tier colours from this table or from the tier's name. See `02-resources.md` for what each icon shows.
 
 ---
 
@@ -208,7 +208,7 @@ Each guide lists the references for that category in section 11, what to take fr
 - **Size shows value.** Stylized Ore sells each ore in small, medium and large. Bigger and taller veins read as richer.
 - **Every tier is recognisable from across the room.** Shape and colour together, not colour alone, so colour-blind players can tell tiers apart.
 - **Tier colours come from the icons.** See section 2 and section 5.
-- **Today's veins.** Tin and Copper are drawn models. Tiers 3–10 are built in code in the Godot game (`game/gathering/vein_art.gd`, 2026-10-22), each with its own shape, from this section. Drawn models can still replace them.
+- **Today's veins.** Tin and Copper are drawn models. Tiers 3–10 are built in code in the Godot game (`godot-game/gathering/vein_art.gd`, 2026-10-22), each with its own shape, from this section. Drawn models can still replace them.
 - **Rock colour can change per tier (Decided, D-017).** Veins don't have to share one rock colour. Stylized Ore's purple-grey and Crystals and Ores' slate blue both fit, and so do other tinted rocks. Keep every vein's rock tinted (section 5) and calmer than its ore, so the ore stays the accent.
 
 ### 9.2 Farming and crops
@@ -287,7 +287,7 @@ These are starting budgets. They should be checked against the frame rate in the
 - **Units and axes:** metres, Y up, facing +Z.
 - **Origin:** at the bottom centre of the object, so it sits on the ground at height 0.
 - **Scale:** check against the 1.15 m character (section 4) before export.
-- **Materials:** as few as possible, named for what they are (`Rock`, `Crystal`, `Wood`), so the code can recolour parts the way `models/pickaxe-skins.json` does.
+- **Materials:** as few as possible, named for what they are (`Rock`, `Crystal`, `Wood`), so the code can recolour parts the way `godot-game/assets/models/source/pickaxe-skins.json` does.
 - **Textures:** PNG or JPG, power-of-two sizes (512, 1024). 2048 only for terrain or very large surfaces.
 
 ---

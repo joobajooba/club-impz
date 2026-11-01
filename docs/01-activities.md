@@ -26,11 +26,11 @@ The game is a grinding, resource-gathering game that keeps growing. These are it
 
 | Activity | Design | Where |
 |---|---|---|
-| Mining | Decided (D-005 to D-013, D-020, D-054 to D-060) and built in the Three.js test | [02](02-resources.md#mining-tiers-decided-d-005) |
+| Mining | Decided (D-005 to D-013, D-020, D-054 to D-060) and built in Godot (COLLAB_IMPZ PR #36) | [02](02-resources.md#mining-tiers-decided-d-005) |
 | Foraging | Decided (D-022 to D-027, D-061 to D-066) | [02](02-resources.md#foraging-tiers-decided-d-022-to-d-027) |
 | Hunting | Decided (D-028 to D-035, D-067 to D-072) | [02](02-resources.md#hunting-tiers-decided-d-028-to-d-035) |
-| Lumbering | Decided (D-105 to D-108) | [02](02-resources.md#lumbering-tiers-decided-d-104-to-d-107) |
-| Fishing | Decided (D-109 to D-112) | [02](02-resources.md#fishing-tiers-decided-d-108-to-d-111) |
+| Lumbering | Decided (D-105 to D-108) | [02](02-resources.md#lumbering-tiers-decided-d-105-to-d-108) |
+| Fishing | Decided (D-109 to D-112) | [02](02-resources.md#fishing-tiers-decided-d-109-to-d-112) |
 | Farming | Proposed only (D-065 decides seeds go here) | [below](#farming-proposed) |
 
 **Mint tokens (Decided, D-040, D-045):** any gathering action by an **Imp holder** has a chance to find a mint token. In the first phase only mining can. See [ACCOUNTS-AND-DATA.md](ACCOUNTS-AND-DATA.md#6-mint-tokens-decided-d-040-d-045-rules-proposed).
