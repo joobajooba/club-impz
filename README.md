@@ -14,6 +14,7 @@ Browser game built in Godot, with crypto features, part of the Implingz NFT proj
 | `godot-game/assets/*/source/` | Source files the game doesn't load: Blender and Blockbench sources, their build scripts, the original inventory icons. Each has a `.gdignore`, so Godot skips it. |
 | `website/` | The general website |
 | `supabase/` | Supabase database: migrations, edge functions, config |
+| `tools/` | Helper scripts (for example `generate_terrain_textures.py`) |
 
 Game assets live inside `godot-game/` so Godot can import them (Godot only sees files inside its project folder).
 
