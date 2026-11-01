@@ -44,23 +44,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- UI -----------------------------------------------------------------------
 
-func _style(color: Color, border := BORDER, radius := 10, margin := 16.0) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.border_color = border
-	s.set_border_width_all(2)
-	s.set_corner_radius_all(radius)
-	s.set_content_margin_all(margin)
-	return s
-
-
 func _button(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(0, 40)
-	b.add_theme_stylebox_override("normal", _style(SLOT, BORDER * Color(1, 1, 1, 0.6), 6, 8))
-	b.add_theme_stylebox_override("hover", _style(SLOT.lightened(0.12), BORDER, 6, 8))
-	b.add_theme_stylebox_override("pressed", _style(SLOT.darkened(0.2), BORDER, 6, 8))
+	for state in ["normal", "hover", "pressed", "disabled"]:   # pixel-art boxes from UIKit (D-015)
+		b.add_theme_stylebox_override(state, UIKit.button_box(state, SLOT))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return b
 
@@ -77,7 +66,8 @@ func _label(text := "", color := Color.WHITE, size := 15) -> Label:
 func _build() -> void:
 	profile_button = _button("Profile")
 	profile_button.custom_minimum_size = Vector2(110, 46)
-	profile_button.add_theme_stylebox_override("normal", _style(BG, BORDER, 10, 8))
+	for state in ["normal", "hover", "pressed"]:
+		profile_button.add_theme_stylebox_override(state, UIKit.button_box(state, BG))
 	profile_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	profile_button.offset_left = -126
 	profile_button.offset_top = 16
@@ -87,7 +77,7 @@ func _build() -> void:
 	add_child(profile_button)
 
 	menu = PanelContainer.new()
-	menu.add_theme_stylebox_override("panel", _style(BG))
+	menu.add_theme_stylebox_override("panel", UIKit.panel(BG))
 	menu.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	menu.offset_left = -336
 	menu.offset_top = 72
@@ -98,7 +88,8 @@ func _build() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	menu.add_child(box)
-	box.add_child(_label("Profile", Color.WHITE, 22))
+	box.add_child(UIKit.title("Profile", 24))
+	box.add_child(UIKit.divider())
 
 	status_label = _label("", MUTED, 14)
 	box.add_child(status_label)

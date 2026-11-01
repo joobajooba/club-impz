@@ -93,12 +93,12 @@ func _fighter_box(f: Dictionary, mine: bool) -> Control:
 	var col := VBoxContainer.new()
 	col.add_child(UIKit.label("%s%s  Lv %d  ·  %s" % ["" if mine else "Wild ", f.name, f.level, f.type]))
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(220, 14)
+	bar.custom_minimum_size = Vector2(220, 18)
 	bar.max_value = f.max_hp
 	bar.value = f.hp
 	bar.show_percentage = false
-	bar.add_theme_stylebox_override("background", UIKit.style(UIKit.SLOT, UIKit.BORDER * Color(1, 1, 1, 0.4), 4, 0))
-	bar.add_theme_stylebox_override("fill", UIKit.style(UIKit.GOOD, UIKit.GOOD, 4, 0))
+	bar.add_theme_stylebox_override("background", UIKit.bar_track())
+	bar.add_theme_stylebox_override("fill", UIKit.bar(UIKit.GOOD))
 	col.add_child(bar)
 	col.add_child(UIKit.label("%d / %d HP" % [f.hp, f.max_hp], UIKit.MUTED, 12))
 	box.add_child(col)

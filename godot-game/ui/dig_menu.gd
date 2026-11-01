@@ -83,8 +83,8 @@ func _render() -> void:
 		var dug: bool = i in _dug
 		var b := UIKit.button("", not dug and left > 0, _dig.bind(i))
 		b.custom_minimum_size = Vector2(72, 72)
-		b.add_theme_stylebox_override("normal", UIKit.style(Color("#5a4028"), UIKit.BORDER * Color(1, 1, 1, 0.4), 6, 4))
-		b.add_theme_stylebox_override("hover", UIKit.style(Color("#6e5032"), UIKit.BORDER, 6, 4))
+		for state in ["normal", "hover", "pressed", "disabled"]:   # a patch of earth
+			b.add_theme_stylebox_override(state, UIKit.button_box(state, Color("#5a4028"), 4.0))
 		if dug:
 			var p: Dictionary = _prizes[i]
 			if p.has("coins"):

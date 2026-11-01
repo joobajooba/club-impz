@@ -64,17 +64,18 @@ func _build() -> void:
 	add_child(center)
 	_panel = PanelContainer.new()
 	_panel.custom_minimum_size = Vector2(700, 0)
-	_panel.add_theme_stylebox_override("panel", UIKit.style(UIKit.BG, UIKit.BORDER, 10, 20))
+	_panel.add_theme_stylebox_override("panel", UIKit.panel())
 	center.add_child(_panel)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 12)
 	_panel.add_child(vbox)
 	var head := HBoxContainer.new()
 	vbox.add_child(head)
-	_title = UIKit.label("", Color.WHITE, 26)
+	_title = UIKit.title()
 	head.add_child(_title)
 	head.add_child(UIKit.spacer())
 	head.add_child(UIKit.button("Close", true, close))
+	vbox.add_child(UIKit.divider())
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 480)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -86,7 +87,7 @@ func _build() -> void:
 
 
 func _heading(text: String) -> void:
-	_list.add_child(UIKit.label(text, Color.WHITE, 18))
+	_list.add_child(UIKit.title(text, 19))
 
 
 func _note(text: String) -> void:
