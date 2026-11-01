@@ -7,6 +7,7 @@ extends Node3D
 ## - fishing: spots on the water along the nearest shore (this node stands on it), and the campfire
 ##   on clear land nearby, away from the spots so F there doesn't open it,
 ## - camp: the merchant, stable, battle board and treasure dig.
+## Veins and plants out in the open world come from the WildSpawner, not from an area.
 
 @export_enum("mining", "foraging", "hunting", "lumbering", "fishing", "camp") var skill := "mining"
 @export var world_path: NodePath

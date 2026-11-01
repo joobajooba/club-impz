@@ -34,6 +34,7 @@
 [ext_resource type="Material" path="res://Materials/EA_Water_Tropical.tres" id="water_mat"]
 [ext_resource type="Script" path="res://world/world_generator.gd" id="world_script"]
 [ext_resource type="Script" path="res://gathering/area.gd" id="area_script"]
+[ext_resource type="Script" path="res://gathering/wild_spawner.gd" id="wild_script"]
 [ext_resource type="Script" path="res://characters/follower.gd" id="follower_script"]
 [ext_resource type="Script" path="res://ui/hud.gd" id="hud_script"]
 [ext_resource type="Script" path="res://ui/station_menu.gd" id="station_menu_script"]
@@ -295,6 +296,10 @@ radius = 12
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.9, 0, 7.6)
 script = ExtResource("area_script")
 skill = "fishing"
+world_path = NodePath("../World")
+
+[node name="WildSpawner" type="Node3D" parent="."]
+script = ExtResource("wild_script")
 world_path = NodePath("../World")
 
 [node name="Follower" type="Node3D" parent="."]

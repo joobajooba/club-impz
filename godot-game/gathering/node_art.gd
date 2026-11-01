@@ -80,9 +80,9 @@ static func _tint(model: Node3D, pick: Callable, glow := 0.0) -> void:
 
 # --- ore veins --------------------------------------------------------------------
 
-static func vein(row: Dictionary) -> Node3D:
+static func vein(row: Dictionary, variant := 0) -> Node3D:
 	if row.id != "copper" and not row.look.is_empty():
-		return VeinArt.build(row)
+		return VeinArt.build(row, variant)
 	var model: Node3D = load(VEIN_MODEL).instantiate()
 	if not row.look.is_empty():
 		_recolour_vein(model, row.look)
