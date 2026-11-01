@@ -1,12 +1,14 @@
 class_name ToolArt
-## Stand-in art for the tools that have no pictures or models yet (sickles, axes, bows, rods):
-## a 24 x 24 pixel icon for menus (pixel art, D-015) and a simple 3D model for the Imp's hand,
-## both coloured from the tool's metal, leather or wood. TEST art until drawn icons and Blockbench
-## models exist (MODELS-BLOCKBENCH). Pickaxes keep their drawn sprite and Blender model.
-## Models are built like the pickaxe: the handle along +Y from the grip, the head towards +X.
+## Art for the tools. The 3D model in the Imp's hand is the tool's Blockbench model (D-115,
+## D-116): one GLB per tool, `models/blockbench/<kind>s/<kind>_<material>.glb`. A tool without
+## one falls back to a simple model drawn here from its colours (TEST art).
+## Stand-in icons for the tools that have no pictures yet (sickles, axes, bows, rods): a 24 x 24
+## pixel icon for menus (pixel art, D-015). Pickaxes keep their drawn sprites.
+## Models are laid out like the pickaxe: the handle along +Y from the grip, the head towards +X.
 
 const OUTLINE := Color(0.08, 0.06, 0.07)
 const STRING := Color(0.9, 0.88, 0.8)
+const BLOCKBENCH_MODEL := "res://models/blockbench/%ss/%s_%s.glb"   # kind, kind, material
 
 
 # --- icons ------------------------------------------------------------------------
@@ -77,6 +79,9 @@ static func _outline(img: Image) -> void:
 # --- models -----------------------------------------------------------------------
 
 static func model(t: Dictionary) -> Node3D:
+	var path := BLOCKBENCH_MODEL % [t.kind, t.kind, (t.id as String).trim_suffix("_" + t.kind)]
+	if ResourceLoader.exists(path):
+		return (load(path) as PackedScene).instantiate()
 	var root := Node3D.new()
 	root.name = "Tool"
 	var head := _mat(t.head, t.get("metal", 0.0), t.get("rough", 0.8))

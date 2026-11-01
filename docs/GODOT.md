@@ -2,7 +2,7 @@
 
 | Status | Last pass | Depends on |
 |---|---|---|
-| Draft | User addition, 2026-10-20 | 00, 02, ACCOUNTS-AND-DATA, MODELS-BLOCKBENCH |
+| Draft | User addition, 2026-10-22 | 00, 02, ACCOUNTS-AND-DATA, MODELS-BLOCKBENCH |
 
 > Claude: read `docs/CLAUDE.md` before working from this file. Read this whole file before writing or changing any Godot scene, script or import setting.
 >
@@ -27,7 +27,7 @@
 | Starting point | The Godot test from the "Hightail-like game in Godot" chat (**D-037**). |
 | Game type | A grinding gathering game that keeps growing: mining, lumbering, hunting, fishing, farming, foraging (**D-036**). |
 | Character | NFT holders can play as their Imp (**D-038**). |
-| Models | Tools, weapons, creatures and items come from Blockbench as FBX (**D-044**). See [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md). |
+| Models | Tools, weapons, creatures and items are made in Blockbench (**D-044**) and come into Godot as `.glb` (**D-116**, not FBX). Every tier of a tool is its own model (**D-114**, **D-115**). See [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md). |
 | Data | Accounts, coins, mint tokens and saves live in the shared Supabase database (**D-043**). See [ACCOUNTS-AND-DATA.md](ACCOUNTS-AND-DATA.md). |
 | Platform | Played **in the browser** (**D-046**). |
 | World style | Stylised cartoon, like the test project's assets. Items and enemies are Blockbench models with a slight voxel feel (**D-047**). |
@@ -113,7 +113,7 @@ game/
   project.godot
   autoload/        Api.gd, Session.gd, GameData.gd, Inventory.gd
   scenes/          world, player, veins, menus
-  models/          imported Blockbench FBX exports (see MODELS-BLOCKBENCH)
+  models/          models/blockbench/<kind>s/: the Blockbench .glb exports (see MODELS-BLOCKBENCH section 8)
   sprites/         the 48×48 icons, shared with ../sprites or copied in
   data/            item tables cached from the database
 ```
@@ -126,18 +126,18 @@ game/
   - `GameData`: the ore, plant and animal tables, loaded from the database at start-up.
   - `Inventory`: the player's items, tools and energy, as the server last reported them.
 - **Data, not code.** A new ore, plant or animal is a new row in the item table, not a new script. The Three.js build already worked this way (one ore table drove all ten veins), and the pickaxe skins file (`godot-game/assets/models/source/pickaxe-skins.json`) shows the same idea for models.
-- **One scene per kind of thing.** One `OreVein` scene with a `tier` setting, not ten vein scenes. One `Pickaxe` scene that swaps its texture per tier (MODELS-BLOCKBENCH, section 6).
+- **One scene per kind of thing.** One `OreVein` scene with a `tier` setting, not ten vein scenes. Tools are the exception: every tier has its own shape (D-114, D-115), so each has its own `.glb`. The code still has one path for all of them: `ToolArt.model()` loads `godot-game/models/blockbench/<kind>s/<kind>_<material>.glb` from the tool's id, and draws a simple stand-in if a file is missing.
 - **The server is the judge.** The game plays the swing animation and asks the server what was found. It never decides drops itself (ACCOUNTS-AND-DATA, section 8).
 
-## 7. Importing Blockbench models (Proposed; details in MODELS-BLOCKBENCH)
+## 7. Importing Blockbench models (Decided format, D-116; tested on the tools; details in MODELS-BLOCKBENCH section 5)
 
-- Godot 4.3 and later import **FBX** directly. The test project is on 4.7.
+- Blockbench models come in as **`.glb`** (D-116). FBX was tested on 2026-10-22 and imported blurry.
 - Blockbench models sit in a stylised cartoon world (D-047), so they must be lit by the same lights and look at home there (MODELS-BLOCKBENCH, section 10).
-- Voxel textures are tiny pixel images. Godot smooths textures by default, which makes them blurry. For every Blockbench texture:
-  - material **Texture Filter: Nearest**,
-  - texture import **Compress Mode: Lossless** (the default compression smears small pixel textures),
-  - **mipmaps off**, or Nearest-with-mipmaps if distant models shimmer.
-- Set this once in a shared material or an import preset, not by hand on every model.
+- Voxel textures are tiny pixel images, and Godot's default import smears them. What keeps them crisp:
+  - Blockbench's `.glb` already sets the **Nearest** filter on its texture, and Godot keeps it.
+  - Set **Embedded Image Handling: Embed as Uncompressed** on every Blockbench `.glb` (`gltf/embedded_image_handling=3` in its `.glb.import`). The default, Extract Textures, lets Godot VRAM-compress the texture and add mipmaps.
+  - The result: uncompressed RGBA, no mipmaps, Nearest. **Proposed:** if distant models shimmer, try Nearest-with-mipmaps.
+- **Proposed:** make the import setting the project default for `.glb` files under `godot-game/models/blockbench/`, so a new model can't miss it. Today each `.glb.import` carries it.
 
 ## 8. Open questions
 
@@ -162,3 +162,4 @@ Answered on 2026-10-21: the project went into the repo, which was private (D-079
 | User addition, 2026-10-22 (later) | Renderer switched to Compatibility. Lighting retuned, water depth remapped. |
 | User addition, 2026-10-22 (later) | First web export: works in the browser; size measured; ways to shrink it Proposed. |
 | User addition, 2026-10-22 (later) | G6 built offline-ready: `Api` and `Save` autoloads, account section, `supabase/` SQL (not applied). See BUILD-ROADMAP M6. |
+| User addition, 2026-10-22 (later) | Blockbench tools in the game. Models come in as `.glb`, not FBX (D-116), and every tier is its own model (D-114, D-115): sections 1, 5, 6 and 7 updated. Section 7 now holds the tested import setting. |

@@ -23,7 +23,6 @@ const BITE_WAIT := Vector2(1.5, 4.0)   # seconds before a bite (TEST)
 const BITE_WINDOW := 1.0               # seconds to press F (TEST)
 const FADE_IN := 0.2
 const FADE_OUT := 0.25
-const PICKAXE_MODEL := "res://models/mining/pickaxe.glb"
 const TOOL_SCALE := 0.5
 ## How each kind sits in the hand, from the rest pose, in character space: which hand, where the
 ## head and the handle point, and how far up the handle the hand grips.
@@ -101,11 +100,7 @@ func _show_tool(id: String) -> void:
 		_tool.queue_free()
 	var t: Dictionary = GameData.tools[id]
 	var g: Dictionary = GRIPS[t.kind]
-	if t.kind == "pickaxe":
-		_tool = load(PICKAXE_MODEL).instantiate()
-		_skin_pickaxe(_tool, t)
-	else:
-		_tool = ToolArt.model(t)
+	_tool = ToolArt.model(t)
 	_holders[g.hand].add_child(_tool)
 	_tip = null
 	if t.kind == "rod":
@@ -121,23 +116,6 @@ func _show_tool(id: String) -> void:
 			* Transform3D(Basis.from_scale(Vector3.ONE * TOOL_SCALE), Vector3.ZERO) \
 			* Transform3D(Basis.IDENTITY, Vector3(0.0, -g.grip, 0.0))
 	_tool.transform = hand.affine_inverse() * placed
-
-
-## Colours or hides each part of the pickaxe by its Pick_<Part> material, from the skins file.
-func _skin_pickaxe(pickaxe: Node3D, t: Dictionary) -> void:
-	var skins: Dictionary = (load("res://models/mining/pickaxe-skins.json") as JSON).data
-	var parts: Dictionary = skins.get(t.skin, {}).get("parts", {})
-	for mi: MeshInstance3D in pickaxe.find_children("*", "MeshInstance3D", true, false):
-		var src := mi.mesh.surface_get_material(0)
-		var spec: Dictionary = parts.get(src.resource_name.trim_prefix("Pick_") if src else "", {})
-		mi.visible = spec.get("visible", true)
-		if not mi.visible:
-			continue
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(spec.get("color", "#ffffff"))
-		mat.metallic = spec.get("metalness", 0.0)
-		mat.roughness = spec.get("roughness", 0.8)
-		mi.material_override = mat
 
 
 # --- targets and the prompt -----------------------------------------------------------
