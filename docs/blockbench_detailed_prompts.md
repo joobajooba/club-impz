@@ -1,6 +1,6 @@
 # Blockbench Detailed Prompts
 
-> Status: draft v6 · Owner: J00BA · Last updated: 2026-10-31
+> Status: draft v7 · Owner: J00BA · Last updated: 2026-11-01
 >
 > How Claude turns a short request like "make me a tall pine tree, dark green leaves, brown trunk" into a full, detailed build spec, and then builds a Hytale style Blockbench model from it. This doc covers every 3D asset type in the world. It must agree with `game_direction.md`, `game_worlds.md` and `resource_gathering.md`. Where they differ, those docs win.
 
@@ -24,11 +24,11 @@ Make me a voidstone sword.
 2. **Read the global rules** (section 1) and the build method (section 2). They apply to every asset.
 3. **Expand the request** into a full build spec using the category's **prompt template**. Every field gets a value. Values the user gave win. Everything else comes from the category's defaults, the tier and biome tables, and the reference analysis.
 4. **Show the expanded spec** to the user at the top of your reply (short, in the template's layout), then build. Don't wait for approval unless the request is truly unclear.
-5. **Build the model** as a `.bbmodel` file with an embedded, hand painted style texture (section 2).
+5. **Build the model** as a `.bbmodel` file with an embedded texture painted in the **house texture style** (section 1.5.1), using the build method in section 2.
 6. **Run the quality checklist** (section 4) and fix anything that fails before you hand it over.
 7. **Save it** in the right folder with a lowercase, underscore name (section 1.8).
 
-> The golden rule: **a short request never means a simple model.** "A pine tree" gets the same care as a hero asset: layered silhouette, many cubes, every face textured with shaded, noisy, hand painted pixels.
+> The golden rule: **a short request never means a simple model.** "A pine tree" gets the same care as a hero asset: layered silhouette, many cubes, every face painted with soft, rounded gradients in the house texture style (section 1.5.1).
 
 ---
 
@@ -40,8 +40,8 @@ The art style is **Hytale** mixed with **RuneScape: Dragonwilds** (see `game_wor
 
 - **Voxel built, not block based.** Models are made of many cubes of different sizes, stacked, offset and sometimes rotated. They are never just one big box.
 - **Chunky, readable silhouettes.** Bold shapes that read from far away, with lots of small breakup on the edges up close.
-- **Hand painted pixel textures.** Every face has real pixel detail: shading ramps, noise, highlights, cracks, grain. **No flat colour fills.**
-- **Stylized, colourful, soft.** Saturated but not neon (except glowing parts). Warm lights, cool shadows.
+- **Hand painted pixel textures in the house style.** Every part is shaded like a soft, rounded form: **lighter in the centre, darker toward the edges**, with smooth gradients, soft painted shadows for muscles and folds, and material detail on top. **No flat colour fills, no hard outlines, no speckle noise.** J00BA's own imp model is the reference (section 1.5.1).
+- **Stylized, colourful, soft.** Saturated but not neon (except glowing parts). Shadows get deeper and **more saturated**, never grey. Highlights lean slightly warm.
 - **Exaggerated proportions.** Big heads and eyes on characters, thick trunks and big canopies on trees, oversized ore chunks on rocks.
 
 ### 1.2 What the reference images teach
@@ -59,6 +59,7 @@ These are the reference images J00BA supplied, and what to copy from each.
 | **Eagle** | Body built from layered feather slabs, wing that overlaps the body, white head with a hooked yellow beak, tiny yellow talons. Feathers painted as rows of light-edged pixel feathers. |
 | **Pigeon** | Simple boxy body, but rich texture: gradient from blue grey to darker, feather rows, a big round orange eye with a dark pupil and a white highlight pixel, small head tuft. Proof that texture carries the detail. |
 | **Fennec fox NPC** | Huge head and ears, big glossy eyes with highlight pixels, small body, clothes painted on with straps, buckles and stitching. Warm, friendly NPC look. |
+| **J00BA's imp model** (`docs/images/imp_style_reference.png`, built by J00BA in Blockbench) | **The texture style reference for every model in the game.** Soft gradient shading, darker edges and lighter centres, subtle muscle and belly definition, pale cream horns, pixel detailed eyes and brows. Full analysis in section 1.5.1 |
 | **Green imp** | The base imp: big cube head, giant dark eyes with highlights, pointy ears sticking out sideways, leafy tuft on top, short body and stubby limbs. This is the scale and charm reference for all characters. The playable Impz follow section 3.14.6 and `implingz_collection.md`. |
 | **16 mob and NPC screenshots** (goblin, polar bear, void bear, crocodile, 5 skeletons, 2 snakes, plant monster, ice golem, troll, ram, sheep) | **The main reference for characters.** Few large cubes, detail in the texture, exaggerated heads, painted faces, one big silhouette breaker per character. Full analysis in section 3.14.1. |
 | **Leaf-folk villagers** (Hytale Kweebecs) and a forest spirit | **The style reference for the Impz:** big square head, ears straight out sideways, painted face with big glossy eyes, short blocky body, accessories made from cards. Section 3.14.6. |
@@ -101,25 +102,68 @@ Every existing model uses **2 texture pixels per Blockbench unit** (32 pixels pe
 | World assets: trees, ore veins, rocks, foliage, mobs, dragons, NPCs, props | **2** | Matches all existing mob models |
 | Held items: tools, weapons | **4** | Seen up close in the player's hand and in previews, so they get finer detail |
 | Worn armour | **2** | Must match the character it sits on |
+| Playable Imp (and its traits) | **4** | Seen up close all the time |
 
 - **Never stretch** a texture. A face that is 6 × 4 units gets exactly a 12 × 8 pixel UV area (at 2 px/unit).
 - Half unit cubes (0.5) are fine and get 1 pixel. Don't go smaller than 0.5 units on world assets.
 
 ### 1.5 Texture rules
 
-"Very detailed textures" means **every face is painted**, not filled. Follow all of these:
+"Very detailed textures" means **every face is painted**, not filled, in the **house texture style** of section 1.5.1. Follow all of these:
 
 1. **One texture per model**, square and a power of two: 64, 128, 256 or 512. Pick the smallest that fits at the right texel density. Name it the same as the model (`pine_tree.png` for `pine_tree.bbmodel`) and embed it in the file.
-2. **Colour ramps, not single colours.** Each material gets a ramp of **5 to 8 shades**, from deep shadow to highlight. **Hue shift** the ramp: shadows lean cooler (towards blue or purple), highlights lean warmer (towards yellow). Never just add black or white.
-3. **Never use pure black (#000000) or pure white (#ffffff).** Darkest outline tone is a very dark version of the material colour.
+2. **Colour ramps, not single colours.** Each material gets a ramp of **6 to 8 shades**, from deep shadow to highlight. **Hue shift** the ramp gently: shadows get deeper and **more saturated** (a richer green, a deeper red), highlights lean slightly warmer and paler. Never just add black, white or grey.
+3. **Never use pure black (#000000) or pure white (#ffffff).** Darkest tone is a very dark version of the material colour. The only exceptions are eyes: pupils may go down to near black (`#101010` to `#1a1a1a`) and the glint up to near white (`#fbfefb`), as on J00BA's imp.
 4. **Face lighting baked in:** top faces are the lightest, side faces in the middle, bottom faces the darkest. North/south and east/west sides can differ slightly to fake a light direction (light comes from the top, slightly front left).
-5. **Pixel noise on every face.** Scatter 2 to 3 nearby shades across each face so nothing is flat. Use clusters of 2 to 4 pixels, not single-pixel static.
-6. **Edge highlights and contact shadows.** Lighten the top edge of each face by one shade. Darken pixels where a cube meets another cube or the ground (fake ambient occlusion).
-7. **Material detail on top of noise:** bark grain, stone cracks, ore veins, leaf shapes, feather rows, fur strands, metal scratches, cloth stitching, wood grain. Each category below says what.
-8. **Total colours per texture:** aim for **40 to 120** distinct colours. The existing mobs use 21 to 52, so new assets should go **beyond** them in detail, not below.
-9. **Glowing parts** (voidstone, stellarite, magic, eyes on some mobs, effects) use bright, saturated, almost-white centres. Put them on cubes whose names end in `_glow`, so Godot can make them emissive. There is no separate emissive texture.
-10. **Reuse UV space smartly.** Cubes that look the same (leaf clusters, stone chunks, ore crystals) can share the same UV area. This lets a huge tree keep a small texture. Faces that can never be seen (inside a canopy, pressed against another cube, under the model) get UV `[0, 0, 0, 0]` and texture `null`, like the hidden faces in `wolf.bbmodel`.
-11. **Transparency** only for leaf edges, feathers, wing holes, cloth tatters and effects. Use hard alpha (fully on or off), not soft alpha.
+5. **Darker edges, lighter centres.** Every face is shaded as part of a **rounded form**: the middle (or upper middle) of the face is lightest and it darkens smoothly toward its edges by 1 to 2 ramp steps, most at the bottom and the outer edges. This is what turns boxes into soft bodies. **No dark 1 px rim** and no hard outline on any face.
+6. **Smooth gradients, not speckle.** Gradients change one ramp step at a time over bands 2 to 6 px wide, with a few stepped or dithered pixels where two shades meet so the change looks soft. Noise is the **last** pass and low contrast: clusters of 2 to 5 pixels, only ±1 step, on 10 to 20% of a face (skin, metal, cloth), or more where the material needs it (bark, stone, leaves). Never single pixel static, never jumps of 2 steps.
+7. **Soft shadows instead of lines.** Muscles, bellies, folds, creases and contact shadows (where a cube meets another cube or the ground) are painted as **soft darker areas** 1 to 2 steps down with a 2 to 6 px falloff, not as 1 px dark lines. Lines are kept only for things that really are lines: cracks, stitching, growth rings, lid lines.
+8. **Material detail on top of the form:** bark grain, stone cracks, ore veins, leaf shapes, feather rows, fur strands, metal scratches, cloth stitching, wood grain. Each category below says what. The detail follows the form shading: it is darker near the edges and lighter in the centre too.
+9. **Total colours per texture:** aim for **40 to 120** distinct colours. Smooth gradients add colours naturally. The existing mobs use 21 to 52, so new assets should go **beyond** them in detail, not below.
+10. **Glowing parts** (voidstone, stellarite, magic, eyes on some mobs, effects) use bright, saturated, almost-white centres. Put them on cubes whose names end in `_glow`, so Godot can make them emissive. There is no separate emissive texture.
+11. **Reuse UV space smartly.** Cubes that look the same (leaf clusters, stone chunks, ore crystals) can share the same UV area. This lets a huge tree keep a small texture. Faces that can never be seen (inside a canopy, pressed against another cube, under the model) get UV `[0, 0, 0, 0]` and texture `null`, like the hidden faces in `wolf.bbmodel`.
+12. **Transparency** only for leaf edges, feathers, wing holes, cloth tatters, jagged ear edges and effects. Use hard alpha (fully on or off), not soft alpha.
+
+#### 1.5.1 House texture style (J00BA's imp)
+
+![J00BA's imp, the texture style reference](images/imp_style_reference.png)
+
+`docs/images/imp_style_reference.png` is an imp J00BA built and painted in Blockbench. **Every model in the game uses this texture style**, from the Impz and mobs to trees, rocks, tools and buildings. Match its softness and its level of detail. Section 1.5 turns it into rules; this section says what the image shows and how to paint it.
+
+**What the reference shows** (colours sampled from the render, so they include the scene light; use them as a guide to values and saturation, not as exact palette entries):
+
+| Feature | What J00BA did |
+| --- | --- |
+| **Soft gradient shading** | Every part is a smooth gradient, not a flat fill with noise. Shades change one step at a time over several pixels, with a few stepped pixels where they meet. There is almost no noise on the skin. The model reads as soft and rounded even though it is all boxes |
+| **Darker edges, lighter centres** | Each face is lightest in its middle and darker at its edges. The arm faces go from about `#5bb048` in the centre to `#2d821b` at the outer edge. The shadow shades are **deeper and more saturated** greens, never grey |
+| **Value hierarchy across the body** | The face and the chest and belly are the lightest areas (about `#76c666`), the arms are mid (`#53ab40` to `#5bb048`), the hands, legs and feet are the darkest and most saturated (`#2f871c` to `#3a9a25`). The eye is drawn to the face first, then the torso |
+| **Subtle muscle and belly definition** | Pecs and a rounded belly are painted with **soft shadows** only one step darker than the skin around them (about `#6bba5b` on `#76c666`): a soft arch under each pec, a gentle V down the middle, a rounded lower belly and a soft groin V. No lines |
+| **Horns: pale cream gradient** | Pale cream white with a hint of the body hue (`#dcebd6` to `#e1eddc` on the lit faces, `#c1d5ae` to `#c5d5b7` toward the base and the shaded sides). Soft mottled patches of 2 to 4 pixels give them a bone or ivory feel. Darkest where they meet the skull, lightest at the tips |
+| **Pixel detailed eyes** | Big eyes, about 12 × 8 px each at 4 px/unit. The white (`#f6f9f6` to `#fcfbfc`) is shaded toward the corners with pale tinted greys (`#e5f6e1`, `#b2d7ab`, `#d2eccd`), so the eyeball looks round. A large near black pupil (`#101010`) sits high and toward the nose, touching the lid, with a 1 px grey ring (`#5d5d5f`, `#949494`) that softens it into the white. One small near white glint. A lighter skin line under the eye |
+| **Brows and lids** | A heavy, **feathered** shadow over each eye in 3 to 4 dark greens (`#2d6d25`, `#306828`, `#315726` down to `#0f1710` at the lash line), sloping down toward the nose for the angry glare. It fades upward into the skin as a soft brow, never a hard black bar |
+| **Mouth** | A small soft darker rectangle (about `#4b9c3d` on `#67b956` skin), with a lighter pixel row under it so it looks slightly set in. No lips, no outline |
+| **Ears** | Saturated mid greens, darker at the base and on the inner face (`#1d7110` deepest), with jagged stepped pixel edges cut with hard alpha so the tips look sharp |
+| **No outlines** | No face has a dark rim. Shapes are separated only by the edge darkening and soft contact shadows |
+
+**How to paint every face in this style** (run these passes in order; section 2 lists the helper functions):
+
+1. **Base value** from the face direction (section 1.5 rule 4) and the part's place in the value hierarchy (the focus areas lightest, extremities darkest).
+2. **Form gradient:** lighten the centre and darken toward the edges by 1 to 2 steps (rule 5). On long parts (limbs, trunks, handles) also darken from top to bottom.
+3. **Soft shadows:** contact shadows where parts meet, and the shapes of the form drawn as soft darker areas (muscles, belly, folds, the underside of a canopy, the crease of a rock).
+4. **Material detail** (grain, cracks, leaves, scales, stitching), following the form shading.
+5. **Feature pass:** eyes, brows, mouths, emblems, gems, runes. These get the most contrast on the model.
+6. **Light noise** last, ±1 step, only where the material needs it.
+7. **Compare** the preview side by side with the reference image. If any face looks flat, tiled, outlined or speckled, it is not done.
+
+**The style on every kind of asset:**
+
+| Asset | How the house style applies |
+| --- | --- |
+| Characters, mobs, Impz | As the reference: centre-light faces, soft muscle shadows, near black pupils, feathered brows, cream horns and bone |
+| Trees and plants | Each leaf cluster and card is lighter in the middle and on top, darker at the edges and underneath. Trunks are lightest along the centre of each lit face and darker toward the corners, with grain painted on top |
+| Rocks and ore veins | Each stone cube is rounded by centre-light shading with darker, more saturated crevices. Ore crystals get the cream-horn treatment: a pale lit centre and a soft darker base |
+| Tools, weapons, armour | Metal gets the same soft gradient (dark base to light tip, light centre line), with a few crisp highlights on edges that catch the light. Wood and leather are centre-light with soft darker ends |
+| Props and buildings | Planks, stones and roof tiles are each shaded centre-light, with soft contact shadows under overhangs and where walls meet the ground |
 
 ### 1.6 Model build rules
 
@@ -146,7 +190,7 @@ These keep models detailed but still light enough for a browser game (see `game_
 | Armour piece | 10 to 40 | 64 or 128, one per piece |
 | Small mob | 20 to 50 | 64 or 128 |
 | Large mob, NPC | 40 to 130 | 128 or 256 |
-| Imp (player, base) | 45 to 70, plus 5 to 40 per trait | 128 |
+| Imp (player, base) | 45 to 70, plus 5 to 40 per trait | 256 |
 | Dragon | 100 to 250 | 256 |
 | Prop (crate, bench, sign) | 10 to 60 | 64 or 128 |
 | Building | 100 to 500 | 256 or 512 |
@@ -185,13 +229,13 @@ Claude can't click in Blockbench, so models are written as `.bbmodel` JSON by a 
    - Lists every cube: name, `from`, `to`, optional `rotation` and `origin`, and which group it belongs to.
    - Lists every group with its pivot.
    - Packs UVs: for each visible face, reserves a rectangle in the texture at the right texel density (section 1.4), reusing shared rectangles for repeated parts.
-   - **Paints each face rectangle** with Pillow: base ramp, face lighting (top/side/bottom), noise clusters, edge highlights, contact shadows, then the material detail pass (grain, cracks, veins, leaves, feathers).
+   - **Paints each face rectangle** with Pillow, in the pass order of section 1.5.1: base value (top/side/bottom), the centre-light form gradient, soft contact and form shadows, the material detail pass (grain, cracks, veins, leaves, feathers), the feature pass (eyes, emblems), then light noise.
    - Saves the PNG, base64 encodes it into the texture `source` field, and writes the `.bbmodel` JSON.
 2. **Copy the JSON layout** from an existing file in `godot-game/assets/models/mobs/` (top level keys `meta`, `name`, `model_identifier`, `resolution`, `elements`, `groups`, `outliner`, `textures`, `animations`). Use fresh UUIDs for everything.
 3. **Render a preview** (Pillow isometric or a quick three.js / Blender render if available) from the front three quarter view and look at it. Fix the silhouette and texture before calling it done.
 4. **Animations** (mobs, NPCs, dragons, and the tree `hit` shake) go in the same file, using the names in section 3. Use `catmullrom` for smooth motion and `linear` for snappy hits, like the existing files.
 
-> Painting tip: write small helper functions once (`ramp_fill`, `noise`, `edge_light`, `ao_edge`, `cracks`, `grain`, `leaf_pattern`, `feather_rows`, `veins`) and reuse them. Detail comes from layering several passes, not from one clever function.
+> Painting tip: write small helper functions once (`ramp_fill`, `form_gradient` (lighter centre, darker edges), `vertical_gradient`, `soft_shadow` (a darker blob or band with a 2 to 6 px falloff, for AO, muscles and folds), `soft_noise`, `cracks`, `grain`, `leaf_pattern`, `feather_rows`, `veins`, `eye`) and reuse them. Work in ramp indexes as floats and round to the ramp at the end, with a little ordered dithering where two shades meet, so gradients stay smooth. Detail comes from layering several passes, not from one clever function.
 
 ---
 
@@ -373,9 +417,9 @@ animations:       hit (0.4s shake, canopy pivot at y 20, trunk pivot at y 0)
 
 **Texture recipe.**
 
-- **Stone:** grey ramp (6 to 8 shades, cool shadows) with clusters of noise, chiselled block lines, small cracks (1 pixel dark lines with a light pixel beside them), lighter top faces.
+- **Stone:** grey ramp (6 to 8 shades, cool shadows). Each stone cube is shaded centre-light with darker edges and deeper crevices where cubes meet (section 1.5.1), then chiselled block lines, small cracks (1 pixel dark lines with a light pixel beside them) and a little low contrast noise. Lighter top faces.
 - **Veins in the stone:** ore coloured lines 1 to 2 pixels wide that wander across stone faces and continue over edges onto the next face. This is what makes the copper reference look rich.
-- **Ore chunks:** the ore ramp with strong highlights on the top and top-left edges, a dark outline shade on the bottom edges. Metal ores get sharp specular pixels. Crystal ores get facet lines (diagonal light and dark halves). Glowing ores get a bright core.
+- **Ore chunks:** the ore ramp, lightest in the centre of the top and top-left faces, darkening softly toward the base (no dark outline). Metal ores get sharp specular pixels. Crystal ores get facet lines (diagonal light and dark halves). Glowing ores get a bright core.
 - **Moss:** small green clusters on top faces only, spilling 1 to 2 pixels over the edge.
 
 **Ore tiers.** Defaults for each ore in `resource_gathering.md`. Biome extras come from `game_worlds.md` section 4.4.
@@ -1011,15 +1055,15 @@ Pick the body type first. It sets the head size, which sets everything else.
 8. Hair, manes, beards, eyebrow tufts, leaf tufts: alpha cards (cubes 0 units thick), the same way plants are built in section 3.4.
 9. Horns and antlers: chains of 3 to 10 rotated segments, each smaller and turned a bit more than the last (like the dragon horns in section 3.10).
 
-**Painting the face** (at 2 px/unit, so a 9 unit wide head gives an 18 pixel wide face):
+**Painting the face** in the house style (section 1.5.1). Sizes below are at 2 px/unit (a 9 unit wide head gives an 18 pixel wide face); double them at 4 px/unit. The face is the most detailed part of every character: soft centre-light skin, eyes and brows with real pixel shading, no outlines.
 
 | Feature | How to paint it |
 | --- | --- |
-| **Eyes (chibi)** | 4 to 6 px wide, 4 to 5 px tall, set low and wide on the face (the eye line sits 40 to 45% up from the chin), 3 to 5 px apart. A dark outer ring, then the iris (dark teal, amber or the character's colour), a darker pupil, **one 2×2 or 2×1 highlight in the top corner on the light side**, and one single lighter reflection pixel in the opposite bottom corner. A 1 px dark lid line along the top |
+| **Eyes (chibi)** | 5 to 6 px wide, 4 to 5 px tall (about 12 × 8 at 4 px/unit), set low and wide on the face (the eye line sits 40 to 45% up from the chin), 3 to 5 px apart. Paint them like J00BA's imp: a near white eyeball **shaded toward its corners and bottom** with pale greys tinted by the skin colour, so it looks round. A large near black pupil (or the character's iris colour with a near black centre) high and toward the nose, touching the lid, softened into the white by a 1 px grey or mid tone ring. **One small near white glint** on the light side, and optionally one lighter reflection pixel in the opposite corner. A lighter skin line under the eye. No dark frame around the eye |
 | **Eyes (glowing)** | Skeletons, void creatures, spirits: a black socket 4 to 5 px wide, a 2×2 near-white core, a ring of saturated colour around it, then a darker ring fading into the socket. Put them on a thin cube named `eye_glow` sitting just in front of the face (0.01 to 0.1 units) so Godot can make it emissive |
 | **Eyes (beasts)** | Smaller (2×2 to 3×3), dark with one highlight pixel, under a band of darker fur that sets the mood (angled down to the nose = angry, flat = calm) |
-| **Brows** | A thick painted stroke, 2 px tall, 1 px above the eye. The angle is the expression: down toward the nose = angry, up toward the nose = worried, flat = calm. Can be a contrasting colour (green brows on a red face, like the leaf-folk) |
-| **Mouth** | Chibi: a 1 to 2 px dark mark, no lips. Monsters: a wide dark line with a row of teeth (white blocks with 1 px dark gaps, the bottom row slightly shaded) |
+| **Brows and lids** | A heavy **feathered** shadow over the eye, 2 to 3 px tall at 2 px/unit (4 to 5 at 4 px/unit), built from 3 to 4 dark shades of the skin ramp: darkest at the lash line, fading up into the skin as a soft brow. The angle is the expression: down toward the nose = angry, up toward the nose = worried, flat = calm. Can be a contrasting colour (green brows on a red face, like the leaf-folk), still feathered |
+| **Mouth** | Chibi: a small soft mark 1 to 2 steps darker than the skin (2 × 1 px at 2 px/unit, 4 × 2 at 4 px/unit) with a lighter row under it so it looks set in, no lips and no outline. Monsters: a wide dark line with a row of teeth (off-white blocks with 1 px dark gaps, each tooth lighter in its centre, the bottom row slightly shaded) |
 | **Cheeks and muzzle** | A lighter band across the lower face (leaf-folk, bears, ram), or a soft blush of 2 to 4 pixels under each eye |
 | **Nose (chibi)** | Two darker pixels or a soft shadow under where the nose would be. No cube |
 
@@ -1027,15 +1071,19 @@ Pick the body type first. It sets the head size, which sets everything else.
 
 Everything in section 1.5 applies. On top of that:
 
-1. **Gradient down every limb and the body:** the top of each part is one or two shades lighter than the bottom. Feet, hands and the hem of clothes are the darkest (the leaf-folk arms darken toward the hands, the polar bear darkens toward the paws).
-2. **The light side:** light comes from the top front left, so the character's right side (the viewer's left) is lit and its left side is half a shade darker.
-3. **Skin:** a soft 5 to 6 shade ramp with faint vertical streaks (1 px lines one shade off) so it never looks flat. Brutes get mottled spots, ghouls get blotches.
-4. **Fur and wool:** short 1 px strands in 3 shades all flowing one way (down and back), lighter on the back, darker on the belly. Wool is curly clusters of 2 to 3 px blobs with a light top.
-5. **Scales:** rows of rounded or rectangular scales, each with a light top edge and a dark bottom edge, smaller toward the head and tail. Lighter belly.
-6. **Bone:** warm off-white with grey-brown cracks and darker grooves at the joints. Never pure white.
-7. **Cloth:** folds as darker vertical lines, stitching as dashed 1 px lines at the edges, a pattern band (woven belt, trim, emblem) on at least one piece. Torn hems are **hard alpha zigzags with 1 to 2 holes**, darker at the frayed edge.
-8. **Leather:** a darker edge line, stitching, a scuffed lighter patch on worn spots. Metal straps and buckles with a 1 px highlight and rust in the corners.
-9. **Detail density:** the face gets the most detail, then the chest and hands, then the legs. The back can be simpler, but never flat.
+1. **Gradient down every limb and the body:** the top of each part is one or two shades lighter than the bottom. Feet, hands and the hem of clothes are the darkest (the leaf-folk arms darken toward the hands, the polar bear darkens toward the paws, J00BA's imp goes from a light chest to saturated dark legs).
+2. **Darker edges, lighter centres on every part** (section 1.5 rule 5). Each face of the head, torso and limbs is lightest in the middle and darkens toward its edges by 1 to 2 steps, with the shadow shades more saturated, never grey.
+3. **Value hierarchy:** the face is the lightest and most detailed area, then the chest and belly, then the arms, then the hands, legs and feet. This leads the eye to the face.
+4. **Subtle anatomy:** pecs, belly, ribs, shoulder and knee shapes are soft shadows only one step darker than the skin around them, with a 3 to 6 px falloff at 4 px/unit. On J00BA's imp this is a soft arch under each pec, a gentle V down the middle, a rounded lower belly and a soft groin V. Never a dark line.
+5. **Horns, bone, claws and tusks:** pale cream gradients tinted slightly toward the body colour, darker and greener (or warmer) at the base, lightest at the tip, with soft 2 to 4 px mottled patches.
+6. **The light side:** light comes from the top front left, so the character's right side (the viewer's left) is lit and its left side is half a shade darker.
+7. **Skin:** a soft 6 to 8 shade ramp. The form gradient does most of the work; add only faint, sparse streaks or soft blotches (one step off) where the character needs texture. Brutes get mottled spots, ghouls get blotches.
+8. **Fur and wool:** short 1 px strands in 3 shades all flowing one way (down and back), lighter on the back, darker on the belly. Wool is curly clusters of 2 to 3 px blobs with a light top.
+9. **Scales:** rows of rounded or rectangular scales, each with a light top edge and a dark bottom edge, smaller toward the head and tail. Lighter belly.
+10. **Bone:** warm cream off-white, shaded like the horns in point 5, with grey-brown cracks and darker grooves at the joints. Never pure white.
+11. **Cloth:** folds as soft darker bands with a lighter ridge beside them (not hard lines), stitching as dashed 1 px lines at the edges, a pattern band (woven belt, trim, emblem) on at least one piece. Torn hems are **hard alpha zigzags with 1 to 2 holes**, darker at the frayed edge.
+12. **Leather:** a darker edge line, stitching, a scuffed lighter patch on worn spots. Metal straps and buckles with a 1 px highlight and rust in the corners.
+13. **Detail density:** the face gets the most detail, then the chest and hands, then the legs. The back can be simpler, but never flat.
 
 #### 3.14.5 Accessories and silhouette
 
@@ -1064,17 +1112,17 @@ The Impz are the player characters (an NFT holder plays as their Imp). They must
 3. **The face is painted, not modelled.** Eyes, brows and mouth are all pixels on the front face of `head_box`. Only the horns, ears and hair or hats are geometry.
 4. **Big glossy eyes set low and wide**, with a big highlight.
 5. **A short blocky body**: one torso cube, thick square arms that hang straight to the hips, short stubby legs, feet with a pale row of painted toes.
-6. **Soft skin painting**: a gentle lit-to-shade gradient, faint streaks, darker toward the hands and feet.
+6. **Soft skin painting**: a gentle lit-to-shade gradient, lighter centres and darker edges, darker toward the hands and feet, exactly as on J00BA's imp (section 1.5.1).
 7. **Small curly parts made of chained rotated segments** (the villager's sprout curl). The Imp uses this for its horns and tail.
 8. **Accessories made from cards** (leaf collars, petal skirts). The Imp uses this for hair traits like Blonde and Afro, and for capes and torn clothing.
 
 **What stays Imp** (from `implingz_collection.md` section 2, never change it):
 
-- **Two big crescent horns** that curve out from the sides of the skull and then up to a point. Off-white, shaded with cream greys. Gold or ice blue on the Gold and Diamond bodies.
+- **Two big crescent horns** that curve out from the sides of the skull and then up to a point. Off-white, painted as a pale cream gradient (section 1.5.1). Gold or ice blue on the Gold and Diamond bodies.
 - **The angry face:** a thick dark upper lid that slopes **down toward the nose**, so the eyes glare. The default eye is white with a coloured pupil. **Not** the villagers' soft, sad look.
-- **No lighter muzzle band** on the playable Imp. The collection art has one flat skin colour on the face. (NPC imps may use one.)
+- **No lighter muzzle band** on the playable Imp. The face is one skin colour; it is lighter in the middle only through the centre-light form shading. (NPC imps may use a band.)
 - **A small dark mark for a mouth**, no nose.
-- **A round belly** with painted pecs and a navel.
+- **A round belly** with soft painted pecs and a navel.
 - **Mitten-like fists** with one finger line.
 - **A thin tail** in the body's dark shade, with a white **spade tip**, leaving the body behind the Imp's left hip (the viewer's right).
 - **The body colour** from the 10 body values, exactly.
@@ -1097,23 +1145,25 @@ The Impz are the player characters (an NFT holder plays as their Imp). They must
 | Spade tip | in `tail_tip` | A 2.5 × 2.5 × 0.5 cube rotated 45°, plus a 1 × 1 × 0.5 neck | White, shaded pale blue grey |
 
 - **Cubes:** 45 to 70 for the base Imp. Each trait adds 5 to 40.
-- **Texture:** 128 × 128, 2 px/unit, one per body colour (see below).
+- **Texture:** 256 × 256, 4 px/unit, one per body colour, painted in the house style (section 1.5.1 and below).
 
-**Painting the Imp:**
+**Painting the Imp:** paint it exactly in the house style of section 1.5.1. J00BA's imp in `docs/images/imp_style_reference.png` **is** the target for every Imp texture: put the preview next to it and match its softness, its value hierarchy and its eyes. Sizes below are at 4 px/unit (the face is 36 × 34 px).
 
 | Part | How to paint it |
 | --- | --- |
-| **Skin ramp** | The 2D art uses 3 flat tones per body (main, mid, deep). Turn them into a **6 shade ramp**: deep, a step between deep and mid, mid, a step between mid and main, **main**, and a highlight one step lighter than main and hue shifted warmer. Keep **main** exactly as in the collection doc so the Imp reads as its colour. Paint the base Imp once with ramp indexes, then swap the ramp per body. Gold and Diamond get their own painted texture with glossy streaks (gold) or faceted light and dark patches (diamond), and recoloured horns |
-| **Outline feel** | The 2D art has black outlines. In 3D, darken the **outer 1 px of each visible face edge by one ramp step** and use the **deep** shade (never `#000000`) for lid lines, the mouth and the pec and navel lines |
-| **Light** | The Imp's right side (the viewer's left) is lit, its left side is one step darker, as in the 2D art. Top faces lightest, bottoms darkest |
-| **Eyes** | On the front face, around y 13.5 to 15.5. Each eye is 5 px wide, 4 px tall, with 3 to 4 px between them. White (`#f4f2ee`, not pure white) with a 2×2 pupil at the **inner side** (toward the nose) in the Eyes trait's pupil colour, ringed by its glow colour, with a 1 px glint. A **2 px deep shade lid** across the top, sloping down 1 to 2 px toward the nose. The Eyes trait swaps this paint (pupil colours) or adds thin geometry over it (eyewear), as in `implingz_collection.md` section 8. Blink with a skin coloured `eyelid` cube in its own group |
-| **Mouth** | A 2 × 1 px deep shade mark, centred 2 px above the chin |
-| **Skull cap** | When the Head trait is None: a darker cap of the mid shade with fine vertical streaks, ending in a V shaped widow's peak down the front face |
-| **Ears** | Outer face in the skin ramp, inner face one or two steps darker, lighter tip |
-| **Horns** | Off-white ramp from `#d8d6d2` (base, in shade) to `#fefdfb` (tip, lit), with thin curved growth rings across each segment like the ram's horns, and a darker contact shadow where they meet the skull |
-| **Body** | Round belly lit from the top left, pecs as a soft deep shade "X", a navel 2 px tall. Faint vertical streaks on the arms and legs |
-| **Toes and fists** | A row of 3 to 4 toes painted on the front of each foot, one step lighter than the foot with deep shade gaps. One finger line on each fist |
-| **Tail** | The deep shade along its length, a lighter top edge, and the spade in white shaded pale blue grey |
+| **Skin ramp** | The 2D art uses 3 flat tones per body (main, mid, deep). Turn them into an **8 shade ramp**: deep, two steps between deep and mid, mid, a step between mid and main, **main**, and two highlights lighter than main and hue shifted slightly warmer and paler. The shadow steps get **more saturated**, never greyer. Keep **main** exactly as in the collection doc so the Imp reads as its colour: it is the most common colour on the lit faces of the arms and head. Paint the base Imp once with ramp indexes, then swap the ramp per body. Gold and Diamond get their own painted texture with glossy streaks (gold) or faceted light and dark patches (diamond), and recoloured horns |
+| **No outlines** | The 2D art has black outlines, but the 3D Imp has **none**. No dark rim on any face. The edges read through the form gradient (darker edges, lighter centres) and soft contact shadows, as on J00BA's imp. The deep shade is used only for the lash line, the deepest part of the mouth and the navel |
+| **Light and form** | Every face is lightest in its centre and 1 to 2 steps darker at its edges. The Imp's right side (the viewer's left) is lit, its left side is one step darker. Top faces lightest, bottoms darkest. Each limb darkens from top to bottom |
+| **Value hierarchy** | Face and chest lightest (the top two highlight shades in their centres), arms mid (around **main**), fists, legs and feet darkest and most saturated (the steps below **main**) |
+| **Eyes** | On the front face, around y 13.5 to 15.5. Each eye about 12 × 8 px, with 6 to 8 px between them. The white (`#f4f2ee` to `#fcfbfc`) is shaded toward the corners and the bottom with pale greys tinted by the skin colour, so the eyeball looks round. The pupil is big (about 5 × 5 px), high and toward the nose so it touches the lid: near black by default, or the Eyes trait's pupil colour with its glow colour as the ring. A 1 px mid tone ring softens it into the white. One 1 to 2 px near white glint. A lighter skin line under each eye. The Eyes trait swaps this paint (pupil colours) or adds thin geometry over it (eyewear), as in `implingz_collection.md` section 8. Blink with a skin coloured `eyelid` cube in its own group |
+| **Brows and lids** | The angry glare: a heavy feathered shadow 4 to 5 px tall over each eye, sloping down 2 to 3 px toward the nose. Darkest (the deep shade) at the lash line, then 2 to 3 dark, saturated skin shades fading up into the forehead as a soft brow. Never a flat black bar |
+| **Mouth** | A small soft mark (about 4 × 2 px) one to two steps darker than the skin, centred 4 px above the chin, with a lighter row under it so it looks set in. No nose |
+| **Skull cap** | When the Head trait is None: one step darker than the forehead with soft vertical streaks, ending in a soft V shaped widow's peak down the front face |
+| **Ears** | Saturated skin shades, darker at the base and on the inner face (one or two steps), lighter toward the tip on the outer face. Jagged stepped pixel edges with hard alpha so the tips look sharp |
+| **Horns** | A **pale cream gradient**, tinted slightly toward the body colour (for the Green body about `#c1d5ae` at the shaded base to `#e1eddc` lit, with near white tips). Each segment is lighter in its centre and on its top, darker toward its edges. Soft 2 to 4 px mottled patches and faint curved growth rings across each segment like the ram's horns. A soft darker contact shadow where they meet the skull. Gold and Diamond bodies recolour the ramp |
+| **Body** | Lightest at the upper chest. Pecs as a soft arch of shadow under each one, one step darker, meeting in a gentle V. A rounded belly lit from the top left with a soft shadow around its lower edge, a navel 3 px tall in the deep shade with a lighter pixel under it, and a soft groin V. No lines |
+| **Toes and fists** | 3 to 4 toes on the front of each foot, each lighter in its centre, separated by soft dark gaps. Fists darker than the arms, with soft finger gaps, a lit knuckle row and a thumb separated by a soft shadow |
+| **Tail** | Saturated dark skin shades, lighter along the top of each segment. The spade in white shaded pale blue grey, lit at the top left |
 
 **Rig and trait slots.** Traits are separate models (or groups) that attach to named bones, so they can be swapped in Godot (`implingz_collection.md` section 8).
 
@@ -1153,7 +1203,8 @@ body:             round belly with pecs and navel, mitten fists, stubby legs wit
 tail:             <n> segments, spade tip, leaves behind the left hip
 traits:           head <...>, back <...>, clothing <...>, eyes <...>, each on its slot
 cubes:            <n> (45 to 70 base, + traits)
-texture:          128, 2 px/unit, 6 shade ramp from the body colour, dark rim on edges
+texture:          256, 4 px/unit, 8 shade ramp from the body colour, house style (1.5.1):
+                  centre-light gradients, soft anatomy, feathered brows, no dark rim
 animations:       idle, walk, run, jump, fall, swing, chop, mine, hit, wave
 groups:           imp rig above + scale_dummy
 ```
@@ -1166,11 +1217,12 @@ name / id:        imp_cyan (base) + imp_trait_head_fez
 body colour:      Cyan, main #48ffe1 / mid #07846f / deep #033029
                   ramp #033029 #055a4c #07846f #27c2a8 #48ffe1 #a8ffdc
 proportions:      chibi, head 9 × 8.5 × 8, crown at y 18, horns to y 22
-head:             Red Pupils: white eyes, 2×2 red pupils (#d02b06 / #d83a39) at the inner
-                  side ringed in peach (#fbdfcd), 1 px glint, 2 px deep lid sloping to the nose,
-                  2 × 1 px mouth, skull cap hidden under the fez
+head:             Red Pupils: 12 × 8 px white eyes shaded round, 5 × 5 red pupils
+                  (#d02b06 / #d83a39) high at the inner side ringed in peach (#fbdfcd),
+                  near white glint, 4 to 5 px feathered lid and brow sloping to the nose,
+                  soft 4 × 2 px mouth, skull cap hidden under the fez
 ears / horns:     3 step ears tilted up 20°, inner faces #07846f;
-                  4 segment off-white horns with growth rings
+                  4 segment horns in a pale cream gradient with growth rings
 body:             belly cube with pecs and navel, fists with one finger line,
                   4 painted toes per foot
 tail:             6 segments in #033029 with a lighter top edge, white spade tip
@@ -1179,7 +1231,7 @@ traits:           fez on head_slot between the horns: stepped red cylinder
                   tassel as 3 small hanging cubes on the Imp's left side (the viewer's
                   right, as in the 2D art), in its own group so it sways
 cubes:            58 base + 7 fez
-texture:          128, 2 px/unit
+texture:          256, 4 px/unit, house style (1.5.1)
 animations:       idle (breathe, blink, tail and tassel sway), walk, run, jump,
                   fall, swing, chop, mine, hit, wave
 groups:           imp rig + scale_dummy
@@ -1222,11 +1274,14 @@ Check every item before handing a model over. If one fails, fix it.
 **Texture**
 
 - [ ] Every visible face is painted. No flat fills.
-- [ ] Correct texel density (2 px/unit, or 4 for tools and weapons). No stretched pixels.
-- [ ] Each material uses a 5 to 8 shade, hue shifted ramp. No pure black or white.
-- [ ] Top faces light, sides mid, bottoms dark. Contact shadows where parts meet.
-- [ ] Material detail added (grain, cracks, veins, leaves, fur, feathers, stitching).
-- [ ] Eyes have highlight pixels.
+- [ ] Compared side by side with J00BA's imp (`docs/images/imp_style_reference.png`): it matches its softness and detail (section 1.5.1).
+- [ ] Every face is lighter in the centre and darker at the edges. No dark 1 px rim, no outlines, no speckle noise.
+- [ ] Gradients step one ramp shade at a time. Shadows are deeper and more saturated, not grey.
+- [ ] Correct texel density (2 px/unit, or 4 for tools, weapons and the playable Imp). No stretched pixels.
+- [ ] Each material uses a 6 to 8 shade, hue shifted ramp. No pure black or white (near black pupils are fine).
+- [ ] Top faces light, sides mid, bottoms dark. Soft contact shadows where parts meet.
+- [ ] Material detail added (grain, cracks, veins, leaves, fur, feathers, stitching), following the form shading.
+- [ ] Characters: anatomy as soft shadows, not lines. Horns, bone and claws in a pale cream gradient. Eyes shaded round with a big pupil, a glint and a feathered brow and lid.
 - [ ] Tier and biome are recognisable from the colours alone.
 - [ ] Hidden faces have no UV and no texture. Repeated parts share UV space.
 
@@ -1260,7 +1315,9 @@ Starting ramps for common materials, dark → light. Hue shift them further if t
 | Bronze | #3a1e0c #5c3414 #82501e #a86e2c #c88e40 #e2b060 |
 | Gold | #4a2c00 #7a4c00 #a87400 #d29e10 #f2c636 #ffe27a #fff4c0 |
 | Leather | #2a160e #422416 #5c3420 #78462a #965c36 |
-| Imp green skin | #1e3a2a #2c523a #3e6c4a #548a5c #6ea672 #90c08c |
+| Imp green skin (Green body, main #4bd336) | #10240c #1b3902 #285800 #2f7a14 #3ea825 #4bd336 #78e04a #b2ee7a |
+| Horn cream (Green body; tint toward the body colour on others) | #8e9a84 #a9b89c #c1d5ae #cadabd #dcebd6 #e1eddc #f2f8ef |
+| Eye white | #b2d7ab #d2eccd #e5f6e1 #f4f2ee #fcfbfc, glint #fbfefb, pupil #101010, pupil ring #5d5d5f #949494 |
 | Fur (fox / tan) | #4a2a10 #6e401a #965a24 #ba7a34 #d89c4c #f0c070 |
 | Ice | #1e3448 #2e5070 #4874a0 #6c9cc8 #9cc8e8 #d0ecf8 |
 | Void glow | #120424 #2a0c4a #4a1878 #7428b0 #a448e0 #d06cff #f0c8ff |
@@ -1307,3 +1364,5 @@ J00BA's answers to the first draft's open questions.
 | Gathering feedback | Trees shake with a `hit` animation. Ore veins don't animate (sections 3.1 and 3.2) |
 | Armour files | One file per piece (section 3.7) |
 | Leaf cores on trees | None. Trees use inner cards, not solid core cubes, and nothing but bark strips, stubs and small details touches the trunk. `frostbark_tree` is the reference (section 3.1) |
+| Imp texel density | 4 px/unit on 256, approved by J00BA 2026-10-31 |
+| House texture style | J00BA's own imp model (`docs/images/imp_style_reference.png`) is the texture style for **every** model: soft gradients, darker edges and lighter centres, soft anatomy, pale cream horns, detailed eyes and brows, no outlines (section 1.5.1). Set by J00BA 2026-11-01 |
