@@ -1,5 +1,6 @@
 """The Back traits (implingz_collection.md section 5), shapes from docs/imp-traits/layers/back_*.png, scaled to the model.
-None has no file. All on the Chest bone, behind z -16 so they clear every outfit (hoods reach z -15.5) and Blonde hair.
+None has no file. All on the Chest bone. Wings and cape sit behind z -16 so they clear every outfit (hoods reach z -15.5) and Blonde hair;
+the Sword, Scythe and Trident are pressed onto the bare back instead (J00BA, 2026-11-06), so thick outfits cover part of them.
 Each wing and the cape has a bone of its own, so it can move. Viewer's left is -X; art x maps to about 1.6 units per pixel."""
 import math
 import numpy as np
@@ -59,6 +60,42 @@ def rib_lines(lines, w, amt):
             out = out - amt * np.clip(1 - d / w, 0, 1)
         return out
     return f
+
+
+def back_z(x, y):
+    """The body's back surface: for each world (x, y), the furthest-back z inside the torso (Chest and Pelvis cubes). NaN where there is no torso."""
+    zs = np.arange(-16, 4, .05)
+    P = np.stack(np.broadcast_arrays(x[..., None], y[..., None], zs), -1)
+    P4 = np.concatenate([P, np.ones(P.shape[:-1] + (1,))], -1)
+    inside = np.zeros(P.shape[:-1], bool)
+    for M, e in BODY_SOLIDS:
+        lp = (P4 @ np.linalg.inv(M).T)[..., :3]
+        fr, to = np.array(e['from']), np.array(e['to'])
+        c, h = (fr + to) / 2, (to - fr) / 2 * np.abs(np.array(e.get('stretch') or [1, 1, 1]))
+        inside |= (np.abs(lp - c) <= h).all(-1)
+    first = np.where(inside.any(-1), zs[np.argmax(inside, -1)], np.nan)
+    return first
+
+
+def press_to_back(t, sink=.3):
+    """Slide a prop straight forward until its front rests on the body's back, sunk in by `sink` so no gap shows.
+    The props only rotate about Z, so moving every cube by the same z keeps the prop's shape."""
+    gaps = []
+    for c in t.cubes:
+        M = t._m(c)
+        (x0, y0, _), (x1, y1, z1) = c['fr'], c['to']
+        u, v = np.meshgrid(np.linspace(x0, x1, max(2, int(x1 - x0) * 2 + 1)), np.linspace(y0, y1, max(2, int(y1 - y0) * 2 + 1)))
+        P = np.stack([u, v, np.full_like(u, z1), np.ones_like(u)], -1) @ M.T
+        zb = back_z(P[..., 0], P[..., 1])
+        gaps.append(np.nanmin(zb - P[..., 2]) if np.isfinite(zb).any() else np.inf)
+    dz = round(float(min(gaps)) + sink, 2)
+    assert np.isfinite(dz), t.name + ' does not cross the torso'
+    for c in t.cubes:
+        c['fr'][2] += dz
+        c['to'][2] += dz
+        if c['origin']:
+            c['origin'] = [c['origin'][0], c['origin'][1], c['origin'][2] + dz]
+    print(f'{t.name}: moved {dz:+.2f} toward the back')
 
 
 SIDES = ((1, 'l'), (-1, 'r'))
@@ -190,22 +227,84 @@ def mechanical_wings():
     t.save()
 
 
+RED = ['#22010a', '#33030f', '#460515', '#5a071c', '#6d0a22', '#800e27', '#94142c', '#a81830', '#b61f33', '#c42c3d', '#d6434f']
+LINING = ['#1a0108', '#2a020d', '#3a0412', '#4f0519', '#5e0620', '#6d0721', '#7d0c2a']
+GOLD = ['#3f2e0a', '#5c4410', '#80662b', '#a08440', '#c4a95e', '#e2cb83']
+CAPE_LIGHT = np.array([.35, .55, -.76]) / np.linalg.norm([.35, .55, -.76])     # from above and behind: the cape is seen from the back
+
+
+def hem_y(x):
+    """The cape's lower edge: a soft wave from the pleats, rising a little toward the sides."""
+    return 4 + 1.3 * np.sin(x * .45) + .0016 * x * x
+
+
+def cape_shader(edge_trim=False, flat=False):
+    """Crimson outside, wine lining inside. Each pleat rolls darker toward its long edges, so the strips read as one folded cloth."""
+    def f(P, N, cube):
+        x, y = P[..., 0], P[..., 1]
+        lp, fr, to = LOC['p'], np.array(LOC['fr']), np.array(LOC['to'])
+        w = to[0] - fr[0]
+        across = np.clip(np.minimum(lp[..., 0] - fr[0], to[0] - lp[..., 0]) / (w / 2), 0, 1)     # 0 at a pleat edge, 1 in its middle
+        roll = 0 if flat else -.11 * (1 - across) ** 1.6
+        lit = N @ CAPE_LIGHT
+        t = .56 + .22 * lit + roll
+        t = t - .2 * np.clip((40 - y) / 36, 0, 1)                   # darker toward the hem
+        t = t - .16 * np.clip((y - 56) / 8, 0, 1)                   # shade under the collar
+        t = t + .05 * np.exp(-((x * .06) ** 2 + ((y - 46) * .05) ** 2))    # broad light across the shoulder blades
+        t = t + .015 * np.sin(y * 2.6)                               # faint weave
+        rgb = ramp(t, RED)
+        inner = N[..., 2] > .5
+        side = np.abs(N[..., 0]) > .5
+        rgb = np.where((inner | side)[..., None], ramp(t - .12, LINING), rgb)
+        h = hem_y(x)
+        trim = (y - h < 2.2) & ~inner
+        rgb = np.where(trim[..., None], ramp(.45 + .3 * lit + .25 * (y - h) / 2.2, GOLD), rgb)
+        stitch = (y - h > 3) & (y - h < 3.6) & ((np.floor(x * 1.2) % 2) == 0) & ~inner
+        rgb = np.where(stitch[..., None], ramp(t - .16, RED), rgb)
+        if edge_trim:
+            et = (y - h > 0) & (edge_dist() < 1) & ~inner & (lp[..., 1] > fr[1] + 1)
+            rgb = np.where(et[..., None], ramp(.5 + .3 * lit, GOLD), rgb)
+        al = np.where(y >= h, 255., 0.)
+        return rgb, al
+    return f
+
+
+def collar_shader(P, N, cube):
+    lit = N @ CAPE_LIGHT
+    lp, fr, to = LOC['p'], np.array(LOC['fr']), np.array(LOC['to'])
+    t = .6 + .2 * lit - .14 * np.clip((fr[1] + 3 - lp[..., 1]) / 3, 0, 1)
+    rgb = ramp(t, RED)
+    rgb = np.where((N[..., 2] > .5)[..., None], ramp(t - .14, LINING), rgb)
+    top = to[1] - lp[..., 1] < 1.2                                   # gold piping along the top edge
+    return np.where(top[..., None], ramp(.5 + .3 * lit, GOLD), rgb), np.full(P.shape[:2], 255.)
+
+
 def cape():
+    """A long crimson cape from the doc: a raised collar behind the neck, a yoke over the upper back so it hangs from the shoulders,
+    then 14 pleats that fan from the shoulders to the feet, flaring past the arms and wrapping forward at the sides."""
     t = Back('back_cape')
-    t.own_bone('cape', (0, 62, -17))
-    red = ['#3d0413', '#640720', '#8a1128', '#a81830', '#ae1e2f']
-    lining = ['#3d0413', '#4f0519', '#640720', '#6d0721', '#7d0c2a']
-    folds = lambda P, N, t_: t_ + .16 * np.sin(P[..., 0] * .55 + np.sin(P[..., 1] * .08))
-    lin = (lambda P, N: N[..., 2] > .5, lining, lambda P, N: .5 + .22 * np.sin(P[..., 0] * .55))
-    sh = S(red, c=(0, 32, -22), r=(44, 48, 40), base=.6, gain=.3, mods=[folds, fall(3, 40, .14)], decals=[lin])
-    rot = (6, 0, 0)
-    org = (0, 62, -17)
-    t.box('collar', (-17, 56, -19), (17, 70, -16), S(red, base=.62, gain=.3, decals=[lin]), sub='cape')
-    t.mirror('collar_side', (15, 57, -16), (18, 66, -8), S(red, base=.6, gain=.3), sub='cape')
-    t.box('fall_1', (-27, 40, -19), (27, 62, -16), sh, rot=rot, origin=org, sub='cape')
-    t.box('fall_2', (-36, 20, -21), (36, 42, -18), sh, rot=rot, origin=org, sub='cape')
-    hem = lambda P, N: P[..., 1] > 4 + 1.2 * np.abs(np.sin(P[..., 0] * .4)) * 2
-    t.box('fall_3', (-41, 3, -23), (41, 22, -20), S(red, c=(0, 32, -22), r=(44, 48, 40), base=.6, gain=.3, mods=[folds, fall(3, 40, .14)], decals=[lin], cut=hem), rot=rot, origin=org, sub='cape', solid=False)
+    top, L, n, w = 64, 61, 14, 9
+    t.own_bone('cape', (0, top, -17))
+    for i in range(n):
+        s_ = i / (n - 1) * 2 - 1
+        xt, xb = 15 * s_, 42 * s_
+        zt = -16.3 + (.7 if i % 2 else -.7)                          # ridge, valley, ridge ...
+        zb = -27 + 15 * s_ * s_                                       # centre falls away from the legs, sides wrap forward
+        rx = math.degrees(math.asin(np.clip(-(zb - zt) / L, -1, 1)))
+        ry = -math.degrees(math.atan(.62 * s_)) + (10 if i % 2 else -10)
+        rz = math.degrees(math.atan2(xb - xt, L))
+        t.box(f'pleat_{i + 1:02d}', (xt - w / 2, top - L, zt - 1), (xt + w / 2, top, zt), cape_shader(edge_trim=i in (0, n - 1)),
+              rot=(round(rx, 2), round(ry, 2), round(rz, 2)), origin=(xt, top, zt - .5), sub='cape', solid=False)
+    # the yoke: the cape's top lies on the upper back, so it hangs from the shoulders instead of floating behind
+    t.box('yoke', (-15, 59, -16.5), (15, 66, -10.5), cape_shader(flat=True), sub='cape')
+    t.mirror('yoke_shoulder', (12, 60, -13.5), (18, 67, -9.5), cape_shader(flat=True), sub='cape')
+    # raised collar standing behind the neck, wrapping forward at the sides
+    t.box('collar', (-8, 63, -18), (8, 77, -16), collar_shader, rot=(-12, 0, 0), origin=(0, 63, -17), sub='cape')
+    t.box('collar_l', (8, 62, -18), (16, 75, -16), collar_shader, rot=(-10, -38, 0), origin=(8, 62, -17), sub='cape')
+    t.box('collar_r', (-16, 62, -18), (-8, 75, -16), collar_shader, rot=(-10, 38, 0), origin=(-8, 62, -17), sub='cape')
+    # gold clasps where the collar meets the shoulders
+    clasp = S(GOLD, base=.5, gain=.36, per_cube=True)
+    t.mirror('clasp', (14, 61, -11), (18, 65, -9), clasp, sub='cape')
     t.save()
 
 
@@ -236,6 +335,7 @@ def sword():
     p.b('blade', -3.5, -52, 3.5, -2, -19, -17, blade)
     p.b('blade_tip_1', -2.5, -58, 2.5, -52, -19, -17, S(METAL, base=.6, gain=.3))
     p.b('blade_tip_2', -1, -62, 1, -58, -19, -17, S(METAL, base=.6, gain=.3))
+    press_to_back(t)
     t.save()
 
 
@@ -272,6 +372,7 @@ def scythe():
     arc = [(-26, 83), (-39, 83), (-47, 73), (-50, 60), (-47, 49), (-43, 43)]
     for i, w in enumerate((7, 6, 5, 4, 2)):
         seg(t, f'blade_{i + 1}', arc[i], arc[i + 1], w, -19, -17, bl)
+    press_to_back(t)
     t.save()
 
 
@@ -290,6 +391,7 @@ def trident():
         for i, (u0, u1, v0, v1) in enumerate(((7, 11, 98, 106), (6, 13, 106, 108), (7.5, 11.5, 108, 113), (8.5, 10.5, 113, 118))):
             lo, hi = (u0, u1) if s > 0 else (-u1, -u0)
             p.b(f'prong_{n}_{i + 1}', lo, v0, hi, v1, -19, -17, red)
+    press_to_back(t)
     t.save()
 
 
