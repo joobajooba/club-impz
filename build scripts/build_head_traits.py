@@ -303,6 +303,26 @@ def afro():
     t.mirror('cheek', (15, 70, -9.5), (17, 83, .5), sh)
     t.box('forehead', (-15.5, 83, 10.5), (15.5, 100, 20.5), sh)
     t.box('forehead_top', (-11.5, 100, 12.5), (11.5, 104, 19.5), sh)
+    # curl clumps over the front so it is round and bumpy, not one flat wall (J00BA, 2026-11-06).
+    # All at z >= 11: the horns stay at z <= 10 and the ears at z <= 3.7, so neither is clipped.
+    puff = S(brown, base=.42, gain=.30, face=.05, per_cube=True, mods=[curls(.08)])
+    deep = S(brown, base=.34, gain=.28, face=.05, per_cube=True, mods=[curls(.08)])
+    for r, (y0, y1, xs, w) in enumerate(((83, 88, (-12, -4, 4, 12), 7), (88, 95, (-8, 0, 8), 8), (95, 102, (-12, -4, 4, 12), 7))):
+        for k, x in enumerate(xs):
+            z1 = (22.5, 21.5, 23)[(k + r) % 3]
+            t.box(f'curl_{r + 1}{k + 1}', (x - w / 2, y0, z1 - 4), (x + w / 2, y1, z1), puff if (k + r) % 2 else deep)
+    t.mirror('corner_low', (13, 84, 12), (16, 93, 19), deep)
+    t.mirror('corner_high', (13, 92, 12), (16, 101, 18), puff)
+    t.box('dome_front', (-8, 103, 14), (8, 109, 19), puff)
+    t.mirror('dome_side', (8, 101, 11), (20, 108, 16), deep)
+    t.box('crown_cap', (-12, 110, -9), (12, 113, 5), puff)
+    # and round the sides and back the same way, behind the ears (they lean back to z -2.5)
+    t.mirror('side_curl_a', (25, 82, -19), (29, 93, -9), puff)
+    t.mirror('side_curl_b', (21, 95, -17), (25, 103, -5), deep)
+    t.box('back_curl_a', (-14, 72, -30), (-2, 84, -26), puff)
+    t.box('back_curl_b', (2, 80, -30), (14, 92, -26), deep)
+    t.box('back_curl_c', (-10, 92, -30), (6, 104, -26), puff)
+    t.box('back_top', (-15, 104, -24), (15, 110, -12), deep)
     return t
 
 
