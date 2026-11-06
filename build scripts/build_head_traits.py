@@ -290,15 +290,17 @@ def afro():
     brown = ['#241413', '#3a211e', '#4a2e2a', '#5f3b34', '#84544b']
     sh = S(brown, c=(0, 90, -8), r=(30, 24, 26), base=.36, gain=.30, face=.06, mods=[curls(.07)])
     # the big round mass behind the horns: they stick out through its front, as in the art
-    t.box('mass_wide', (-27, 78, -22.5), (27, 98, -.5), sh)
-    t.box('mass_tall', (-23, 69, -19.5), (23, 104, -.5), sh)
+    # the outer ears lean back to z -2.2 past x 23, so the mass beside them starts behind that
+    t.box('mass_wide', (-27, 78, -22.5), (27, 98, -2.5), sh)
+    t.box('mass_tall', (-23, 69, -19.5), (23, 104, -1.5), sh)
     t.box('mass_deep', (-17, 66, -27.5), (17, 108, -.5), sh)
     # over the top, above the horn tips, and down to the forehead between them
     t.box('top_wide', (-24, 102, -.5), (24, 107, 12.5), sh)
     t.box('top', (-17, 107, -13.5), (17, 111, 8.5), sh)
     t.box('crown', (-8.5, 91, -.5), (8.5, 102, 14.5), sh)
     t.box('sides', (-15.5, 83, -.5), (15.5, 102, 10.5), sh)
-    t.mirror('cheek', (15, 70, -.5), (17, 83, 10.5), sh)
+    # sideburns sit behind the ear root (ear z >= 1.4 there), not over it
+    t.mirror('cheek', (15, 70, -9.5), (17, 83, .5), sh)
     t.box('forehead', (-15.5, 83, 10.5), (15.5, 100, 20.5), sh)
     t.box('forehead_top', (-11.5, 100, 12.5), (11.5, 104, 19.5), sh)
     return t
