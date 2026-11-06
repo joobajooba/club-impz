@@ -436,6 +436,7 @@ def main():
     d, dg, do = scale_dummy(-3.5 * SPACING)
     doc = bbmodel("pickaxes_lineup", lineup_el + [d], lineup_groups + [dg], lineup_out + [do], lineup_tex, ATLAS)
     (OUT_MODELS / "pickaxes_lineup.bbmodel").write_text(json.dumps(doc), encoding="utf-8")
+    pad_file(OUT_MODELS / "pickaxes_lineup.bbmodel")
     print("lineup: %d pickaxes" % len(sprites))
 
 

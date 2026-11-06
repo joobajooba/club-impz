@@ -3,6 +3,10 @@ python make_lineup.py <out.bbmodel> <spacing> <per_row> <model.bbmodel>..."""
 import json
 import sys
 import uuid
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[5] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 
 def main():
@@ -49,7 +53,9 @@ def main():
               "variable_placeholders": "", "variable_placeholder_buttons": [], "timeline_setups": [],
               "unhandled_root_fields": {}, "resolution": {"width": res, "height": res}, "elements": elements,
               "groups": groups, "outliner": outliner, "textures": textures}
-    json.dump(lineup, open(out, "w", encoding="utf-8"))
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump(lineup, fh)
+    pad_file(out)
     print(out, len(paths), "models,", len(elements), "boxes")
 
 

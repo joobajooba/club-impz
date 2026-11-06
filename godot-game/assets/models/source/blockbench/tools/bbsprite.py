@@ -281,3 +281,4 @@ def write_lineup(out_dir, name, sets, spacing=20):
         textures.append(tex)
     model = project(name, elements, outliner, textures, size)
     (Path(out_dir) / f"{name}.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(Path(out_dir) / f"{name}.bbmodel")

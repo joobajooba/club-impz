@@ -728,6 +728,7 @@ def write_lineup(out_dir, sets):
         textures.append(tex)
     model = project("pickaxes_lineup", elements, outliner, textures, size)
     (out_dir / "pickaxes_lineup.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / "pickaxes_lineup.bbmodel")
 
 
 if __name__ == "__main__":

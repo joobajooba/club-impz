@@ -73,8 +73,9 @@ def fix(path, dry=False):
     assert dump is not None, f'{path}: cannot round-trip the JSON byte for byte'
 
     orig = copy.deepcopy(d)
+    if len(d['textures']) > 1:
+        return fix_multi(path, d, orig, raw, dump, dry)
     t = d['textures'][0]
-    assert len(d['textures']) == 1, 'one texture only'
     emb = t.get('source', '').startswith('data:')
     png = os.path.normpath(os.path.join(os.path.dirname(path), t['relative_path'])) if t.get('relative_path') else None
     if png and not os.path.exists(png):
@@ -122,6 +123,34 @@ def fix(path, dry=False):
     r = chk.check_model(path)
     assert r['flagged'] == 0, f'{path}: still {r["flagged"]} flagged faces {r["reasons"]}'
     return {'shared_paint': info.get('shared_paint', False), 'repacked': repacked, 'size': (size_before, T_new.shape[1::-1]), 'dilated': written}
+
+
+def fix_multi(path, d, orig, raw, dump, dry=False):
+    """A sheet with several embedded textures (lineups): each texture is padded with the faces that use it."""
+    from uv_padding import pad_multi, _tex_index
+    texs = d['textures']
+    assert all(t.get('source', '').startswith('data:') for t in texs), f'{path}: every texture must be embedded'
+    Ts = [decode(t['source']) for t in texs]
+    scale = [(T.shape[1] / float(t.get('uv_width') or T.shape[1]), T.shape[0] / float(t.get('uv_height') or T.shape[0])) for t, T in zip(texs, Ts)]
+    info = {}
+    new = pad_multi(d, Ts, info)
+    for (ei, fn, f0), (_, _, f1) in zip(textured_faces(orig), textured_faces(d)):
+        k = _tex_index(orig, f0['texture'])
+        sx, sy = scale[k]
+        a, b = pixel_rect(f0['uv'], sx, sy), pixel_rect(f1['uv'], sx, sy)
+        assert (Ts[k][a[1]:a[3], a[0]:a[2]] == new[k][b[1]:b[3], b[0]:b[2]]).all(), f'{path}: paint changed in {fn}'
+    assert strip_uv(orig) == strip_uv(d), f'{path}: something other than uv / texture size changed'
+    res = {'shared_paint': info.get('shared_paint', False), 'repacked': any(a.shape != b.shape or (a != b).any() for a, b in zip(Ts, new)),
+           'size': (Ts[0].shape[1::-1], new[0].shape[1::-1]), 'dilated': 0}
+    if dry:
+        return res
+    for t, T in zip(texs, new):
+        t['source'] = 'data:image/png;base64,' + base64.b64encode(png_bytes(T)).decode()
+    with open(path, 'w', encoding='utf8', newline='') as fh:
+        fh.write(dump(d) + ('\n' if raw.endswith('\n') else ''))
+    r = chk.check_model(path, multi=True)
+    assert r['flagged'] == 0, f'{path}: still {r["flagged"]} flagged faces {r["reasons"]}'
+    return res
 
 
 def fix_overlays(body_path, pngs, quiet=False):

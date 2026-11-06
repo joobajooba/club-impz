@@ -11,8 +11,9 @@ opaque edge texel
 A face edge that is transparent on purpose (a cut-out) is not flagged. Ring texels outside the
 texture are fine: the textures use clamp wrapping.
 
-Usage: python check_texture_bleed.py [paths or folders ...] [--faces] [--json out.json]
-With no paths it checks godot-game/assets/models. Multi-texture models are only listed.
+Usage: python check_texture_bleed.py [paths or folders ...] [--faces] [--multi] [--json out.json]
+With no paths it checks godot-game/assets/models. Multi-texture models (lineup sheets) are only
+listed, unless --multi: then each of their textures is checked with the faces that use it.
 """
 import base64, glob, io, json, os, sys
 from collections import defaultdict
@@ -36,8 +37,8 @@ FACE_OF = {(0, 0): 'west', (0, 1): 'east', (1, 0): 'down', (1, 1): 'up', (2, 0):
 NORMAL_AXIS = {'west': 0, 'east': 0, 'down': 1, 'up': 1, 'north': 2, 'south': 2}
 
 
-def load_texture(path, d):
-    t = d['textures'][0]
+def load_texture(path, d, k=0):
+    t = d['textures'][k]
     src = t.get('source', '')
     if src.startswith('data:'):
         im = Image.open(io.BytesIO(base64.b64decode(src.split(',', 1)[1])))
@@ -91,14 +92,34 @@ def faces_of(d):
     return out
 
 
-def check_model(path, faces_out=None):
+def check_model(path, faces_out=None, multi=False):
     d = json.load(open(path, encoding='utf8'))
     texs = d.get('textures', [])
-    if len(texs) != 1:
-        return {'status': 'multi' if len(texs) > 1 else 'none'}
-    T = load_texture(path, d)
-    if T is None:
-        return {'status': 'missing'}
+    if not texs:
+        return {'status': 'none'}
+    if len(texs) > 1 and not multi:
+        return {'status': 'multi'}
+    from uv_padding import _tex_index
+    total = {'status': 'ok', 'faces': 0, 'flagged': 0, 'reasons': defaultdict(int), 'size': None}
+    for k in range(len(texs)):
+        T = load_texture(path, d, k)
+        if T is None:
+            return {'status': 'missing'}
+        sub = dict(d, textures=[texs[k]], elements=[])
+        for e in d.get('elements', []):
+            fs = {fn: f for fn, f in e.get('faces', {}).items() if f.get('texture') is not None and _tex_index(d, f['texture']) == k}
+            sub['elements'].append(dict(e, faces=fs))
+        r = _check(path, sub, T, faces_out)
+        total['faces'] += r['faces']
+        total['flagged'] += r['flagged']
+        for a, b in r['reasons'].items():
+            total['reasons'][a] += b
+        total['size'] = total['size'] or r['size']
+    total['reasons'] = dict(total['reasons'])
+    return total
+
+
+def _check(path, d, T, faces_out):
     H, W = T.shape[:2]
     t = d['textures'][0]
     sx = W / float(t.get('uv_width') or d.get('resolution', {}).get('width') or W)
@@ -203,17 +224,18 @@ def collect(args):
 def main():
     argv = sys.argv[1:]
     show_faces = '--faces' in argv
+    multi = '--multi' in argv
     out_json = None
     if '--json' in argv:
         out_json = argv[argv.index('--json') + 1]
         argv = [a for i, a in enumerate(argv) if a != '--json' and argv[i - 1] != '--json']
-    argv = [a for a in argv if a != '--faces']
+    argv = [a for a in argv if a not in ('--faces', '--multi')]
     rows = defaultdict(lambda: [0, 0, 0])
     listed = []
     face_log = [] if show_faces else None
     results = {}
     for p in collect(argv):
-        r = check_model(p, face_log)
+        r = check_model(p, face_log, multi)
         results[os.path.relpath(p, ROOT).replace('\\', '/')] = r
         folder = os.path.relpath(os.path.dirname(p), ROOT).replace('\\', '/')
         if r['status'] != 'ok':

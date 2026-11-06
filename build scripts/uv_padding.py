@@ -209,3 +209,28 @@ def pad_overlay(img, islands_after, moves, size):
 
 def _num(v):
     return int(round(v)) if abs(v - round(v)) < 1e-9 else v
+
+
+def pad_multi(d, Ts, info=None):
+    """pad_model for a model with several textures (lineup sheets): each texture is padded on its own,
+    with the faces that use it. Ts[k] is texture k's pixels; returns the new list."""
+    out = []
+    for k, (t, T) in enumerate(zip(d['textures'], Ts)):
+        sub = {'textures': [t], 'elements': []}
+        for e in d.get('elements', []):
+            faces = {fn: f for fn, f in e.get('faces', {}).items() if f.get('texture') is not None and _tex_index(d, f['texture']) == k}
+            if faces:
+                sub['elements'].append({'name': e.get('name'), 'faces': faces})  # same face dicts: uv edits land in d
+        T2, _ = pad_model(sub, T, info)
+        out.append(T2)
+    return out
+
+
+def _tex_index(d, ref):
+    """A face's texture reference (index, or texture uuid) -> texture index."""
+    if isinstance(ref, int):
+        return ref
+    for i, t in enumerate(d['textures']):
+        if ref == t.get('uuid') or str(ref) == str(t.get('id')):
+            return i
+    return -1
