@@ -49,6 +49,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bbcreature  # noqa: E402
 from bbcreature import NORMAL, Creature, Texel, corners, el, hexrgb, mirror, pack, tangents  # noqa: E402
 from bbcreature import face_frame, texels  # noqa: E402
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 PX_HD = 0.25            # Blockbench units per px of geometry
 SUB = 2                 # texture pixels per px: 8 per unit, 128 per metre
@@ -654,7 +658,7 @@ class ImplingHD(Creature):
     def write_bbmodel(self, out_dir, imp_height_px=IMP_HEIGHT_PX):
         """As Creature.write_bbmodel; the image is SUB times the UV size, and
         the left twins' UVs run right to left (Blockbench's mirrored UV)."""
-        super().write_bbmodel(out_dir, imp_height_px)
+        super().write_bbmodel(out_dir, imp_height_px, pad=False)
         path = Path(out_dir) / f"{self.name}.bbmodel"
         model = json.loads(path.read_text())
         for tx in model["textures"]:
@@ -663,6 +667,7 @@ class ImplingHD(Creature):
             uv = model["elements"][ei]["faces"][f]["uv"]
             uv[0], uv[2] = uv[2], uv[0]
         path.write_text(json.dumps(model, indent="\t"))
+        pad_file(path)
 
     def backdrop(self, w, h, tile):
         top, bot = np.array((43, 36, 64)), np.array((92, 80, 120))

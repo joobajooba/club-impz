@@ -34,6 +34,10 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from build_pickaxe_bbmodel import FACES, NORMAL, face_frame, pack, texels  # noqa: E402
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 TEX = 128  # texture size in pixels (MODELS-BLOCKBENCH 7, small creature)
 PX = 0.5   # Blockbench units per texture pixel (D-053)
@@ -786,6 +790,7 @@ def build(out_dir):
         "animations": animations,
     }
     (out_dir / "wolf.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / "wolf.bbmodel")
 
     used = sum(w * h for w, h in visible.values())
     print(f"boxes: {len(ELEMENTS)}  bones: {len(BONES)}  visible faces: {len(visible)}  "

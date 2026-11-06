@@ -40,6 +40,10 @@ from pathlib import Path
 from PIL import Image
 
 from build_pickaxe_bbmodel import FACES, NORMAL, PX, face_frame, hexrgb, pack, texels
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 
 def ramp(*hexes):
@@ -674,6 +678,7 @@ def build_tier(out_dir, key, t):
     model = project(f"pickaxe_{key}", elements + [dummy], outliner,
                     [texture_entry(0, img, path)], size)
     (out_dir / f"pickaxe_{key}.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / f"pickaxe_{key}.bbmodel")
 
     used = sum(w * h for w, h in visible.values())
     print(f"{key:<11} boxes: {len(boxes):>2}  visible faces: {len(visible):>3}  "

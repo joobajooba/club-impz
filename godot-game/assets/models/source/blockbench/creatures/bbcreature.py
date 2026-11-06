@@ -30,6 +30,10 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from build_pickaxe_bbmodel import FACES, NORMAL, face_frame, pack, texels  # noqa: E402,F401
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 PX = 0.5   # Blockbench units per texture pixel (D-053)
 
@@ -294,7 +298,7 @@ class Creature:
         sil.save(Path(out_dir) / f"{self.name}_silhouette.png")
 
     # --- .bbmodel
-    def write_bbmodel(self, out_dir, imp_height_px=37):
+    def write_bbmodel(self, out_dir, imp_height_px=37, pad=True):
         out_dir = Path(out_dir)
         tex_png = out_dir / f"{self.name}.png"
         self.img.save(tex_png)
@@ -403,6 +407,8 @@ class Creature:
             "animations": animations,
         }
         (out_dir / f"{self.name}.bbmodel").write_text(json.dumps(model, indent="\t"))
+        if pad:  # subclasses that rewrite the file afterwards pad it themselves
+            pad_file(out_dir / f"{self.name}.bbmodel")
 
     def build(self, out_dir, preview_scale, tile=(420, 360), anchor=0.85, sizes=(64, 128, 256, 512)):
         out_dir = Path(out_dir)

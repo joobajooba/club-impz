@@ -5,7 +5,8 @@ pixels, look at the 1 px ring just outside it, and flag the face if a ring texel
 opaque edge texel
   * is more transparent than that edge texel (a see-through gutter), or
   * lies inside another face that is not the face joined to it across that cube edge
-    (another island's paint), or
+    (another island's paint; a face whose rectangle overlaps this one is the same painting and
+    counts as continuous), or
   * lies outside every face and is a clearly different colour from that edge texel.
 A face edge that is transparent on purpose (a cut-out) is not flagged. Ring texels outside the
 texture are fine: the textures use clamp wrapping.
@@ -19,7 +20,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from uv_padding import pixel_rect, inside_mask
+from uv_padding import pixel_rect, inside_mask, _islands, _merge_overlaps
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 DEFAULT = os.path.join(ROOT, 'godot-game', 'assets', 'models')
@@ -107,6 +108,10 @@ def check_model(path, faces_out=None):
     owner = np.full((H, W), -1, int)
     for k, (x0, y0, x1, y1) in enumerate(rects):
         owner[max(y0, 0):max(y1, 0), max(x0, 0):max(x1, 0)] = k
+    # shared paintings: faces whose rectangles overlap (directly or through others) are windows into
+    # one painting; its bounding box is continuous paint for all of them
+    isl, of = _islands(rects)
+    groups, gof = _merge_overlaps(isl, of)
     by_elem = defaultdict(dict)
     for k, (ei, fn, f) in enumerate(faces):
         by_elem[ei][fn] = k
@@ -132,6 +137,12 @@ def check_model(path, faces_out=None):
             if A[iy, ix] == 0:
                 continue  # transparent on purpose: its outside may stay transparent
             o = owner[ry, rx]
+            g = groups[gof[k]]
+            if g != rects[k] and g[0] - 1 <= rx <= g[2] and g[1] - 1 <= ry <= g[3]:
+                # inside this face's shared painting, or its border: the painting's own edge texel
+                cx, cy = min(max(rx, g[0]), g[2] - 1), min(max(ry, g[1]), g[3] - 1)
+                if (T[ry, rx] == T[cy, cx]).all():
+                    continue
             if o >= 0 and o != k:
                 if not joined(faces, by_elem, k, o, (rx, ry), (ix, iy), sx, sy):
                     bad = 'other island'
@@ -151,6 +162,10 @@ def check_model(path, faces_out=None):
             if faces_out is not None:
                 faces_out.append((path, d['elements'][ei].get('name'), fn, bad))
     return {'status': 'ok', 'faces': len(faces), 'flagged': flagged, 'reasons': dict(reasons), 'size': (W, H)}
+
+
+def overlaps(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
 def joined(faces, by_elem, k, o, ring_px, inner_px, sx, sy):

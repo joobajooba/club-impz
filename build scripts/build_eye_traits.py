@@ -5,6 +5,7 @@ import math
 import numpy as np
 from PIL import Image
 from eye_lib import *
+from fix_texture_bleed import fix_overlays
 
 SUNK = 18.5        # back of anything on the face, so nothing is coplanar with it
 FRAME = (SUNK, 20.5)
@@ -227,12 +228,33 @@ NEON = ['#4f9600', '#7be900', '#86ff00', '#a1fb3e', '#f6fff0']
 
 
 # ---------- texture overlays: same UV layout as the bodies, transparent except for the eye pixels
+BODY_MODEL = ASSETS + 'models/impz/bodies/body_green.bbmodel'
+
+
+def head_front():
+    """Top-left texel of the head's front (south) face in the body texture. The overlays follow it,
+    so they stay on the eyes when the body's texture layout changes (it was 0,29 before the
+    texture-bleed padding, now 33,1)."""
+    d = json.load(open(BODY_MODEL, encoding='utf8'))
+    u = next(e for e in d['elements'] if e['name'] == 'Head')['faces']['south']['uv']
+    return int(min(u[0], u[2])), int(min(u[1], u[3]))
+
+
+FX, FY = head_front()
+
+
+def save_overlay(out, name):
+    """Write an overlay with the body's 1 px island border (uv_padding), like the body texture."""
+    Image.fromarray(out).save(OUT + name + '.png')
+    fix_overlays(BODY_MODEL, [OUT + name + ".png"], quiet=True)
+
+
 def eye_pixels():
     src = np.array(Image.open(ASSETS + 'textures/impz/bodies/body_green.png').convert('RGB')).astype(float)
     mx, mn = src.max(-1), src.min(-1)
     neutral = (mx - mn) < 14
     box = np.zeros(neutral.shape, bool)
-    box[40:48, 1:29] = True   # both eyes on the head's front face (UV 0,29 to 30,57)
+    box[FY + 11:FY + 19, FX + 1:FX + 29] = True   # both eyes on the head's front face
     eye = neutral & box
     return src.mean(-1), eye
 
@@ -250,9 +272,9 @@ def overlay(name, pupil, glow, glint='#fff7f2'):
     col2 = g1 * (1 - t2) + g0 * t2
     out[ring, :3] = col2[ring].round()
     out[pup | ring, 3] = 255
-    for u, v in ((6, 42), (29 - 6, 42)):
+    for u, v in ((FX + 6, FY + 13), (FX + 29 - 6, FY + 13)):
         out[v, u] = list(hx(glint).astype(int)) + [255]
-    Image.fromarray(out).save(OUT + name + '.png')
+    save_overlay(out, name)
     print(f'{name:22s} overlay, {int((pup | ring).sum())} px')
 
 
@@ -260,14 +282,14 @@ def ghostly():
     L, eye = eye_pixels()
     out = np.zeros(L.shape + (4,), np.uint8)
     # no pupils: plain white, icy blue toward the bottom. Pupil pixels take the white of the row they sit on
-    v = np.clip((Yi2 - 41) / 6, 0, 1)
+    v = np.clip((Yi2 - (FY + 12)) / 6, 0, 1)
     tone = ramp(1 - v, ['#aec3cf', '#cce2ed', '#edf9ff', '#fbfefb'])
     shade = np.clip((L - 150) / 90, .82, 1)[..., None]
     pup = eye & (L < 200)
     col = np.where(pup[..., None], tone, tone * shade)
     out[eye, :3] = col[eye].round()
     out[eye, 3] = 255
-    Image.fromarray(out).save(OUT + 'eyes_ghostly.png')
+    save_overlay(out, 'eyes_ghostly')
     print(f"{'eyes_ghostly':22s} overlay, {int(eye.sum())} px")
 
 
@@ -281,7 +303,7 @@ def beam_eyes(name, stops):
     out[eye, :3] = white[eye].round()
     out[pup, :3] = centre[pup].round()
     out[eye, 3] = 255
-    Image.fromarray(out).save(OUT + name + '.png')
+    save_overlay(out, name)
     print(f'{name:22s} overlay, {int(eye.sum())} px')
 
 

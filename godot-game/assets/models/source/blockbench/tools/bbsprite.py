@@ -31,6 +31,10 @@ from build_pickaxe_bbmodel import FACES, NORMAL, PX, face_frame, pack, texels
 from build_pickaxe_metal_bbmodel import (
     box, code_colour, covered, group, paint_float, paint_gem, paint_socket, paint_trim,
     paint_wood, project, texture_entry, u, uid)
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 LEGEND = {"#": (3, None), "+": (1, None), "%": (5, None),
           "0": (3, "0"), "1": (3, "1"), "2": (3, "2"), "3": (3, "3"), "4": (3, "4"),
@@ -243,6 +247,7 @@ def write_model(out_dir, key, t, boxes, head_origin, handle_origin=4):
     ]
     model = project(key, elements + [dummy], outliner, [texture_entry(0, img, path)], size)
     (out_dir / f"{key}.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / f"{key}.bbmodel")
 
     used = sum(w * h for w, h in visible.values())
     print(f"{key:<22} boxes: {len(boxes):>2}  visible faces: {len(visible):>3}  "

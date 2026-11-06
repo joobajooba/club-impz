@@ -2,7 +2,9 @@
 import json, copy, uuid
 import numpy as np
 from PIL import Image
-from build_imp_bodies import main, ORDER, OUT, REPO, FLAT, GOLD, ICE, hx, data_url, texture_entry, save
+from build_imp_bodies import main, ORDER, OUT, REPO, FLAT, GOLD, ICE, hx, data_url, texture_entry, save, base_texture
+import base64, io
+from fix_texture_bleed import strip_uv
 from render_bb import load_tex, render, FRONT, yaw
 
 base, texes = main()
@@ -63,17 +65,21 @@ fn = 'imp_bodies_showcase'
 texture_entry(out, fn, atlas)
 out['textures'][0].update(width=1024, height=1024, uv_width=1024, uv_height=1024)
 Image.fromarray(atlas).save(OUT + fn + '.png')
-save(out, fn)
+save(out, fn, pad=False)  # a view-only sheet on the working folder, not a game model
 
 # ---------- validation
-src = np.array(Image.open(REPO + 'textures/impz/green_imp.png').convert('RGBA'))
+src = base_texture()
+padded = json.load(open(REPO + 'models/impz/green_imp.bbmodel', encoding='utf8'))
 geo = lambda d: [(e['uuid'], e['name'], e['from'], e['to'], e['origin'], e.get('rotation'), e['faces']) for e in d['elements']]
 for n in ORDER:
     d = json.load(open(OUT + n + '_imp.bbmodel', encoding='utf8'))
-    assert geo(d) == geo(base) and d['outliner'] == base['outliner'] and d['groups'] == base['groups'], n
+    # saved bodies are padded (uv_padding.py): same rig as base, same UVs as the committed green_imp
+    assert strip_uv(d)['elements'] == strip_uv(base)['elements'] and d['outliner'] == base['outliner'] and d['groups'] == base['groups'], n
+    assert geo(d) == geo(padded), n + ': UV layout differs from the committed green_imp'
     t = texes[n]
     assert (t[..., 3] == src[..., 3]).all(), n
-    assert np.array_equal(np.array(Image.open(OUT + n + '_imp.png').convert('RGBA')), t), n
+    emb = np.array(Image.open(io.BytesIO(base64.b64decode(d['textures'][0]['source'].split(',', 1)[1]))).convert('RGBA'))
+    assert np.array_equal(np.array(Image.open(OUT + n + '_imp.png').convert('RGBA')), emb), n
     main_c = hx(FLAT[n][0]) if n in FLAT else hx(GOLD[4] if n == 'gold' else ICE[4])
     near = (np.abs(t[..., :3].astype(float) - main_c).max(-1) <= 6) & (t[..., 3] > 32)
     op = t[t[..., 3] > 32][:, :3]

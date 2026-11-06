@@ -5,6 +5,9 @@ Run order, from anywhere:
   python "build scripts/export_body_traits.py"   copies them into the repo as body_<colour>
 Working files go to ~/blockbench_models/impz, or to IMP_BODY_OUT if that is set.
 green_imp_orig.bbmodel is green_imp before the horn edits. It holds the full horn UVs the paint masks need.
+green_imp_unpadded.bbmodel is green_imp before the texture-bleed padding: its UV layout is the one the paint
+masks are drawn in, so the bodies are painted on it and padded (uv_padding.py) when saved. The result is the
+committed, padded green_imp layout.
 fix_horns.py and shorten_horns.py are the one-off horn edits, already applied to green_imp: do not re-run them.
 """
 import json, base64, io, os, uuid, copy, colorsys
@@ -12,6 +15,7 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 import metal
+from fix_texture_bleed import pad_file
 
 HERE = Path(__file__).resolve().parent
 REPO = str(HERE.parent / 'godot-game' / 'assets').replace(chr(92), '/') + '/'
@@ -35,7 +39,7 @@ FLAT = {
 }
 GOLD = ['#a35e08', '#b05a07', '#d07a10', '#e5901f', '#fbc650', '#fde06d', '#fef8d3']
 ICE = ['#0e223b', '#4692cd', '#5a9ee6', '#83c5fe', '#b7e6ff', '#d3eafd', '#f3feff']
-BASE = json.load(open(REPO + 'models/impz/green_imp.bbmodel', encoding='utf8'))
+BASE = json.load(open(HERE / 'green_imp_unpadded.bbmodel', encoding='utf8'))
 ORDER = ['green', 'red', 'blue', 'cyan', 'purple', 'pink', 'khaki', 'silver', 'gold', 'diamond']
 BONE = ('a17c5e4c', '6126654c', '211cb554', 'c0ce4266', 'c7bf925f', '9840f7a8', '9cc27eaf')  # horns + spade tip
 TAIL = ('8094d9c3', '78ba8b5a', 'a411ede4')
@@ -184,15 +188,23 @@ def texture_entry(d, fn, im):
     t.pop('path', None)
 
 
-def save(d, fn):
+def base_texture():
+    t = BASE['textures'][0]['source']
+    return np.array(Image.open(io.BytesIO(base64.b64decode(t.split(',', 1)[1]))).convert('RGBA'))
+
+
+def save(d, fn, pad=True):
     with open(OUT + fn + '.bbmodel', 'w', encoding='utf8', newline='') as f:
         json.dump(d, f, separators=(',', ':'))
+    if pad:
+        # 2 px gaps and a 1 px border of each face's own colour; also rewrites OUT + fn + '.png'
+        pad_file(OUT + fn + '.bbmodel')
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    base = json.load(open(REPO + 'models/impz/green_imp.bbmodel', encoding='utf8'))
-    src = np.array(Image.open(REPO + 'textures/impz/green_imp.png').convert('RGBA'))
+    base = copy.deepcopy(BASE)
+    src = base_texture()
     texes = {}
     for n in ORDER:
         d = copy.deepcopy(base)
