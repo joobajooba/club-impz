@@ -4,6 +4,7 @@ merged boxes show no seams. Root group is `Head`, same name and pivot as the bod
 import base64, copy, io, json, os, uuid
 import numpy as np
 from PIL import Image
+from fix_texture_bleed import pad_file
 
 ASSETS = 'C:/Users/lucas/club-impz/godot-game/assets/'
 OUT = 'C:/Users/lucas/blockbench_models/impz/eyes/'
@@ -254,5 +255,7 @@ class Trait:
         Image.fromarray(atlas).save(OUT + self.name + '.png')
         with open(OUT + self.name + '.bbmodel', 'w', encoding='utf8', newline='') as f:
             json.dump(d, f, separators=(',', ':'))
+        # 2 px gaps and a 1 px border of each face's own colour, so cube edges don't sample the gutter
+        pad_file(OUT + self.name + '.bbmodel', [OUT + self.name + '.png'])
         print(f'{self.name:22s} {len(elements):3d} cubes  {size}px texture')
-        return d
+        return json.load(open(OUT + self.name + '.bbmodel', encoding='utf8'))  # as padded

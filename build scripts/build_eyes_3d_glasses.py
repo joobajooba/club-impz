@@ -5,6 +5,7 @@ Red lens on the viewer's left (-X), blue on the viewer's right (+X)."""
 import base64, copy, io, json, os, uuid
 import numpy as np
 from PIL import Image
+from fix_texture_bleed import pad_file
 
 ASSETS = 'C:/Users/lucas/club-impz/godot-game/assets/'
 OUT = 'C:/Users/lucas/blockbench_models/impz/eyes/'
@@ -226,7 +227,10 @@ t = trait['textures'][0]
 t.pop('relative_path', None)
 t.update(name=NAME + '.png', internal=True, source=data_url(atlas), width=TEX, height=TEX, uv_width=TEX, uv_height=TEX, uuid=uid('texture'))
 Image.fromarray(atlas).save(OUT + NAME + '.png')
-json.dump(trait, open(OUT + NAME + '.bbmodel', 'w', encoding='utf8', newline=''), separators=(',', ':'))
+with open(OUT + NAME + '.bbmodel', 'w', encoding='utf8', newline='') as fh:
+    json.dump(trait, fh, separators=(',', ':'))
+# 2 px gaps and a 1 px border of each face's own colour, so cube edges don't sample the gutter
+pad_file(OUT + NAME + '.bbmodel', [OUT + NAME + '.png'])
 
 # preview: the same cubes inside the body's real Head bone, on one stitched texture
 prev = copy.deepcopy(body)

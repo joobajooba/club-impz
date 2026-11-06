@@ -26,6 +26,10 @@ import zlib
 
 import numpy as np
 from PIL import Image
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[5] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 FACES = ("north", "east", "south", "west", "up", "down")
 # Light from the top, slightly front left (section 1.5 rule 4).
@@ -238,6 +242,9 @@ class Model:
         path = os.path.join(model_dir, self.name + ".bbmodel")
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(doc, fh)
+        # 2 px gaps and a 1 px border of each face's own colour, so cube edges don't sample the gutter
+        pad_file(path, [os.path.join(texture_dir, png_name)] if texture_dir else [])
+        tex_size = json.load(open(path, encoding="utf-8"))["textures"][0]["width"]
         return path, len([c for c in self.cubes if c.visible_export]), tex_size
 
     # -- texture

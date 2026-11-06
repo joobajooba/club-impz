@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 from render_bb import affine, face_corners
 from head_lib import S, ramp, hx, L_KEY, BODY, TEMPLATE, FACE_SIZE, ALL_FACES
+from fix_texture_bleed import pad_file
 
 OUT = 'C:/Users/lucas/blockbench_models/impz/clothing/'
 GROUPS = {g['uuid']: g for g in BODY['groups']}
@@ -270,4 +271,6 @@ class Cloth:
         Image.fromarray(atlas).save(self.FOLDER + self.name + '.png')
         with open(self.FOLDER + self.name + '.bbmodel', 'w', encoding='utf8', newline='') as f:
             json.dump(d, f, separators=(',', ':'))
+        # 2 px gaps and a 1 px border of each face's own colour, so cube edges don't sample the gutter
+        pad_file(self.FOLDER + self.name + '.bbmodel', [self.FOLDER + self.name + '.png'])
         print(f'{self.name:28s} {len(elements):3d} cubes  {size}px texture')
