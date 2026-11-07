@@ -70,6 +70,7 @@ func setup(d: Dictionary, start_biome: String) -> void:
 			emitters[b] = e
 		var s := AudioStreamPlayer.new()
 		s.name = "ambient_%s" % b       # hook: assign an ambient loop here later
+		s.bus = "Ambient"              # its volume is the Ambient slider in Settings
 		add_child(s)
 		sounds[b] = s
 	set_biome(start_biome, true)

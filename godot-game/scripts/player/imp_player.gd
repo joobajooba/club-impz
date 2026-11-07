@@ -34,6 +34,12 @@ func _ready() -> void:
 	camera_pivot.global_position = global_position + Vector3(0, 0.9, 0)
 	spring_arm.add_excluded_object(get_rid())
 	spring_arm.spring_length = target_zoom
+	Settings.changed.connect(_apply_settings)
+	_apply_settings()
+
+
+func _apply_settings() -> void:
+	camera.fov = Settings.fov
 
 
 func place_at(xform: Transform3D) -> void:
@@ -60,8 +66,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fast_sprint"):
 		fast_sprint = not fast_sprint
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
-		cam_yaw -= event.relative.x * orbit_sensitivity
-		cam_pitch = clamp(cam_pitch - event.relative.y * orbit_sensitivity, -1.25, 0.45)
+		var sens := orbit_sensitivity * Settings.mouse_sensitivity
+		cam_yaw -= event.relative.x * sens
+		cam_pitch = clamp(cam_pitch - event.relative.y * sens * (-1.0 if Settings.invert_y else 1.0), -1.25, 0.45)
 	elif event.is_action_pressed("camera_zoom_in"):
 		target_zoom = max(zoom_min, target_zoom - 1.0)
 	elif event.is_action_pressed("camera_zoom_out"):
