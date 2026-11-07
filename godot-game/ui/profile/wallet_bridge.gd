@@ -51,7 +51,11 @@ const JS := """
 			const p = provider(id);
 			if (!p) return send(cb, { ok: false, error: 'That wallet is no longer available.' });
 			try {
-				const accounts = await p.request({ method: 'eth_requestAccounts' });
+				let accounts = await p.request({ method: 'eth_requestAccounts' });
+				// Glyph (Privy cross-app) answers the first eth_requestAccounts with nothing once its login
+				// window closes; the address is then in eth_accounts.
+				if (!Array.isArray(accounts) || !accounts.length) accounts = await p.request({ method: 'eth_accounts' });
+				if (!Array.isArray(accounts) || !accounts.length) return send(cb, { ok: false, error: 'The wallet shared no address. Try connecting again.' });
 				const chainId = await p.request({ method: 'eth_chainId' });
 				if (p.on && !hooked.has(p)) {
 					hooked.add(p);
