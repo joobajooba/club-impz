@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild src/glyph-wallet.js --bundle --minify --format=iife --platform=browser --target=es2020 --define:global=globalThis --define:process.env.NODE_ENV='\"production\"' --outfile=dist/glyph-wallet.js",
     "export": "node scripts/export-web.mjs",
-    "serve": "node scripts/serve.mjs",
+    "serve": "npm --prefix ../game-server install --silent && node ../game-server/server.mjs 8060",
     "start": "npm run build && npm run export && npm run serve"
   },
   "dependencies": {

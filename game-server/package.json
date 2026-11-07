@@ -1,0 +1,17 @@
+{
+  "name": "club-impz-game-server",
+  "private": true,
+  "type": "module",
+  "description": "Club Impz live beta: serves the web build and runs the multiplayer room.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node test/smoke.mjs",
+    "deploy": "cd .. && fly deploy . --config game-server/fly.toml --dockerfile game-server/Dockerfile --ha=false"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
