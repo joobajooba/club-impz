@@ -5,6 +5,9 @@ extends Node
 ##
 ## Wallets are found with EIP-6963 (each installed wallet announces itself by name),
 ## falling back to the single window.ethereum provider for older wallets.
+## Glyph (game_direction.md: the game's wallet, on ApeChain) is listed first when the page loads
+## web-wallet's glyph-wallet.js (window.impzGlyph, added by the web export's head_include). It is not
+## an extension: connecting opens Glyph's login window.
 
 signal wallets_listed(wallets: Array)            # [{id, name}]
 signal connected(address: String, chain_id: int)
@@ -27,13 +30,16 @@ const JS := """
 	ask();
 	let onEvent = null;
 	const hooked = new WeakSet();
-	const provider = (id) => (id === 'injected' ? window.ethereum : found.get(id) && found.get(id).provider);
+	const provider = (id) => (id === 'glyph' ? window.impzGlyph && window.impzGlyph.provider()
+		: id === 'injected' ? window.ethereum : found.get(id) && found.get(id).provider);
 	const send = (cb, data) => cb(JSON.stringify(data));
 	window.impzWallet = {
 		list() {
 			ask();
 			const out = [...found.values()].map((d) => ({ id: d.info.uuid, name: d.info.name }));
-			if (!out.length && window.ethereum) {
+			const injected = out.length;
+			if (window.impzGlyph) out.unshift({ id: 'glyph', name: 'Glyph' });
+			if (!injected && window.ethereum) {
 				const e = window.ethereum;
 				out.push({ id: 'injected', name: e.isRabby ? 'Rabby' : e.isMetaMask ? 'MetaMask' : 'Browser wallet' });
 			}

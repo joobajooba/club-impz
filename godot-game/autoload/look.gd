@@ -14,6 +14,9 @@ extends Node
 signal changed                    # the shown look changed (worn look, ownership or the test switch)
 signal wallet_changed             # ownership finished loading, failed, or the wallet went away
 
+## Desktop builds ask impz.club directly. Web builds ask their own site's /api/imps, because impz.club
+## sends no CORS header: the local test server (web-wallet/scripts/serve.mjs) forwards it to impz.club, and
+## a build hosted on impz.club itself is the same site anyway.
 const API := "https://www.impz.club/api/imps?wallet="
 const BASE := ImpBuilder.DEFAULT
 
@@ -95,9 +98,15 @@ func load_wallet(address: String) -> void:
 		return
 	state = "loading"
 	wallet_changed.emit()
-	var err := _http.request(API + address, ["Accept: application/json"])
+	var err := _http.request(_api() + address, ["Accept: application/json"])
 	if err != OK:
 		_fail("Could not reach impz.club (error %d)." % err)
+
+
+func _api() -> String:
+	if OS.has_feature("web"):
+		return str(JavaScriptBridge.eval("window.location.origin")) + "/api/imps?wallet="
+	return API
 
 
 ## Re-check the wallet the Profile panel has linked right now (the menu calls this when it opens).
