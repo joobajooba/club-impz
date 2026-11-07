@@ -205,19 +205,20 @@ function countReady() {
   return n;
 }
 
-// Every tick, each player gets the moves of the other players in the same world.
+// Every tick, each world's new moves are written once and the same message goes to everyone in that
+// world (their own row included: the game skips it). One JSON per world, not one per player, so 100
+// players cost about the same as 10.
 setInterval(() => {
   const byWorld = new Map();
   for (const p of players.values()) {
     if (!p.ready || !p.dirty) continue;
     p.dirty = false;
     if (!byWorld.has(p.world)) byWorld.set(p.world, []);
-    byWorld.get(p.world).push(p);
+    byWorld.get(p.world).push(stateRow(p));
   }
+  const text = new Map([...byWorld].map(([world, rows]) => [world, JSON.stringify({ t: "states", s: rows })]));
   for (const p of players.values()) {
-    if (!p.ready) continue;
-    const rows = (byWorld.get(p.world) || []).filter((o) => o !== p).map(stateRow);
-    if (rows.length) send(p, { t: "states", s: rows });
+    if (p.ready && text.has(p.world)) send(p, text.get(p.world));
   }
 }, TICK_MS);
 

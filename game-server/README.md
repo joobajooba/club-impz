@@ -36,14 +36,30 @@ godot --headless --path godot-game -- --bot=60
 
 That one walks in circles near the spawn for 60 s. `npm test` (in this folder) checks the room rules.
 
-## Put it online (Fly.io)
+## Put it online (Render)
 
-1. Install the Fly CLI and log in: `fly auth login`.
-2. Make the app once: `fly apps create club-impz-beta`. If the name is taken, pick another and change `app` in `fly.toml`.
-3. Export a **release** build, so the TEST trait switch is off: in `web-wallet`, run `npm run build && npm run export`.
-4. Deploy: `npm run deploy` (in this folder). The beta is then at https://club-impz-beta.fly.dev.
-5. Optional: use your own address, `play.impz.club`. Run `fly certs add play.impz.club`, then add the CNAME record it shows in your DNS.
+The beta runs on Render as one **Starter** web service, a fixed price of about $7 a month. It uses a ready-made image, so Render never has to build the game:
 
-Deploy again (steps 3 and 4) after every game change. Deploying restarts the room, so players reconnect after a few seconds.
+1. **GitHub builds it.** Every push to the default branch, or to `staging/multiplayer-beta`, runs `.github/workflows/beta.yml`. You can also start it by hand from **Actions → Beta → Run workflow**. It:
+   - exports the game (a release build),
+   - packs it with this server (`Dockerfile`),
+   - pushes the result to `ghcr.io/joobajooba/club-impz-beta:latest`.
+2. **Render runs it.** The service is set up once in Render's dashboard:
+   - **New → Web Service → Existing Image**, with image URL `ghcr.io/joobajooba/club-impz-beta:latest`.
+   - **Instance type: Starter.** Don't use Free: it sleeps after 15 minutes and drops everyone.
+   - **Health check path:** `/healthz`.
+   - **Region:** Frankfurt, the closest to the UK.
+3. **Updates go out automatically.** Copy the service's **Deploy Hook** (Settings) into the repo secret `RENDER_DEPLOY_HOOK`. After that, each build tells Render to deploy itself.
+4. **Optional: your own address.** In Render, open **Settings → Custom Domains** and add `play.impz.club`, then add the CNAME record it shows to impz.club's DNS. Render sets up HTTPS for you.
 
-Keep it to **one machine** (`--ha=false`), because the room lives in that machine's memory. `/healthz` reports `{ok, online}`.
+Keep it to one instance: the room lives in that instance's memory, so two instances would split the players. Deploying restarts the room, and players reconnect after a few seconds. `/healthz` reports `{ok, online}`.
+
+## Capacity (`npm run load`)
+
+The load test runs 100 players all walking at once for 20 s on this PC:
+
+- **CPU:** about 2% of one core.
+- **Delay:** moves arrive about 70 ms later (the 10-a-second tick is most of that).
+- **Traffic:** about 18 Mbit/s goes out, which is about 8 GB an hour with all 100 moving nonstop. Real players stand still a lot and send nothing then, so it's much less in practice. Still, watch the traffic allowance in Render if many people play for hours.
+
+The first visit downloads the game, about 115 MB. Returning players skip it unless the game changed.

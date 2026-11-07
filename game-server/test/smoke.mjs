@@ -38,7 +38,7 @@ await wait(100);
 b.got.length = 0;
 a.ws.send(JSON.stringify({ t: "s", p: [9, 9, 9], y: 0, m: 1 }));
 await wait(250);
-check(!b.got.some((m) => m.t === "states"), "players in another world aren't sent moves");
+check(!b.got.some((m) => m.t === "states" && m.s.some((r) => r[0] === wa.id)), "players in another world aren't sent moves");
 for (let i = 0; i < 60; i++) a.ws.send(JSON.stringify({ t: "s", p: [0, 0, 0] }));
 await wait(300);
 check(a.ws.readyState === WebSocket.CLOSED, "a flood of messages is cut off");

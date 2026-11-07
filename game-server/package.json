@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node test/smoke.mjs",
-    "deploy": "cd .. && fly deploy . --config game-server/fly.toml --dockerfile game-server/Dockerfile --ha=false"
+    "load": "node test/load.mjs 100"
   },
   "engines": {
     "node": ">=20"
