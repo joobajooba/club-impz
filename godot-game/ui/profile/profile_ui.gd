@@ -124,6 +124,12 @@ func _build() -> void:
 	box.add_child(account)
 
 
+## Opens the menu (the HUD's player card).
+func open_menu() -> void:
+	if not menu.visible:
+		_toggle_menu()
+
+
 func _toggle_menu() -> void:
 	menu.visible = not menu.visible
 	if menu.visible:
