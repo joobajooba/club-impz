@@ -3,6 +3,8 @@ extends Node3D
 ## customizer, game_menus.md section 3.5), built from the Blockbench trait models by ImpBuilder.
 ## Rebuilt whenever the look changes. Faces -z like the player controller expects.
 ## imp_player.gd bobs and squashes `body_root`; this script swings the arms and legs while walking.
+## Other players' Imps (remote_imp.gd) use it too, with their own look (`set_look`) and speed: the parent
+## only needs a `velocity` and an `is_on_floor()`.
 
 ## Blockbench units to metres: the body is about 101 units tall and the Imp stands 1.15 m.
 const SCALE := 1.15 / 101.0
@@ -14,21 +16,30 @@ var _model: Node3D
 var _limbs := {}                  # Node3D -> [rest basis, swing sign]
 var _phase := 0.0
 var _amount := 0.0
+var _custom_look = null           # another player's look; null = the local player's (Look.shown())
 
 
 func _ready() -> void:
 	body_root = Node3D.new()
 	body_root.name = "body_root"
 	add_child(body_root)
-	Look.changed.connect(rebuild)
+	if _custom_look == null:
+		Look.changed.connect(rebuild)
 	rebuild()
+
+
+## Shows this look instead of the local player's (for other players). Call before or after adding.
+func set_look(look: Dictionary) -> void:
+	_custom_look = look
+	if body_root:
+		rebuild()
 
 
 func rebuild() -> void:
 	if _model:
 		body_root.remove_child(_model)
 		_model.queue_free()
-	_model = ImpBuilder.build(Look.shown())
+	_model = ImpBuilder.build(_custom_look if _custom_look != null else Look.shown())
 	_model.scale = Vector3.ONE * SCALE
 	_model.rotation.y = PI                    # Blockbench's front is +z, the controller's is -z
 	body_root.add_child(_model)
@@ -40,11 +51,11 @@ func rebuild() -> void:
 
 
 func _process(delta: float) -> void:
-	var body := get_parent() as CharacterBody3D
-	if body == null or _limbs.is_empty():
+	var body = get_parent()          # untyped: CharacterBody3D or remote_imp.gd
+	if body == null or _limbs.is_empty() or not "velocity" in body:
 		return
-	var speed := Vector2(body.velocity.x, body.velocity.z).length()
-	var target := clampf(speed / 4.0, 0.0, 1.0) if body.is_on_floor() else 0.3
+	var speed: float = Vector2(body.velocity.x, body.velocity.z).length()
+	var target: float = clampf(speed / 4.0, 0.0, 1.0) if body.is_on_floor() else 0.3
 	_amount = lerpf(_amount, target, clampf(delta * 8.0, 0.0, 1.0))
 	_phase += delta * (3.0 + speed * 1.6)
 	var swing := sin(_phase) * SWING_MAX * _amount
