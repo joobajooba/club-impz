@@ -148,6 +148,7 @@ const TOOL_KINDS := {
 	"axe": {label = "Axe", skill = "lumbering", station = "blacksmith"},
 	"bow": {label = "Bow", skill = "hunting", station = "tanning_rack"},
 	"rod": {label = "Rod", skill = "fishing", station = "sawbench"},
+	"sword": {label = "Sword", skill = "", station = "blacksmith"},   # held and swung; no gathering skill yet
 }
 
 ## Hilts (D-058, D-107), made at the blacksmith.
@@ -326,6 +327,7 @@ func _build_tools() -> void:
 		_add_tool("pickaxe", m[0], m[1] + " pickaxe", i + 1, _PICKAXE_REACH[i], m[3], m[4], colours)
 		_add_tool("sickle", m[0], m[1] + " sickle", i + 1, i + 1, m[3], m[4], colours)
 		_add_tool("axe", m[0], m[1] + " axe", i + 1, i + 1, half, m[4], colours)
+		_add_tool("sword", m[0], m[1] + " sword", i + 1, i + 1, m[3], m[4], colours)   # Proposed: a pickaxe's cost
 	for i in _ANIMALS.size():   # D-069: bow N = 10 leather of tier N-1; names Proposed
 		var cost := {} if i == 0 else {_ANIMALS[i - 1][0] + "_leather": 10}
 		_add_tool("bow", _ANIMALS[i][0], _ANIMALS[i][1] + " Bow", i + 1, i + 1, cost, "",

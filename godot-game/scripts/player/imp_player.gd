@@ -65,6 +65,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # world change fade or camera mode: the free camera owns the mouse and keys
 	if event.is_action_pressed("toggle_fast_sprint"):
 		fast_sprint = not fast_sprint
+	if event.is_action_pressed("use_tool") and visual.has_method("play_action"):
+		visual.play_action(Inventory.in_hand)            # left click or E: swing the tool in hand
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
 		var sens := orbit_sensitivity * Settings.mouse_sensitivity
 		cam_yaw -= event.relative.x * sens

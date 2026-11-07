@@ -7,6 +7,7 @@ extends Node
 ##   --shot=res://path.png       save a screenshot     --shot_delay=6   seconds before the screenshot   --yaw=0.5 --pitch=-0.3 --zoom=10
 ##   --bot=40                    walk in a circle in front of the spawn for 40 s, then quit (a second player
 ##                               for testing multiplayer: run one with --headless next to a normal game)
+##   --tool=sword --swing_at=5.8 take out a tool kind and swing it after that many seconds (with --shot)
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -62,6 +63,10 @@ func _ready() -> void:
 		_portal_test()
 	if args.has("bot"):
 		_bot(float(args["bot"]))
+	if args.has("tool"):                                   # testing: take out a tool kind, swing it at a moment
+		Inventory.take_out(args["tool"])
+		if args.has("swing_at"):
+			get_tree().create_timer(float(args["swing_at"])).timeout.connect(func(): player.visual.play_action(args["tool"]))
 	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account
 		ProfileUI.account.set_wallet(args["wallet"])
 		if args.has("profile_open"):
