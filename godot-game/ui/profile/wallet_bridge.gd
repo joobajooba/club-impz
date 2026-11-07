@@ -1,7 +1,7 @@
 extends Node
 ## Talks to browser wallets (MetaMask, Rabby, ...) through JavaScriptBridge.
 ## Only works in a Web export: wallet extensions live in the browser, not in the Godot editor.
-## Prototype: nothing is stored. The connection lasts until the page is reloaded.
+## The connection lasts until the page is reloaded. It also signs the impz.club sign-in message.
 ##
 ## Wallets are found with EIP-6963 (each installed wallet announces itself by name),
 ## falling back to the single window.ethereum provider for older wallets.
@@ -14,6 +14,7 @@ signal connected(address: String, chain_id: int)
 signal connect_failed(message: String)
 signal account_changed(address: String)          # "" when the wallet disconnects
 signal chain_changed(chain_id: int)
+signal signed(result: Dictionary)                # {ok, signature} or {ok = false, error}
 
 const CHAIN_NAMES := {
 	1: "Ethereum",
@@ -63,6 +64,19 @@ const JS := """
 				send(cb, { ok: false, error: rejected ? 'You cancelled the request in your wallet.' : String((err && err.message) || err) });
 			}
 		},
+		// personal_sign, used to sign in to the impz.club account (ui/profile/account_panel.gd).
+		// Free: it sends no transaction. Glyph shows it in its own window.
+		async signMessage(id, address, message, cb) {
+			const p = provider(id);
+			if (!p) return send(cb, { ok: false, error: 'Connect your wallet first.' });
+			const hex = '0x' + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, '0')).join('');
+			try {
+				send(cb, { ok: true, signature: await p.request({ method: 'personal_sign', params: [hex, address] }) });
+			} catch (err) {
+				const rejected = err && err.code === 4001;
+				send(cb, { ok: false, error: rejected ? 'You cancelled the signature.' : String((err && err.message) || err) });
+			}
+		},
 		async disconnectWallet(id) {
 			const p = provider(id);
 			try { await p.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }); } catch (_) {}
@@ -75,6 +89,7 @@ var _js  # untyped on purpose: its methods are JavaScript functions
 # JavaScriptBridge callbacks must stay referenced, or Godot frees them before the wallet answers.
 var _connect_cb: JavaScriptObject
 var _event_cb: JavaScriptObject
+var _sign_cb: JavaScriptObject
 var _wallet_id := ""
 
 
@@ -97,6 +112,7 @@ func _ready() -> void:
 	_js = JavaScriptBridge.get_interface("impzWallet")
 	_connect_cb = JavaScriptBridge.create_callback(_on_connect_result)
 	_event_cb = JavaScriptBridge.create_callback(_on_wallet_event)
+	_sign_cb = JavaScriptBridge.create_callback(_on_signed)
 	_js.setEvents(_event_cb)
 
 
@@ -114,6 +130,19 @@ func list_wallets() -> void:
 func connect_wallet(wallet_id: String) -> void:
 	_wallet_id = wallet_id
 	_js.connectWallet(wallet_id, _connect_cb)
+
+
+## Asks the connected wallet to sign `message`. A coroutine: `var r := await wallet.sign_message(a, m)`.
+func sign_message(address: String, message: String) -> Dictionary:
+	if not is_supported() or _wallet_id == "":
+		return {ok = false, error = "Connect your wallet first."}
+	_js.signMessage(_wallet_id, address, message, _sign_cb)
+	return await signed
+
+
+func _on_signed(args: Array) -> void:
+	var data = JSON.parse_string(str(args[0]))
+	signed.emit(data if data is Dictionary else {ok = false, error = "The wallet gave no answer."})
 
 
 func disconnect_wallet() -> void:
