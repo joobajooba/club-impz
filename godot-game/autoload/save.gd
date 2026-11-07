@@ -1,6 +1,6 @@
 extends Node
 ## Keeps the player's progress between visits, as the Save autoload: items, tools, coins, bought
-## rows and the stable. Energy already keeps itself (Inventory.ENERGY_FILE).
+## rows, the stable and the Imp's look (Look.worn). Energy already keeps itself (Inventory.ENERGY_FILE).
 ##
 ## TEST, on this device only: the file is user://save.json (the browser's storage in the web
 ## build), so a player can edit it. That is fine while nothing is worth anything. Once the server
@@ -21,7 +21,7 @@ func _ready() -> void:
 	_timer.timeout.connect(write)
 	add_child(_timer)
 	read()
-	for s in [Inventory.changed, Inventory.coins_changed, Inventory.held_changed, Stable.changed]:
+	for s in [Inventory.changed, Inventory.coins_changed, Inventory.held_changed, Stable.changed, Look.changed]:
 		s.connect(func(_a = null): _timer.start())
 
 
@@ -44,6 +44,7 @@ func state() -> Dictionary:
 			extra_slots = Stable.extra_slots, wins_period = Stable.wins_period,
 			paid_wins = Stable.paid_wins, next_uid = Stable._next_uid,
 		},
+		look = Look.worn,
 	}
 
 
@@ -65,6 +66,9 @@ func read() -> void:
 		return
 	_apply_inventory(data.get("inventory", {}))
 	_apply_stable(data.get("stable", {}))
+	var look = data.get("look", {})
+	if look is Dictionary:
+		Look.wear(look)               # trait ids the build no longer has fall back to the base imp (Look.shown)
 
 
 func _apply_inventory(inv: Dictionary) -> void:
