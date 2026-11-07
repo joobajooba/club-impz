@@ -363,10 +363,10 @@ func _key_row(text: String, keys: Array) -> void:
 func _build() -> void:
 	gear_button = UIKit.icon_button(UIKit.GEAR, "Settings (Esc)")
 	gear_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	gear_button.offset_left = -132         # left of the Profile button (ui/profile/profile_ui.gd)
-	gear_button.offset_top = 16
-	gear_button.offset_right = -78
-	gear_button.offset_bottom = 70
+	gear_button.offset_left = -16 - UIKit.ICON_BUTTON   # the top-right corner, right of the Profile button
+	gear_button.offset_top = 16                          # (ui/profile/profile_ui.gd)
+	gear_button.offset_right = -16
+	gear_button.offset_bottom = 16 + UIKit.ICON_BUTTON
 	gear_button.pressed.connect(toggle)
 	add_child(gear_button)
 

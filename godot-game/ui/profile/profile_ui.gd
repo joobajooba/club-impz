@@ -1,7 +1,9 @@
 extends CanvasLayer
-## Profile button (a person icon) in the top-right corner. Opens a menu with "Connect wallet".
+## Profile button (a person icon) in the top-right corner, left of the Settings gear. Opens a menu to
+## connect a wallet with Glyph and use the impz.club account of that wallet (account_panel.gd): the same
+## username, email and wallet as on the website.
 ## Loaded as an autoload (ProfileUI in project.godot), so it sits on top of every scene.
-## Prototype: the wallet is not saved anywhere. Reloading the page forgets it.
+## The wallet connection itself isn't kept: after reloading the page, connect again (the sign-in is kept).
 
 const WalletBridge := preload("res://ui/profile/wallet_bridge.gd")
 const AccountPanel := preload("res://ui/profile/account_panel.gd")
@@ -21,6 +23,7 @@ var connected_box: VBoxContainer
 var address_label: Label
 var chain_label: Label
 var address := ""
+var account: AccountPanel
 
 
 func _ready() -> void:
@@ -64,13 +67,14 @@ func _label(text := "", color := Color.WHITE, size := 15) -> Label:
 
 
 func _build() -> void:
-	# a person icon on the black HUD button; the Settings gear sits to its left (ui/settings_menu.gd)
+	# a person icon on the black HUD button; the Settings gear sits to its right (ui/settings_menu.gd)
+	var side := UIKit.ICON_BUTTON
 	profile_button = UIKit.icon_button(UIKit.PERSON, "Profile")
 	profile_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	profile_button.offset_left = -70
+	profile_button.offset_left = -16 - side - 8 - side
 	profile_button.offset_top = 16
-	profile_button.offset_right = -16
-	profile_button.offset_bottom = 70
+	profile_button.offset_right = -16 - side - 8
+	profile_button.offset_bottom = 16 + side
 	profile_button.pressed.connect(_toggle_menu)
 	add_child(profile_button)
 
@@ -78,7 +82,7 @@ func _build() -> void:
 	menu.add_theme_stylebox_override("panel", UIKit.panel(BG))
 	menu.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	menu.offset_left = -336
-	menu.offset_top = 80
+	menu.offset_top = 16 + UIKit.ICON_BUTTON + 8
 	menu.offset_right = -16
 	menu.visible = false
 	add_child(menu)
@@ -105,6 +109,7 @@ func _build() -> void:
 	box.add_child(connected_box)
 	address_label = _label("", Color.WHITE, 18)
 	connected_box.add_child(address_label)
+	address_label.visible = false            # the Account part below shows the wallet
 	chain_label = _label("", MUTED, 14)
 	connected_box.add_child(chain_label)
 	var copy := _button("Copy address")
@@ -114,13 +119,15 @@ func _build() -> void:
 	disconnect_button.pressed.connect(_on_disconnect_pressed)
 	connected_box.add_child(disconnect_button)
 
-	box.add_child(_label("Prototype: your wallet is not saved.", MUTED * Color(1, 1, 1, 0.7), 12))
 	box.add_child(HSeparator.new())
-	box.add_child(AccountPanel.new(self))
+	account = AccountPanel.new(self)
+	box.add_child(account)
 
 
 func _toggle_menu() -> void:
 	menu.visible = not menu.visible
+	if menu.visible:
+		account.refresh()                    # pick up changes made on the website
 
 
 func _clear_wallet_list() -> void:
@@ -131,6 +138,8 @@ func _clear_wallet_list() -> void:
 func _show_disconnected(message := "No wallet connected.") -> void:
 	address = ""
 	profile_button.tooltip_text = "Profile"
+	if account:
+		account.set_wallet("")
 	status_label.text = message
 	connect_button.visible = true
 	connect_button.disabled = false
@@ -142,7 +151,7 @@ func _show_disconnected(message := "No wallet connected.") -> void:
 
 func _on_connect_pressed() -> void:
 	if not WalletBridge.is_supported():
-		status_label.text = "Wallets connect in the browser version of the game. Export to Web and open it in a browser with MetaMask or Rabby installed."
+		status_label.text = "Glyph connects in the browser version of the game. Run `npm start` in web-wallet, then open http://localhost:8060."
 		return
 	connect_button.disabled = true
 	status_label.text = "Looking for wallets…"
@@ -183,6 +192,7 @@ func _on_connected(new_address: String, chain_id: int) -> void:
 	chain_label.text = "Network: %s" % WalletBridge.chain_name(chain_id)
 	connect_button.visible = false
 	connected_box.visible = true
+	account.set_wallet(address)
 
 
 func _on_connect_failed(message: String) -> void:
@@ -198,6 +208,7 @@ func _on_account_changed(new_address: String) -> void:
 		address_label.text = WalletBridge.short_address(address)
 		address_label.tooltip_text = address
 		status_label.text = "Switched to another account."
+		account.set_wallet(address)
 
 
 func _on_chain_changed(chain_id: int) -> void:

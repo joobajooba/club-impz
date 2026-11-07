@@ -218,17 +218,26 @@ static func pixel_texture(rows: Array, color: Color) -> Texture2D:
 	return _cache[key]
 
 
-## A square black HUD button showing a pixel icon (Settings, Profile), named by its tooltip.
+## A small square black HUD button showing a pixel icon (Settings, Profile), named by its tooltip.
+## 28 px, half the first size (J00BA, 2026-11-07): the icon is scaled down to fit inside the frame.
+const ICON_BUTTON := 28
+
 static func icon_button(rows: Array, tip: String) -> Button:
 	var b := Button.new()
 	b.icon = pixel_texture(rows, KEY)
+	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.tooltip_text = tip
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(54, 54)
+	b.custom_minimum_size = Vector2(ICON_BUTTON, ICON_BUTTON)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for state in ["normal", "hover", "pressed", "disabled"]:
-		b.add_theme_stylebox_override(state, button_box(state, BG, 6.0))
+		var box := button_box(state, BG, 4.0).duplicate() as StyleBoxTexture
+		box.content_margin_top = 4.0 + (1.0 if state == "pressed" else 0.0)
+		box.content_margin_bottom = 7.0 - (1.0 if state == "pressed" else 0.0)
+		box.content_margin_left = 5.0
+		box.content_margin_right = 5.0
+		b.add_theme_stylebox_override(state, box)
 	return b
 
 
