@@ -15,6 +15,38 @@ var id := ""
 var _t := 0.0
 var _parts := {}             # group name -> [node, rest position, rest basis]
 var _line: Node3D
+var _hang := Vector3.DOWN    # where the line points, in world space (a damped pendulum)
+var _hang_v := Vector3.ZERO
+var _tip_prev := Vector3.ZERO
+var _tip_vel := Vector3.ZERO
+var _tip_seen := false
+
+
+## The line hangs from the rod tip like a pendulum: when the tip speeds up (a cast, a turn, walking)
+## the float lags behind, swings past and settles straight down again.
+func _swing_line(delta: float) -> void:
+	if delta <= 0.0:
+		return
+	var tip := _line.global_position
+	var accel := Vector3.ZERO
+	if _tip_seen:
+		var vel := (tip - _tip_prev) / delta
+		accel = ((vel - _tip_vel) / delta).limit_length(60.0)
+		_tip_vel = vel
+	_tip_prev = tip
+	_tip_seen = true
+	var want := (Vector3(0, -9.8, 0) - accel).normalized()       # gravity as felt from the moving tip
+	_hang_v += (want - _hang) * 55.0 * delta
+	_hang_v *= exp(-5.0 * delta)
+	_hang = (_hang + _hang_v * delta).normalized()
+	var y := -_hang
+	var x := y.cross(Vector3.FORWARD)
+	if x.length() < 0.01:
+		x = Vector3.RIGHT
+	x = x.normalized()
+	var z := x.cross(y).normalized()
+	var s := _line.global_basis.get_scale()
+	_line.global_basis = Basis(x * s.x, y * s.y, z * s.z)
 
 
 static func manifest() -> Dictionary:
@@ -53,8 +85,8 @@ static func make(tool_id: String) -> Node3D:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _line:                                          # world-upright, keeping the size it is drawn at
-		_line.global_basis = Basis.from_scale(_line.global_basis.get_scale())
+	if _line:
+		_swing_line(delta)
 	var stellar := id.begins_with("stellarite")
 	for part in _parts:
 		var n: Node3D = _parts[part][0]
