@@ -1,6 +1,6 @@
 # Game Menus
 
-> Status: draft v1 · Owner: J00BA · Last updated: 2026-11-04
+> Status: draft v1 · Owner: J00BA · Last updated: 2026-11-07
 >
 > A study of how survival, crafting and skilling games build their menus, and what Club Impz should take from them: the menu types, the layouts, how to make menus fast to use, and the art style. This doc must agree with `game_direction.md`. Where the two differ, `game_direction.md` wins until it is updated.
 >
@@ -139,6 +139,7 @@ These are the menus the study says Club Impz needs, built from the patterns abov
 | Challenges | J | Active challenges, progress bars, the trophy each one gives | Dragonwilds quests | Proposed |
 | Map | M | Hub: picture map with landmarks. Resource world: biomes, where the player is, pins. | Club Penguin, Dragonwilds | Proposed |
 | Chat | Enter | Chat box bottom left, fades when idle, emote wheel button | Club Penguin, OSRS | Proposed |
+| Character customizer | C | Body, Head, Eyes, Clothing and Back tabs, a turning 3D preview of the Imp, and the builds saved on impz.club. See section 3.5. | impz.club Imp Customization, Minecraft skin screen | Built (prototype), layout Proposed |
 | Settings | From title or game menu | See section 3.4 | All | Proposed |
 
 ### 3.1 HUD layout (Proposed)
@@ -227,6 +228,47 @@ Tabs: **Display, Audio, Controls, Interface, Account.**
 | Account | Username, linked wallet (D-041), log out |
 
 Settings **save to the account** (Supabase) so they follow the player between browsers. Open question: whether that is wanted or local storage is enough.
+
+### 3.5 Character customizer (Proposed, following `game_direction.md` section 2)
+
+The in-game version of the **Imp Customization** page on impz.club (`/imp-customization`). Both use the same trait models (`godot-game/assets/models/impz/`) and the same trait ids (`<slot>_<name>`, e.g. `head_afro`), so a look built on the website loads in the game and the other way round.
+
+**Who gets what (Decided, `game_direction.md` section 2).** Every player gets the **base imp** (Green body, no traits). An Imp holder unlocks each trait of every Imp they own as a cosmetic, to mix and match. A non-holder can never wear a trait.
+
+**Layout (Proposed).** One modal window, the same frame as every other menu (section 5.2):
+
+```
+┌ Customize your Imp ──────────────────────────────── [Close] ┐
+│ [Body][Head][Eyes][Clothing][Back][Saved]  │                 │
+│ ┌────────────────────────────────────────┐ │   (3D Imp,      │
+│ │ ● Green                         wearing│ │    turning)     │
+│ │   Blue                                 │ │                 │
+│ │   Gold                         🔒 locked│ │                 │
+│ │   ...                                  │ │ drag to turn,   │
+│ └────────────────────────────────────────┘ │ wheel to zoom   │
+│ 0x12…ab · 3 Impz · traits from your Impz    │ [Spin]          │
+│ [Random] [Reset]                  [Cancel] [Wear it]          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Tabs:** Body, Head, Eyes, Clothing, Back (the five model slots), then **Saved**. Head, Eyes, Clothing and Back have a **None** row at the top. Body has no None.
+- **Rows** are text only, like the website (J00BA's choice for the website menu, 2026-11-06). The worn trait is marked, and locked traits are greyed with a lock, so players can see what other Impz would unlock.
+- **Preview:** the Imp in a turning 3D view on the right. Drag turns it, the wheel zooms, and a Spin button stops or starts the turning. Every change shows at once.
+- **Wear it** puts the look on the player's Imp and saves it. **Cancel**, Esc or C closes and keeps the old look. **Random** picks from unlocked traits only. **Reset** goes back to the base imp.
+- **Saved:** the builds the wallet saved on impz.club, each with **Load**. Saving a new build stays on the website for now, because it needs a wallet signature (Open question below).
+- **Eyes:** pupil colours (Red, Gold, Purple, Ghostly) are a texture painted over the body's face. Eyewear (Shades, 3D Glasses, ...) is a model over the face and brings its own pupil colour, as on the website.
+- **The player can't move** while the window is open, like every modal.
+
+**Ownership (Proposed).** When a wallet is linked (the Profile panel), the game asks impz.club (`/api/imps?wallet=`) which Impz the wallet holds and which traits they give. The website reads that from the Imp contract on the server, never from the browser. If the wallet no longer holds an Imp, its traits lock again and the worn look falls back to the base imp for those slots.
+
+**Test switch (labelled TEST).** Debug builds have an **"All traits (TEST)"** toggle so the customizer can be tried without a wallet. Release builds never show it.
+
+Open questions for the customizer:
+
+1. Should the worn look also **save to the account** (Supabase `saved_imps` or the profile), so it follows the player between browsers? Today it is saved on this device only (`user://save.json`).
+2. Should **saving a build** be possible in the game, with a wallet signature as on the website?
+3. The web build calls `impz.club/api/imps` from another site, so that API needs a **CORS** header allowing the game's site before ownership works in the browser build.
+4. Does the **NFT skin** (D-038, play as your own Imp exactly as minted) become a one-click "Wear my Imp #123" row in the Saved tab?
 
 ---
 
@@ -329,7 +371,8 @@ Colour roles (Proposed, matching the built constants):
 4. Will there be **storage chests**, and do stations read from them (linked storage)?
 5. Is a **minimap** wanted in the resource world, or only a compass?
 6. Is **controller** support ever planned?
-7. Which keys are final? The table in section 3 is a proposal; the build already uses I, F, Q and T.
+7. Which keys are final? The table in section 3 is a proposal; the build already uses I, F, Q, T and C (customizer).
+8. The character customizer's own questions are listed at the end of section 3.5.
 
 ---
 
