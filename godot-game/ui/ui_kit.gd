@@ -25,6 +25,11 @@ const KEY := Color(0.95, 0.93, 0.85)
 ## 8 × 8 pixel icons: k outline, Y highlight, y body, o shade.
 const COIN := ["..kkkk..", ".kyyyyk.", "kyYYyyok", "kyYyyyok", "kyyyyyok", "kyyyyook", ".kooook.", "..kkkk.."]
 const BOLT := ["....kkk.", "...kYyk.", "..kYyk..", ".kYyyyk.", "kkkyyk..", "..kyok..", ".kyok...", ".kkk...."]
+## 12 × 12 menu button icons (Settings, Profile), drawn in KEY on the black HUD buttons.
+const GEAR := ["....kkkk....", ".kk.kYYk.kk.", "kYYkkYYkkyyk", "kYYYYYyyyyyk", ".kYYYkkyyyk.", "kkYYk..kyykk",
+	"kYYyk..kyyyk", "kkyyk..kyykk", ".kyyykkyyok.", "kyyyyyyyoook", "kyykkyykkook", ".kk.kyok.kk.", "....kkkk...."]
+const PERSON := ["....kkkk....", "...kYYYYk...", "..kYYYYyyk..", "..kYYYyyyk..", "..kYYyyyyk..", "...kyyyyk...",
+	"....kkkk....", "..kkyyyykk..", ".kyyyyyyook.", "kyyyyyyooook", "kyyyyyoooook", "kkkkkkkkkkkk"]
 
 static var _cache := {}
 
@@ -196,16 +201,35 @@ static func divider() -> HBoxContainer:
 	return box
 
 
-## An 8 × 8 pixel icon from COIN or BOLT, in `color`.
+## A pixel icon from rows like COIN, BOLT or GEAR, in `color`.
 static func pixel_icon(rows: Array, color: Color) -> TextureRect:
+	var t := icon(pixel_texture(rows, color), maxi(rows.size(), rows[0].length()) * PX)
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return t
+
+
+## The picture behind pixel_icon (k outline, Y highlight, y body, o shade), for Button.icon.
+static func pixel_texture(rows: Array, color: Color) -> Texture2D:
 	var key := "icon|%s|%s" % [rows, color]
 	if not _cache.has(key):
 		var palette := {"k": OUTLINE, "Y": color.lightened(0.5), "y": color, "o": color.darkened(0.35)}
 		_cache[key] = _art(rows[0].length(), rows.size(), func(x: int, y: int) -> Color:
 			return palette.get(rows[y][x], Color.TRANSPARENT))
-	var t := icon(_cache[key], 8 * PX)
-	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	return t
+	return _cache[key]
+
+
+## A square black HUD button showing a pixel icon (Settings, Profile), named by its tooltip.
+static func icon_button(rows: Array, tip: String) -> Button:
+	var b := Button.new()
+	b.icon = pixel_texture(rows, KEY)
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.tooltip_text = tip
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(54, 54)
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(state, button_box(state, BG, 6.0))
+	return b
 
 
 static func icon(tex: Texture2D, size := 32) -> TextureRect:
