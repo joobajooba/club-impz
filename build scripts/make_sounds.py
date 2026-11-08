@@ -1,8 +1,7 @@
 """Club Impz sound effects, synthesised (no sound files existed): footsteps per ground and the mobs' calls.
 Writes 16-bit mono 22050 Hz .wav files to godot-game/assets/sounds/. numpy only.
 
-  step_grass_1..4   soft crunch of grass and earth      step_snow_1..3   crisp squeak and crunch of snow
-  step_stone_1..3   gritty tap on rock and gravel
+  (footsteps: run make_steps_soft.py AFTER this script; it replaces the step_* sounds written here)
   cow_moo_1..2      a low rising-falling "mmmooo"        highland_cow_moo_1  deeper, longer
   pig_oink_1..2     two or three short nasal grunts      wolf_howl_1      a long howl that rises and falls
   wolf_bark_1       two short barks                      ogre_grunt_1..2  low growling grunts

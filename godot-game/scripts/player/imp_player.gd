@@ -133,7 +133,7 @@ func _animate(delta: float, ground_speed: float) -> void:
 		return
 	if is_on_floor() and ground_speed > 0.3:
 		bob_time += delta * ground_speed * 3.2
-		var step := floori(bob_time / PI)                 # one footstep per bob
+		var step := floori(bob_time / TAU)                # one footstep every other bob (~2 a second walking)
 		if step != _last_step:
 			_last_step = step
 			_footstep(ground_speed)
@@ -162,7 +162,7 @@ func _footstep(ground_speed: float) -> void:
 		return
 	var running := ground_speed > walk_speed * 1.25
 	_step_player.stream = list[randi() % list.size()]
-	_step_player.volume_db = -9.0 if running else -15.0
-	_step_player.pitch_scale = randf_range(1.02, 1.14) if running else randf_range(0.9, 1.04)
+	_step_player.volume_db = -14.0 if running else -19.0
+	_step_player.pitch_scale = randf_range(1.0, 1.08) if running else randf_range(0.94, 1.04)
 	_step_player.play()
 
