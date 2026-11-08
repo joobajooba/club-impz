@@ -39,8 +39,8 @@ const LOCAL_PICTURES := "res://assets/sprites/implingz_generations/%d.png"
 const LOADERS := 4
 const IMP_PICTURE := 128                # the 640 px NFT picture at 1/5: each of its pixels stays whole
 const LOCK := ["..kkkk..", ".k....k.", ".k....k.", "kkkkkkkk", "kYyyyyok", "kyyooyok", "kyyyyyok", "kkkkkkkk"]
-const TREE_ROW := 5                     # skill tree nodes per row
-const TREE_NODE := 48                   # skill tree node size (px)
+const TREE_ROW := 2                     # skill tree nodes per row: 2 x 5 rows (J00BA)
+const TREE_NODE := Vector2(136, 56)     # skill tree node size (px), big enough to fill the half
 const ARROW_SMALL := ["k....", "kk...", "kYk..", "kyyk.", "kok..", "kk...", "k...."]
 const ARROW := ["....k...", "....kk..", "kkkkkYk.", "kYYYYYyk", "kyyyyyok", "kkkkkok.", "....kk..", "....k..."]
 
@@ -398,10 +398,10 @@ func _render_stats() -> void:
 	if nodes.is_empty():
 		right.add_child(UIKit.label(NOT_BUILT, UIKit.MUTED, 14))
 		return
-	# a node every 5 levels up to 50 (J00BA): two rows of five, read left to right like text, so the whole
-	# tree fits without scrolling
+	# a node every 5 levels up to 50 (J00BA): two to a row, five rows, read left to right like text, so the
+	# whole tree fits without scrolling
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 10)
+	rows.add_theme_constant_override("separation", 8)
 	right.add_child(rows)
 	var chain: HBoxContainer
 	var level := int(skills.get(skill, {}).get("level", 0))
@@ -409,14 +409,15 @@ func _render_stats() -> void:
 		var n: Dictionary = nodes[i]
 		if i % TREE_ROW == 0:
 			chain = HBoxContainer.new()
-			chain.add_theme_constant_override("separation", 6)
+			chain.add_theme_constant_override("separation", 10)
+			chain.alignment = BoxContainer.ALIGNMENT_CENTER
 			rows.add_child(chain)
 		else:
 			chain.add_child(UIKit.pixel_icon(ARROW_SMALL, Color.WHITE))
 		var open := level >= int(n.level)
 		var tip := "%s\n%s\n%s" % [n.name, n.buff, "Unlocked" if open else "Unlocks at %s %d" % [GameData.SKILLS[skill].label, int(n.level)]]
-		chain.add_child(_slot_button(str(int(n.level)), not open, "Lv %d" % int(n.level), tip,
-			func(): _detail["stats"] = tip.replace("\n", "  ·  "); _refresh(), Vector2(TREE_NODE, TREE_NODE)))
+		chain.add_child(_slot_button("Lv %d" % int(n.level), not open, "Lv %d" % int(n.level), tip,
+			func(): _detail["stats"] = tip.replace("\n", "  ·  "); _refresh(), TREE_NODE))
 	right.add_child(_vspace())
 	right.add_child(UIKit.divider())
 	var info := UIKit.label(_detail.get("stats", "Click a node to see its buff."), UIKit.MUTED if not _detail.has("stats") else Color.WHITE, 14)
