@@ -429,17 +429,20 @@ func _build_colliders(c: Vector2i) -> Node3D:
 			continue
 		var k := Vector3i(c.x, c.y, ri)
 		var per_alias: Dictionary = tree_places[k] if tree_places.has(k) else _place(rule, ri, c, TREE_CELL)
+		var sizes: Dictionary = rule.get("collider", {})   # alias -> [radius, height] in metres (rocks)
 		for alias in per_alias:
+			if not sizes.is_empty() and not sizes.has(alias):
+				continue                                 # small rocks: walk over them
 			for i in per_alias[alias].size():
 				var xf: Transform3D = per_alias[alias][i]
 				var key := tree_key(rule, alias, c, i)
 				var s: float = xf.basis.get_scale().x
 				var shape := CylinderShape3D.new()
-				shape.radius = 0.32 * s
-				shape.height = 4.0 * s
+				shape.radius = (float(sizes[alias][0]) if sizes.has(alias) else 0.32) * s
+				shape.height = (float(sizes[alias][1]) if sizes.has(alias) else 4.0) * s
 				var cs := CollisionShape3D.new()
 				cs.shape = shape
-				cs.position = xf.origin + Vector3(0, 2.0 * s, 0)
+				cs.position = xf.origin + Vector3(0, shape.height / 2.0, 0)
 				cs.disabled = Lumbering.is_felled(key)
 				body.add_child(cs)
 				trunk_shapes[key] = cs
@@ -452,12 +455,37 @@ func _base_mesh(alias: String) -> Dictionary:
 	if base_meshes.has(alias):
 		return base_meshes[alias]
 	var scene: PackedScene = load(mesh_paths[alias])
-	var inst := scene.instantiate()
-	var mi := inst.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
-	var info := {"mesh": mi.mesh, "height": mi.mesh.get_aabb().end.y}
+	var inst := scene.instantiate() as Node3D
+	var found := inst.find_children("*", "MeshInstance3D", true, false)
+	var mesh: Mesh = (found[0] as MeshInstance3D).mesh
+	if found.size() > 1:                       # one mesh per cube (the rocks): merge them, one surface per material
+		var tools := {}                        # material -> SurfaceTool
+		for m: MeshInstance3D in found:
+			var xf := _local_xf(inst, m)
+			for si in m.mesh.get_surface_count():
+				var mat := m.get_active_material(si)
+				if not tools.has(mat):
+					tools[mat] = SurfaceTool.new()
+					(tools[mat] as SurfaceTool).begin(Mesh.PRIMITIVE_TRIANGLES)
+					(tools[mat] as SurfaceTool).set_material(mat)
+				(tools[mat] as SurfaceTool).append_from(m.mesh, si, xf)
+		var merged := ArrayMesh.new()
+		for mat in tools:
+			merged = (tools[mat] as SurfaceTool).commit(merged)
+		mesh = merged
+	var info := {"mesh": mesh, "height": mesh.get_aabb().end.y}
 	inst.free()
 	base_meshes[alias] = info
 	return info
+
+
+static func _local_xf(root: Node3D, n: Node3D) -> Transform3D:
+	var xf := n.transform
+	var p := n.get_parent()
+	while p != null and p != root:
+		xf = (p as Node3D).transform * xf
+		p = p.get_parent()
+	return xf
 
 
 func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
@@ -469,6 +497,21 @@ func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
 	var mesh: Mesh = src.duplicate()
 	var trees: bool = rule.get("kind", "foliage") == "tree"
 	var wind: float = data.biome_data["biomes"][rule["biomes"][0]].get("wind", 0.6)
+	if rule.get("still", false):              # rocks: no wind, a plain material (hard alpha for their grass cards)
+		for i in mesh.get_surface_count():
+			var orig := src.surface_get_material(i) as BaseMaterial3D
+			var mat := StandardMaterial3D.new()
+			if orig:
+				mat.albedo_texture = orig.albedo_texture
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			mat.alpha_scissor_threshold = 0.5
+			mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+			mat.roughness = 1.0
+			mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+			mesh.surface_set_material(i, mat)
+		prepared[key] = mesh
+		return mesh
 	for i in mesh.get_surface_count():
 		var orig := src.surface_get_material(i) as BaseMaterial3D
 		var card := orig != null and orig.cull_mode == BaseMaterial3D.CULL_DISABLED
@@ -477,7 +520,8 @@ func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
 		if orig:
 			mat.set_shader_parameter("albedo_tex", orig.albedo_texture)
 		mat.set_shader_parameter("sway_height", maxf(0.3, info["height"]))
-		mat.set_shader_parameter("wind_strength", (0.45 if trees else 1.0) * wind if card else (0.08 * wind if not trees else 0.0))
+		mat.set_shader_parameter("wind_strength", 0.0 if rule.get("still", false) else
+			((0.45 if trees else 1.0) * wind if card else (0.08 * wind if not trees else 0.0)))
 		var view: float = rule.get("view", tree_view if trees else foliage_view)
 		if persistent:  # always visible: no shrink-out at the view distance
 			mat.set_shader_parameter("fade_start", 1.0e7)
