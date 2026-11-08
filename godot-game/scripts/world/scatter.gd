@@ -43,7 +43,12 @@ var stumps := {}               # tree key -> stump Node3D
 var stump_scenes := {}         # stump name -> PackedScene
 
 
+## z of the waterfall ribbon's centre line (game_world.gd _make_waterfall); no scatter inside its footprint.
+var fall_z := 1e9
+
+
 func setup(w: Node, d: WorldData) -> void:
+	fall_z = float(d.layout.get("waterfall", {}).get("z", 1e9))
 	world = w
 	data = d
 	add_to_group("scatter")
@@ -273,10 +278,12 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 	var litter_mask: bool = rule.get("patch_mask", "") == "litter"
 	var near_lm := Vector2(1e9, 1e9)
 	var near_r := -1.0
+	var near_min := -1.0
 	if rule.has("near"):
 		var lm: Array = data.layout["landmarks"].get(rule["near"][0], [1e9, 1e9])
 		near_lm = Vector2(lm[0], lm[1])
 		near_r = float(rule["near"][1])
+		near_min = float(rule["near"][2]) if rule["near"].size() > 2 else -1.0   # a ring: [landmark, max, min]
 	var waters := _cell_waters(c, cell)
 	var clears := [] if rule.has("near") else _cell_exclusions(c, cell, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {}))
 	for gz in n:
@@ -313,8 +320,10 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 			if not h_range.is_empty() and (h < h_range[0] or h > h_range[1]): continue
 			if not patch.is_empty() and patch_noise.get_noise_2d(x + ri * 97.0, z) * 0.5 + 0.5 > patch_cut: continue
 			if litter_mask and roll > 0.3 + m.a * 0.9: continue
+			if absf(z - fall_z) <= 5.5 and x >= 200.0 and x <= 218.0: continue  # nothing pokes through the waterfall
 			if near_r >= 0.0:
-				if Vector2(x, z).distance_to(near_lm) > near_r: continue
+				var dl := Vector2(x, z).distance_to(near_lm)
+				if dl > near_r or dl < near_min: continue
 			elif _in_clearing(clears, x, z): continue
 			var alias: String = aliases[0][0]
 			var acc := 0.0

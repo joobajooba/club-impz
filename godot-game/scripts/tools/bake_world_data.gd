@@ -19,8 +19,8 @@ const RD := 512.0
 const BAND := 256.0
 const BLEND := 22.5
 const WATER := [
-	{"name": "forest_river", "rect": [0, 40, 214, 120], "level": 3.0, "biome": "forest"},
-	{"name": "forest_upper_pool", "rect": [214, 40, 262, 120], "level": 10.0, "biome": "forest"},
+	{"name": "forest_river", "rect": [0, 40, 211, 120], "level": 3.0, "biome": "forest"},
+	{"name": "forest_upper_pool", "rect": [211, 40, 262, 120], "level": 10.0, "biome": "forest"},
 	{"name": "frost_open_pool", "rect": [690, -56, 722, -24], "level": 6.4, "biome": "frost"},
 	{"name": "plains_watering_hole", "rect": [880, 40, 920, 80], "level": 9.0, "biome": "plains"},
 	{"name": "swamp_water", "rect": [1010, -256, 1280, 256], "level": 1.75, "biome": "swamp"}
@@ -271,6 +271,13 @@ func _bake_resource() -> void:
 				wet = maxf(wet, 1.0 - smoothstep(4.0, 7.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0)))))
 				special = 1.0 - smoothstep(18.0, 30.0, Vector2(x, z).distance_to(Vector2(900, 60)))
 			special = maxf(special, 1.0 - smoothstep(24.0, 38.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"])))
+			# the waterfall cliff reads as rock (forest special = mountain_rock): its steep cells, grown by 1.5 m
+			# and broken up with noise so the edge is ragged; the flat top and gentle slopes stay grass
+			if b == 0 and _in_fall_cliff(x, z):
+				var sl := _slope_at(hs, nx, nz, x, z)
+				for o in [Vector2(1.5, 0), Vector2(-1.5, 0), Vector2(0, 1.5), Vector2(0, -1.5)]:
+					sl = maxf(sl, _slope_at(hs, nx, nz, x + o.x, z + o.y))
+				special = maxf(special, smoothstep(0.3, 0.4, sl + n_detail.get_noise_2d(x * 3.0, z * 3.0) * 0.08))
 			var litter := clampf(n_litter.get_noise_2d(x, z) * 1.6 + 0.1, 0.0, 1.0) if b == 0 else 0.0
 			mask.set_pixel(mx, mz, Color(0.0, wet, special, litter))
 	# paths stamped along the main line and the branches
@@ -436,18 +443,38 @@ func _recarve(hs: PackedFloat32Array, carved: PackedFloat32Array, nx: int, nz: i
 					hs[k] = minf(hs[k], sum / cnt)
 
 
+func _h_at(hs: PackedFloat32Array, nx: int, nz: int, x: float, z: float) -> float:
+	## bilinear height from the 2 m grid
+	var fx := clampf(x / STEP, 0.0, nx - 1.001)
+	var fz := clampf((z + RD / 2.0) / STEP, 0.0, nz - 1.001)
+	var ix := int(fx)
+	var iz := int(fz)
+	var tx := fx - ix
+	var tz := fz - iz
+	var a := lerpf(hs[iz * nx + ix], hs[iz * nx + ix + 1], tx)
+	var b := lerpf(hs[(iz + 1) * nx + ix], hs[(iz + 1) * nx + ix + 1], tx)
+	return lerpf(a, b, tz)
+
+
+func _slope_at(hs: PackedFloat32Array, nx: int, nz: int, x: float, z: float) -> float:
+	## 1 - normal.y, the same measure as the terrain shader's slope
+	var dx := (_h_at(hs, nx, nz, x + 1.0, z) - _h_at(hs, nx, nz, x - 1.0, z)) / 2.0
+	var dz := (_h_at(hs, nx, nz, x, z + 1.0) - _h_at(hs, nx, nz, x, z - 1.0)) / 2.0
+	return 1.0 - 1.0 / sqrt(1.0 + dx * dx + dz * dz)
+
+
 func _at_waterfall(x: float, z: float) -> bool:
-	## The waterfall cliff: the 10 m wide fall and the full width of the river channel under it (the 7 m drop
-	## from the upper pool to the river has to happen here, so it is exempt from the slope and shore rules).
+	## The waterfall notch only: the 10 m wide fall (channel, crest, face and plunge pool, step e of _shape_water)
+	## plus 1 m each side. Exempt from the slope and shore rules; the rest of the cliff line is rugged (_in_fall_cliff).
 	var wf: Vector2 = landmarks["waterfall"]
-	return absf(x - wf.x) < 6.0 and absf(z - wf.y) < 14.0
+	return absf(z - wf.y) <= 6.0 and x >= 200.0 and x <= 218.0
 
 
 func _in_fall_cliff(x: float, z: float) -> bool:
 	## The cliff line either side of the waterfall where the lower forest (river, 3 m) steps up to the upper pool
 	## (10 m) along their shared rect border: rugged (37 deg) instead of the 24 deg / gentle shore rules.
 	var wf: Vector2 = landmarks["waterfall"]
-	return absf(x - wf.x) < 8.0 and absf(z - wf.y) < 27.0
+	return x > 199.0 and x < 222.0 and absf(z - wf.y) < 30.0  # covers the bank's west slope (step e of _shape_water)
 
 
 func _blur5(hs: PackedFloat32Array, nx: int, nz: int, passes: int) -> void:
@@ -596,14 +623,46 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 					changed += 1
 		if changed == 0:
 			break
-	# e. the lip the waterfall pours over
+	# e. the waterfall notch, cut into a bank that closes the upper pool off from the cliff everywhere else:
+	#    channel x 213..218 (bed 9.4, the pool runs on to the crest), crest x 211..213 (9.7, 0.3 m of water),
+	#    face x 207..211 (9.7 down to 1.6 in about 4 m), plunge pool x 201..207 (a bowl at most 1.6, 1.4 m under
+	#    the river, rising back to the river bed over 6 m). The notch is 10 m wide (|z - lip_z| <= 5), its sides
+	#    feathered into the bank. The bank: at least 10.5 over x 209..216 along the whole shared border, falling
+	#    west to the river at the rugged 37 deg, so the pool only leaves through the notch.
 	var lip_z := river_z(214.0)
 	for gz in nz:
 		for gx in nx:
 			var x := gx * STEP
 			var z := gz * STEP - RD / 2.0
-			if absf(x - 214.0) <= 2.0 and absf(z - lip_z) <= 5.0:
-				hs[gz * nx + gx] = 10.0 - 0.05
+			if x < 190.0 or x > 224.0 or z < 30.0 or z > 130.0:
+				continue
+			var k := gz * nx + gx
+			var h := hs[k]
+			var dz := absf(z - lip_z)
+			var bank := h
+			if x <= 216.0:
+				var top := 10.5 if x >= 209.0 else 10.5 - (209.0 - x) * 0.75  # the rugged 37 deg
+				var zw := smoothstep(36.0, 40.0, z) * (1.0 - smoothstep(120.0, 124.0, z))
+				bank = maxf(h, lerp(h, top, zw))
+			var notch := bank
+			if x >= 213.0:
+				notch = 9.4 if x <= 218.0 else h
+			elif x >= 211.0:
+				notch = 9.7
+			elif x >= 207.0:
+				notch = lerp(9.7, 1.6, (211.0 - x) / 4.0)
+			else:
+				notch = h  # below the face: the plunge pool bowl (next) shapes the river bed
+			hs[k] = lerp(bank, notch, 1.0 - smoothstep(5.0, 6.5, dz))
+			# the plunge pool bowl
+			if x > 207.0:
+				continue  # the face is above; the bowl does not climb the cliff
+			var bx := maxf(0.0, 201.0 - x) * 3.0  # downstream the bowl meets the river bed within 2 m (x 199)
+			var bz := maxf(0.0, dz - 7.0)
+			var out := Vector2(bx, bz).length()
+			var inner := 1.0 - maxf(absf(x - 204.0) / 3.0, dz / 7.0)
+			var bowl := 1.6 - 0.5 * clampf(inner, 0.0, 1.0)
+			hs[k] = minf(hs[k], lerp(bowl, hs[k], smoothstep(0.0, 6.0, out)))
 	_validate(hs, kind, label, dist_in, dist_out, nx, nz)
 
 
@@ -730,5 +789,45 @@ func _validate(hs: PackedFloat32Array, kind: PackedByteArray, label: PackedInt32
 					var out: bool = x < r[0] or x > r[2] or z < r[1] or z > r[3]
 					if out and hs[az * nx + ax] < lvl and not _in_lower_water(x, z, lvl):
 						leaks += 1
+	# the waterfall notch and bank
+	var lip_z := river_z(214.0)
+	var hat := func(x: float, z: float) -> float:
+		return hs[clampi(int(round((z + RD / 2.0) / STEP)), 0, nz - 1) * nx + clampi(int(round(x / STEP)), 0, nx - 1)]
+	var bank_min := 1e9
+	var bank_at := Vector2.ZERO
+	for gz in nz:
+		for gx in nx:
+			var x := gx * STEP
+			var z := gz * STEP - RD / 2.0
+			if x >= 209.0 and x <= 216.0 and z >= 40.0 and z <= 120.0 and absf(z - lip_z) > 6.0 and hs[gz * nx + gx] < bank_min:
+				bank_min = hs[gz * nx + gx]
+				bank_at = Vector2(x, z)
+	print("BAKE CHECK waterfall: crest %.2f (target 9.7), plunge pool %.2f (target <= 1.6), lowest bank %.2f at %s (target >= 10.5)" % [
+		hat.call(212.0, lip_z), hat.call(204.0, lip_z), bank_min, bank_at])
+	# edge leaks: cells on each water rect's border ring with the terrain under the water (the plane's edge would
+	# show as a straight cut), except the notch and sides that run into the edge ring
+	var edge_leaks := 0
+	var worst := []
+	for w in WATER:
+		var r: Array = w["rect"]
+		var lvl: float = w["level"]
+		var c := _rect_cells(r, nx, nz)
+		for gz in range(c[2], c[3] + 1):
+			for gx in range(c[0], c[1] + 1):
+				if gx != c[0] and gx != c[1] and gz != c[2] and gz != c[3]:
+					continue
+				var x := gx * STEP
+				var z := gz * STEP - RD / 2.0
+				var h := hs[gz * nx + gx]
+				if h >= lvl - 0.05 or _at_waterfall(x, z):
+					continue
+				var ox := -3.0 if gx == c[0] else 3.0 if gx == c[1] else 0.0
+				var oz := -3.0 if gz == c[2] else 3.0 if gz == c[3] else 0.0
+				if _edge_e(x + ox, z + oz) < 46.0:
+					continue
+				edge_leaks += 1
+				worst.append([lvl - h, w["name"], Vector2(x, z)])
+	worst.sort_custom(func(a, b): return a[0] > b[0])
+	print("BAKE CHECK edge leaks: %d (target 0) worst %s" % [edge_leaks, str(worst.slice(0, 8))])
 	print("BAKE CHECK water leaks: %d (target 0), steep cells >30 deg outside waterfall/rugged: %d (target 0), max path grade: %.1f deg (target <= 18), max shore step: %.2f m at %s (target <= 0.3)" % [
 		leaks, steep, max_path, max_shore, shore_at])
