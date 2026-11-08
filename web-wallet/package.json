@@ -1,0 +1,20 @@
+{
+  "name": "club-impz-web-wallet",
+  "private": true,
+  "description": "Glyph wallet connection for the Club Impz web build (see README.md).",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/glyph-wallet.js --bundle --minify --format=iife --platform=browser --target=es2020 --define:global=globalThis --define:process.env.NODE_ENV='\"production\"' --outfile=dist/glyph-wallet.js",
+    "export": "node scripts/export-web.mjs",
+    "serve": "node scripts/serve.mjs",
+    "start": "npm run build && npm run export && npm run serve"
+  },
+  "dependencies": {
+    "@privy-io/cross-app-connect": "0.7.6",
+    "buffer": "6.0.3",
+    "viem": "2.57.16"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

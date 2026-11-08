@@ -46,8 +46,16 @@ func place_at(xform: Transform3D) -> void:
 	camera_pivot.global_position = global_position + Vector3(0, 0.9, 0)
 
 
+func menu_open() -> bool:
+	## A modal menu (the character customizer, ...) is open: the imp stands still and the camera stays put.
+	for n in get_tree().get_nodes_in_group("modal"):
+		if n.visible:
+			return true
+	return false
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if frozen:
+	if frozen or menu_open():
 		return  # world change fade or camera mode: the free camera owns the mouse and keys
 	if event.is_action_pressed("toggle_fast_sprint"):
 		fast_sprint = not fast_sprint
@@ -61,18 +69,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var input := Vector2.ZERO if frozen else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var locked := frozen or menu_open()
+	var input := Vector2.ZERO if locked else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := (Basis(Vector3.UP, cam_yaw) * Vector3(input.x, 0, input.y))
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	var speed := (sprint_speed * (5.0 if fast_sprint else 1.0)) if Input.is_action_pressed("sprint") else walk_speed
+	var speed := (sprint_speed * (5.0 if fast_sprint else 1.0)) if Input.is_action_pressed("sprint") and not locked else walk_speed
 	var accel := acceleration if is_on_floor() else air_control
 	var target := dir * speed
 	velocity.x = move_toward(velocity.x, target.x, accel * speed * delta)
 	velocity.z = move_toward(velocity.z, target.z, accel * speed * delta)
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-	elif Input.is_action_just_pressed("jump") and not frozen:
+	elif Input.is_action_just_pressed("jump") and not locked:
 		velocity.y = jump_velocity
 	move_and_slide()
 	# safety net: never fall through the world
