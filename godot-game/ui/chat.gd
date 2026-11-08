@@ -83,6 +83,9 @@ func _add(ch: String, line: Dictionary) -> void:
 # --- sending -----------------------------------------------------------------------------------------
 
 func _send(text: String) -> void:
+	if text.strip_edges().length() > ChatFilter.MAX:
+		system("Too long: messages can be at most %d characters." % ChatFilter.MAX)
+		return                  # left in the box so it can be shortened
 	text = ChatFilter.clean(text)
 	_entry.clear()
 	_update_count("")
@@ -186,6 +189,7 @@ func _render() -> void:
 	for line in _lines[channel]:
 		_write(line)
 	_input_row.visible = channel == "global"
+	_count.visible = channel == "global" and _entry.text.length() > ChatFilter.MAX
 	_events_hint.visible = channel == "events"
 	_refresh_buttons()
 
@@ -229,7 +233,9 @@ func _refresh_buttons() -> void:
 
 
 func _update_count(text: String) -> void:
-	_count.text = "%d/%d" % [text.length(), ChatFilter.MAX]
+	# only shown once the message is over the limit
+	_count.text = "%d/%d characters, too long to send" % [text.length(), ChatFilter.MAX]
+	_count.visible = text.length() > ChatFilter.MAX
 
 
 func _build() -> void:
@@ -241,12 +247,12 @@ func _build() -> void:
 	_panel = PanelContainer.new()
 	_panel.anchor_left = 1.0
 	_panel.anchor_right = 1.0
-	_panel.anchor_top = 0.5
-	_panel.anchor_bottom = 0.5
+	_panel.anchor_top = 0.0
+	_panel.anchor_bottom = 1.0
 	_panel.offset_left = -376
 	_panel.offset_right = -16
-	_panel.offset_top = -150
-	_panel.offset_bottom = 210
+	_panel.offset_top = 16 + UIKit.ICON_BUTTON + 10   # the full right side, under the Profile and gear buttons
+	_panel.offset_bottom = -16
 	_panel.add_theme_stylebox_override("panel", UIKit.panel(Color(0.07, 0.08, 0.11, 0.78), UIKit.GOLD, 12.0, true))
 	root.add_child(_panel)
 	var box := VBoxContainer.new()
@@ -286,7 +292,7 @@ func _build() -> void:
 	_input_row.add_theme_constant_override("separation", 4)
 	box.add_child(_input_row)
 	_entry = LineEdit.new()
-	_entry.max_length = ChatFilter.MAX
+	_entry.max_length = ChatFilter.MAX * 3   # over 100 is allowed in the box, but not sent
 	_entry.placeholder_text = "Press Enter to chat"
 	_entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_entry.add_theme_font_size_override("font_size", 14)
@@ -296,10 +302,10 @@ func _build() -> void:
 	_entry.text_changed.connect(_update_count)
 	_entry.gui_input.connect(_on_input_key)
 	_input_row.add_child(_entry)
-	_count = UIKit.label("", SYSTEM_COLOR, 11)
-	_count.custom_minimum_size = Vector2(44, 0)
+	_count = UIKit.label("", UIKit.SHORT, 12)
 	_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_input_row.add_child(_count)
+	box.add_child(_count)
+	box.move_child(_count, _input_row.get_index())
 	_update_count("")
 	var send := UIKit.button("Send", true, func(): _send(_entry.text))
 	send.custom_minimum_size = Vector2(58, 32)
@@ -308,12 +314,12 @@ func _build() -> void:
 	_open_button = UIKit.button("Chat", true, open)
 	_open_button.anchor_left = 1.0
 	_open_button.anchor_right = 1.0
-	_open_button.anchor_top = 0.5
-	_open_button.anchor_bottom = 0.5
+	_open_button.anchor_top = 1.0
+	_open_button.anchor_bottom = 1.0
 	_open_button.offset_left = -112
 	_open_button.offset_right = -16
-	_open_button.offset_top = 170
-	_open_button.offset_bottom = 208
+	_open_button.offset_top = -54
+	_open_button.offset_bottom = -16
 	_open_button.tooltip_text = "Open chat"
 	_open_button.visible = false
 	root.add_child(_open_button)
