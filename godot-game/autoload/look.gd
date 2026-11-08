@@ -31,6 +31,7 @@ var wallet := ""                  # the address ownership was read for ("" = no 
 var state := "none"               # none | loading | ready | error
 var error := ""
 var imps: Array = []              # token ids the wallet holds
+var tiers := {}                   # token id -> imp tier, if impz.club sends it (it doesn't yet: the profile shows "not known")
 var traits := {}                  # {slot: {trait_id: [token ids that have it]}}
 var saved: Array = []             # builds saved on impz.club: {id, name, body, head, eyes, clothing, back}
 
@@ -89,6 +90,7 @@ func load_wallet(address: String) -> void:
 	_http.cancel_request()
 	wallet = address
 	imps = []
+	tiers = {}
 	traits = {}
 	saved = []
 	error = ""
@@ -125,6 +127,7 @@ func _on_response(result: int, code: int, _headers: PackedStringArray, body: Pac
 		_fail(str(data.get("error", "impz.club answered %d." % code)) if data is Dictionary else "impz.club answered %d." % code)
 		return
 	imps = data.get("imps", [])
+	tiers = data.get("tiers", {}) if data.get("tiers") is Dictionary else {}
 	traits = data.get("traits", {})
 	saved = data.get("saved", [])
 	state = "ready"

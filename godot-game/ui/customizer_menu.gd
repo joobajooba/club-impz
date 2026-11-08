@@ -72,6 +72,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _can_open() -> bool:
+	if ProfileMenu.visible:
+		ProfileMenu.close()   # opening a menu over another replaces it (game_menus.md section 4.1)
 	for n in get_tree().get_nodes_in_group("modal"):
 		if n != self and n.visible:
 			return false

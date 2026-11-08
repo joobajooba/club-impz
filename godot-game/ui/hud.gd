@@ -28,6 +28,7 @@ var _card: PanelContainer
 var _energy_bar: ProgressBar
 var _energy_text: Label
 var _name: Label
+var _title: Label
 var _coins: Label
 var _portrait: SubViewport
 var _slots := {}             # tool kind -> {box, icon, key}
@@ -53,6 +54,8 @@ func _ready() -> void:
 	if ProfileUI.account:
 		ProfileUI.account.changed.connect(_on_account)
 	Net.status_changed.connect(_on_account)
+	Save.profile_changed.connect(_on_title)
+	_on_title()
 
 
 func _process(_delta: float) -> void:
@@ -136,7 +139,7 @@ func _build_card() -> Control:
 	_card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_card.gui_input.connect(func(e: InputEvent):
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-			ProfileUI.open_menu()
+			ProfileMenu.toggle()          # the player profile (P); the Profile icon top right opens the account menu
 			_card.accept_event())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -158,6 +161,12 @@ func _build_card() -> Control:
 	_name.clip_text = true
 	_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_name)
+	_title = UIKit.label("", UIKit.RARE, 12)             # the title equipped on the profile, if any
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_title.clip_text = true
+	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.visible = false
+	col.add_child(_title)
 
 	var coin_row := HBoxContainer.new()
 	coin_row.add_theme_constant_override("separation", 6)
@@ -256,7 +265,7 @@ func _on_account() -> void:
 		_name.text = Net.my_name
 	else:
 		_name.text = "Guest"
-	var tip := "Your profile: click to open it"
+	var tip := "Your profile (P): click to open it"
 	if wallet == "":
 		_coins.text = "Connect a wallet"
 		_coins.add_theme_color_override("font_color", UIKit.MUTED)
@@ -270,6 +279,13 @@ func _on_account() -> void:
 		if nick == "":
 			tip += "\nNo username yet: pick one in the Profile menu"
 	_card.tooltip_text = tip
+
+
+func _on_title() -> void:
+	var t: String = ProfileMenu.title_name(Save.profile.title)
+	_title.text = t
+	_title.visible = t != ""
+	_redraw_portrait()                                # the card's height changed: draw the head again
 
 
 func _on_energy(value: int) -> void:
@@ -334,7 +350,7 @@ func _on_held(_id: String) -> void:
 		s.icon.texture = GameData.tool_icon(id)
 		s.icon.modulate = Color.WHITE if lit else Color(1, 1, 1, 0.7)
 		s.box.add_theme_stylebox_override("panel", UIKit.slot(Color("#3a3526") if lit else UIKit.SLOT,
-				UIKit.RARE if lit else UIKit.OUTLINE, 2 if lit else 1, 5.0))
+				UIKit.RARE if lit else UIKit.OUTLINE, 1, 5.0))   # same rim as the rest: highlighted, not shrunk
 		s.key.add_theme_color_override("font_color", UIKit.RARE if lit else UIKit.MUTED)
 		s.box.tooltip_text = "%s  (key %s)" % [GameData.tools[id].label, s.key.text]
 	_tool_name.text = GameData.tools[Inventory.held[Inventory.in_hand]].label

@@ -80,10 +80,10 @@ func _slot(size: int) -> Button:
 
 
 func _style_slot(b: Button, held := false) -> void:
-	var s := UIKit.slot(UIKit.SLOT, HELD, 2) if held else UIKit.slot()
+	var s := UIKit.slot(Color("#3a3526"), HELD, 1) if held else UIKit.slot()   # highlighted, the same size as the rest
 	for state in ["normal", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(state, s)
-	b.add_theme_stylebox_override("hover", UIKit.slot(UIKit.SLOT.lightened(0.1), HELD if held else UIKit.GOLD, 2 if held else 1))
+	b.add_theme_stylebox_override("hover", UIKit.slot(UIKit.SLOT.lightened(0.1), HELD if held else UIKit.GOLD, 1))
 
 
 func _render() -> void:
