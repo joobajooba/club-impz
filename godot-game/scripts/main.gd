@@ -11,6 +11,8 @@ extends Node
 ##   --chop_at=5 --chop_time=4 --regrow=12   step up to the nearest choppable tree and chop it after 5 s, with
 ##                               every tree taking 4 s and growing back after 12 s   --chop_measure  print where
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
+##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
+##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -33,8 +35,15 @@ var current_world: Node = null
 const FREE_CAMERA := preload("res://scripts/player/free_camera.gd")
 var free_cam: Camera3D = null
 var current_world_name := ""
+## The world the player is in once it has finished loading ("" on the loading screen). Net (autoload/net.gd)
+## sends this one, so other players only see this Imp, and this player only sees theirs, once it's loaded.
+var joined_world := ""
 var busy := false
 var args := {}
+const LOAD_BUDGET_USEC := 25000           # world building per frame on the loading screen (the bar still moves)
+const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering the Resource World"}
+var loading: CanvasLayer                  # ui/loading_screen.gd
+var inventory_ui: CanvasLayer             # ui/inventory_ui.tscn, I
 
 
 func _ready() -> void:
@@ -49,15 +58,29 @@ func _ready() -> void:
 	for a in user_args:
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
+	loading = preload("res://ui/loading_screen.gd").new()
+	loading.name = "loading_screen"
+	add_child(loading)
+	inventory_ui = preload("res://ui/inventory_ui.tscn").instantiate()
+	inventory_ui.visible = false
+	inventory_ui.add_to_group("modal")                 # the Imp stands still while it is open
+	add_child(inventory_ui)
 	var start: String = args.get("world", "hub")
-	_load_world(start, "spawn_point")
+	busy = true
+	player.frozen = true
+	await _enter_world(start, "spawn_point")
 	if args.has("biome") and current_world.has_method("biome_centre"):
-		await get_tree().process_frame
 		player.place_at(current_world.biome_centre(args["biome"]))
 	if args.has("yaw"): player.cam_yaw = float(args["yaw"])
 	if args.has("pitch"): player.cam_pitch = float(args["pitch"])
 	if args.has("zoom"): player.target_zoom = float(args["zoom"])
-	fade_rect.color.a = 0.0
+	player.frozen = false
+	busy = false
+	if args.has("give"):                                   # testing: --give=maple_log,pine_log
+		for id in args["give"].split(","):
+			Inventory.gain(id, 3)
+	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
+		inventory_ui.visible = true
 	if args.has("shot"):
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
 	if args.has("perf"):
@@ -87,6 +110,17 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("inventory") and not event.is_echo():
+		if inventory_ui.visible:
+			inventory_ui.visible = false
+		elif not busy and free_cam == null and not player.menu_open():
+			inventory_ui.visible = true
+		get_viewport().set_input_as_handled()
+		return
+	if inventory_ui.visible and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		inventory_ui.visible = false
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("toggle_camera_mode") and not busy:
 		if OS.is_debug_build() or camera_mode_in_release:
 			set_camera_mode(free_cam == null)
@@ -115,30 +149,75 @@ func set_camera_mode(on: bool) -> void:
 
 
 func change_world(world_name: String, spawn_name: String) -> void:
-	## Fade to black, swap the world scene, place the player at the target spawn, fade back in.
+	## Fade to black, then the loading screen while the new world is built, then fade in to it.
 	if busy:
 		return
 	set_camera_mode(false)
+	inventory_ui.visible = false
 	busy = true
 	player.frozen = true
+	player.chopper.stop()
 	var tw := create_tween()
-	tw.tween_property(fade_rect, "color:a", 1.0, 0.5)
+	tw.tween_property(fade_rect, "color:a", 1.0, 0.4)
 	await tw.finished
-	_load_world(world_name, spawn_name)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var tw2 := create_tween()
-	tw2.tween_property(fade_rect, "color:a", 0.0, 0.6)
-	await tw2.finished
+	await _enter_world(world_name, spawn_name)
 	player.frozen = false
 	busy = false
 
 
-func _load_world(world_name: String, spawn_name: String) -> void:
+## The loading screen: load the world scene, build all of it (GameWorld.load_step) and only then join
+## it, so it is not being built (and stuttering) while the player plays and other players see them.
+func _enter_world(world_name: String, spawn_name: String) -> void:
+	var t0 := Time.get_ticks_msec()
+	joined_world = ""
+	loading.open(LOADING_TITLES.get(world_name, "Loading"))
+	fade_rect.color.a = 0.0
+	await get_tree().process_frame                     # draw the loading screen before the heavy work
+	await get_tree().process_frame
+	var path: String = WORLDS[world_name]
+	var packed: PackedScene = null
+	if ResourceLoader.load_threaded_request(path) == OK:
+		var p := []
+		while ResourceLoader.load_threaded_get_status(path, p) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			loading.set_progress(0.05 * float(p[0]) if p.size() > 0 else 0.0, "Loading the world")
+			await get_tree().process_frame
+		packed = ResourceLoader.load_threaded_get(path) as PackedScene
+	loading.set_progress(0.05, "Shaping the land")
+	await get_tree().process_frame
+	_load_world(world_name, spawn_name, packed)        # the world's terrain data and spawn area
+	var yaw: float = player.cam_yaw
+	if current_world.has_method("load_step"):
+		while true:
+			var f: float = current_world.load_step(LOAD_BUDGET_USEC)
+			loading.set_progress(0.05 + 0.9 * f, "Building the terrain" if f < 0.3 else "Growing trees and plants")
+			player.cam_yaw += 0.4                      # turn the hidden camera: every material is compiled now
+			if args.has("shot_loading") and f > 0.5:   # testing: a picture of the loading screen
+				args.erase("shot_loading")
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path(args.get("shot", "res://loading.png")).get_base_dir() + "/loading_screen.png")
+			await get_tree().process_frame
+			if f >= 1.0:
+				break
+	player.cam_yaw = yaw
+	for i in 4:                                        # settle: colliders, shaders of the last cells
+		loading.set_progress(0.95 + 0.0125 * i, "Joining")
+		await get_tree().process_frame
+	loading.set_progress(1.0, "Joining")
+	print("world %s: loaded in %d ms" % [world_name, Time.get_ticks_msec() - t0])
+	joined_world = world_name
+	fade_rect.color.a = 1.0
+	loading.close()
+	var tw := create_tween()
+	tw.tween_property(fade_rect, "color:a", 0.0, 0.5)
+	await tw.finished
+
+
+func _load_world(world_name: String, spawn_name: String, packed: PackedScene = null) -> void:
 	if current_world:
 		world_holder.remove_child(current_world)
 		current_world.queue_free()
-	var packed: PackedScene = load(WORLDS[world_name])
+	if packed == null:
+		packed = load(WORLDS[world_name])
 	current_world = packed.instantiate()
 	current_world_name = world_name
 	world_holder.add_child(current_world)
@@ -206,8 +285,10 @@ func _portal_test() -> void:
 			print("PORTAL_TEST no portal in ", current_world_name)
 			return
 		player.place_at(Transform3D(Basis(), portal.global_position))
-		await get_tree().create_timer(3.0).timeout
-		print("PORTAL_TEST now in ", current_world_name)
+		await get_tree().create_timer(1.0).timeout
+		while busy:                                # the loading screen
+			await get_tree().process_frame
+		print("PORTAL_TEST now in ", joined_world)
 	get_tree().quit()
 
 

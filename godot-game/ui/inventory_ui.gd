@@ -34,6 +34,7 @@ func _ready() -> void:
 	# The grid scrolls when it is taller than the window (bought rows, small screens).
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	vbox.add_child(_scroll)
 	vbox.move_child(_scroll, slots.get_index())
 	slots.reparent(_scroll)

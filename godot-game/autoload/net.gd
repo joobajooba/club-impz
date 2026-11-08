@@ -123,11 +123,11 @@ func _main() -> Node:
 ## [world, position, yaw, moving] of the local Imp, or [] outside the game scene.
 func _me() -> Array:
 	var main = _main()
-	if main == null or main.get("player") == null or main.current_world_name == "":
+	if main == null or main.get("player") == null or str(main.get("joined_world")) == "":
 		return []
 	var p = main.player
 	var moving: int = 2 if not p.is_on_floor() else (1 if Vector2(p.velocity.x, p.velocity.z).length() > 0.3 else 0)
-	return [main.current_world_name, p.global_position, p.visual.rotation.y, moving]
+	return [main.joined_world, p.global_position, p.visual.rotation.y, moving]
 
 
 func _account() -> Array:
@@ -248,7 +248,7 @@ func _refresh_visible() -> void:
 		_holder = Node3D.new()
 		_holder.name = "remote_players"
 		main.add_child(_holder)
-	var world: String = main.current_world_name
+	var world: String = main.joined_world
 	for id in _info:
 		var p: Dictionary = _info[id]
 		var here: bool = str(p.get("world", "")) == world

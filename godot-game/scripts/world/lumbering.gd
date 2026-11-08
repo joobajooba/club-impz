@@ -13,18 +13,19 @@ const SPEED_PER_TIER := 0.05      # each axe tier above the minimum chops 5% fas
 const REACH := 1.5                # metres from the Imp to the bark to start chopping
 
 ## Lumbering table, resource_gathering.md section 5. time = seconds to chop with the minimum axe.
+## bark = the log icon's colour for logs with no picture yet (TEST art).
 ## axe = the minimum axe's metal (game_data.gd _METALS ids; the doc's Voidstone axe is `void_axe`).
 const TREES := {
-	"pine": {label = "Pine", tier = 1, time = 30.0, axe = "stone", log = "pine_log", xp = 22},
-	"birch": {label = "Birch", tier = 2, time = 45.0, axe = "stone", log = "birch_log", xp = 38},
-	"oak": {label = "Oak", tier = 3, time = 45.0, axe = "stone", log = "oak_log", xp = 48},
-	"maple": {label = "Maple", tier = 4, time = 60.0, axe = "bronze", log = "maple_log", xp = 75},
-	"hickory": {label = "Hickory", tier = 5, time = 120.0, axe = "iron", log = "hickory_log", xp = 165},
-	"frostbark": {label = "Frostbark", tier = 6, time = 240.0, axe = "gold", log = "frostbark_log", xp = 355},
-	"titanwood": {label = "Titanwood", tier = 7, time = 300.0, axe = "obsidian", log = "titanwood_log", xp = 480},
-	"runewood": {label = "Runewood", tier = 8, time = 300.0, axe = "titanite", log = "runewood_log", xp = 540},
-	"gembark": {label = "Gembark", tier = 9, time = 600.0, axe = "dreadstone", log = "gembark_log", xp = 1190},
-	"worldbark": {label = "Worldbark", tier = 10, time = 1000.0, axe = "void", log = "worldbark_log", xp = 2160},
+	"pine": {label = "Pine", tier = 1, time = 30.0, axe = "stone", log = "pine_log", xp = 22, bark = "#6b4a2c"},
+	"birch": {label = "Birch", tier = 2, time = 45.0, axe = "stone", log = "birch_log", xp = 38, bark = "#e4e0d6"},
+	"oak": {label = "Oak", tier = 3, time = 45.0, axe = "stone", log = "oak_log", xp = 48, bark = "#84543c"},
+	"maple": {label = "Maple", tier = 4, time = 60.0, axe = "bronze", log = "maple_log", xp = 75, bark = "#9a4e2c"},
+	"hickory": {label = "Hickory", tier = 5, time = 120.0, axe = "iron", log = "hickory_log", xp = 165, bark = "#7a6248"},
+	"frostbark": {label = "Frostbark", tier = 6, time = 240.0, axe = "gold", log = "frostbark_log", xp = 355, bark = "#a8c8e0"},
+	"titanwood": {label = "Titanwood", tier = 7, time = 300.0, axe = "obsidian", log = "titanwood_log", xp = 480, bark = "#6c7280"},
+	"runewood": {label = "Runewood", tier = 8, time = 300.0, axe = "titanite", log = "runewood_log", xp = 540, bark = "#5a3c8c"},
+	"gembark": {label = "Gembark", tier = 9, time = 600.0, axe = "dreadstone", log = "gembark_log", xp = 1190, bark = "#2c9c84"},
+	"worldbark": {label = "Worldbark", tier = 10, time = 1000.0, axe = "void", log = "worldbark_log", xp = 2160, bark = "#4a3424"},
 }
 
 ## Which tree each scatter rule (data/scatter.json) is. "" = by the mesh alias (the forest's pine, oak and

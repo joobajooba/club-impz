@@ -69,6 +69,15 @@ func add(id: String, n := 1) -> bool:
 	return true
 
 
+## Something gathered in the world (a chopped tree's log; mining, foraging and fishing use this too):
+## into the inventory, with the "+1 Pine log" line on the HUD. False (and "Inventory full") if no room.
+func gain(id: String, n := 1, rare := false) -> bool:
+	if not add(id, n):
+		return false
+	looted.emit(id, n, rare)
+	return true
+
+
 func remove(id: String, n: int) -> void:
 	var left := count(id) - n
 	if left > 0:
