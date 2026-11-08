@@ -53,7 +53,7 @@ Taken from the decided systems. **Decided (D-114, D-115): every tier of a tool i
 | Hunting animals | 16 creatures, Hare to Eclipse Dragon | D-032 | Not made |
 | Items in the world | 76: ore (10), ingots (9), hides (16), dried bundles (10), logs (10), planks (10), gems (10), a coin pile. Colours from each item's icon | D-005, D-022, D-029, D-118 | Made 2026-10-30, not in the game yet |
 | Stations and props | Furnace, anvil, drying rack, tanning rack, sawbench, workbench; market stall, notice board, bench, barrel, crate, lantern post, signpost, well, fence, portal | D-118 (answers open question 2) | Made 2026-10-30, not in the game yet |
-| Buildings | Cottage, smithy, general store, tavern, watchtower (**Proposed** list), to the hub castle reference | D-118 | Made 2026-10-30. The hub castle itself is J00BA's (not in the repo) |
+| Buildings | Cottage, smithy, general store, tavern, watchtower (**Proposed** list), to the hub castle reference. Second set: guild hall, market hall, stable, gatehouse, townhouse, windmill (**Proposed** list, at the user's request) | D-118 | First set made 2026-10-30; second set 2026-11-08 (`.bbmodel` only, `.glb` not exported yet). The hub castle itself is J00BA's (not in the repo) |
 
 The inventory icons stay **2D pixel art at 48×48** (D-015). A Blockbench model does not replace its icon.
 
