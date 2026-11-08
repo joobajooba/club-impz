@@ -40,6 +40,22 @@ const MOB_LAIRS := [["ember_dragon", "obsidian_cave", 34.0], ["stone_golem", "hi
 ## enters the swamp (J00BA, 2026-11-08).
 const MOBS_AT_BIOME_START := [["dragon", "swamp", 30.0, 22.0]]
 const MOB_SIZE := {"pale_dragon": 0.5}   # J00BA: the pale dragon at half size
+const BIRD := preload("res://scripts/world/bird.gd")
+## Birds (scripts/world/bird.gd): [kind, biome, groups, per group, where] where = land / shore / water.
+const BIRDS := [
+	["pigeon", "forest", 3, 3, "land"], ["crow", "forest", 2, 2, "land"], ["robin", "forest", 4, 1, "land"],
+	["owl", "forest", 2, 1, "land"],
+	["eagle", "mountain", 3, 1, "land"], ["crow", "mountain", 1, 3, "land"],
+	["snowy_owl", "frost", 3, 1, "land"], ["eagle", "frost", 1, 1, "land"],
+	["crow", "plains", 2, 3, "land"], ["pigeon", "plains", 2, 3, "land"], ["eagle", "plains", 1, 1, "land"],
+	["heron", "swamp", 3, 1, "shore"], ["duck", "swamp", 3, 3, "water"], ["seagull", "swamp", 2, 1, "water"],
+]
+## Birds on the named water bodies (layout "water"): [water name, kind, how many, where].
+const WATER_BIRDS := [
+	["forest_river", "swan", 2, "water"], ["forest_river", "duck", 3, "water"], ["forest_river", "heron", 1, "shore"],
+	["forest_river", "seagull", 3, "water"], ["forest_upper_pool", "swan", 2, "water"],
+	["plains_watering_hole", "duck", 2, "water"],
+]
 ## Voidstone and stellarite veins are world events (autoload/ore_events.gd): they appear on one of these
 ## spots, the same list on every client (fixed seed, any biome), which the server picks by index.
 const EVENT_SPOTS := 48
@@ -79,6 +95,7 @@ func populate(w: GameWorld) -> void:
 	_giant_titanwood(lm["giant_titanwood"])
 	_place_ores()
 	_place_mobs()
+	_place_birds()
 
 
 func _landmark(key: String, lm: Dictionary, yaw: float, sink := 0.0) -> void:
@@ -355,7 +372,81 @@ func _mob(root: Node3D, kind: String, p: Vector2, mob_seed: int) -> void:
 
 ## GameWorld.set_player: the mobs measure "far away" from the player.
 func set_player(p: Node3D) -> void:
-	var root := get_node_or_null("mobs")
-	if root:
-		for m in root.get_children():
-			m.set("view", p)
+	for rname in ["mobs", "birds"]:
+		var root := get_node_or_null(rname)
+		if root:
+			for m in root.get_children():
+				m.set("view", p)
+
+
+
+func _place_birds() -> void:
+	var root := Node3D.new()
+	root.name = "birds"
+	add_child(root)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7171
+	var names := ["forest", "mountain", "frost", "plains", "swamp"]
+	var n := 0
+	var waters: Array = data.layout.get("water", [])
+	for spec in BIRDS:
+		var bi := names.find(spec[1])
+		for g in int(spec[2]):
+			for tries in 4000:
+				var x := rng.randf_range(bi * 256.0 + 16.0, bi * 256.0 + 240.0)
+				var z := rng.randf_range(-190.0, 190.0)
+				if data.biome_name(x, z) != spec[1] or not _bird_spot_ok(x, z, spec[4]):
+					continue
+				for i in int(spec[3]):
+					n += 1
+					_bird(root, spec[0], Vector2(x, z) + Vector2(rng.randf_range(-2, 2), rng.randf_range(-2, 2)), 3000 + n,
+						_water_at(waters, x, z))
+				break
+	for spec in WATER_BIRDS:
+		var w := {}
+		for ww in waters:
+			if ww["name"] == spec[0]:
+				w = ww
+		if w.is_empty():
+			continue
+		var r: Array = w["rect"]
+		for i in int(spec[2]):
+			for tries in 400:
+				var x := rng.randf_range(r[0], r[2])
+				var z := rng.randf_range(r[1], r[3])
+				if _bird_spot_ok(x, z, spec[3]):
+					n += 1
+					_bird(root, spec[1], Vector2(x, z), 3000 + n, w)
+					break
+
+
+func _bird_spot_ok(x: float, z: float, where: String) -> bool:
+	if not data.in_bounds(x, z, 10.0):
+		return false
+	var h := data.height(x, z)
+	var wl := data.water_level(x, z)
+	match where:
+		"water": return h < wl - 0.4
+		"shore": return h > wl - 0.2 and h < wl + 0.8 and data.normal(x, z).y > 0.8
+	return h > wl + 0.3 and data.normal(x, z).y > 0.8
+
+
+func _water_at(waters: Array, x: float, z: float) -> Dictionary:
+	for w in waters:
+		var r: Array = w["rect"]
+		if x >= r[0] and x <= r[2] and z >= r[1] and z <= r[3]:
+			return w
+	return {}
+
+
+func _bird(root: Node3D, kind: String, p: Vector2, bird_seed: int, water: Dictionary) -> void:
+	var b: Node3D = BIRD.new()
+	b.set("kind", kind)
+	b.set("home", Vector3(p.x, data.height(p.x, p.y), p.y))
+	b.set("bird_seed", bird_seed)
+	b.set("data", data)
+	b.set("view", world.player)
+	b.set("water", water)
+	b.name = "%s_%d" % [kind, bird_seed - 3000]
+	root.add_child(b)
+

@@ -15,7 +15,7 @@ extends Node
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
-##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it
+##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it   --look_at  a free camera on it
 ##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
 ##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
@@ -92,6 +92,8 @@ func _ready() -> void:
 		for n in current_world.find_children("*", "Node3D", true, false):
 			if n.get("mob_seed") != null:
 				print("MOBPOS ", n.get("kind"), " ", n.global_position)
+			if n.get("bird_seed") != null:
+				print("BIRDPOS ", n.get("kind"), " ", n.global_position, " ", n.get("_playing"))
 	if args.has("goto_mob"):                               # testing: --goto_mob=wolf stands 7 m from the first wolf
 		for n in current_world.find_children(args["goto_mob"] + "_*", "Node3D", true, false):
 			if n.get_script() == null:
@@ -102,6 +104,8 @@ func _ready() -> void:
 			print("MOB at ", n.name, " ", n.global_position)
 			if args.has("follow"):                         # keep standing beside it (for screenshots of it walking)
 				_follow(n, float(args.get("follow_dist", "4.5")))
+			if args.has("look_at"):                        # a free camera that keeps 8 m from it (for birds in the air)
+				_look_at(n, float(args.get("follow_dist", "8")))
 			break
 	if args.has("goto_scatter"):                           # testing: --goto_scatter=rock_swamp_l stands by the first of those
 		var sc := get_tree().get_first_node_in_group("scatter") as Scatter
@@ -413,4 +417,13 @@ func _follow(n: Node3D, dist: float) -> void:
 		player.cam_yaw = atan2(-(n.global_position.x - p.x), -(n.global_position.z - p.z)) + 0.35
 		var mid: float = n.global_position.y + float(args.get("follow_h", "0.8"))   # aim at the mob's middle
 		player.cam_pitch = clampf(-atan2(p.y + 2.0 - mid, Vector2(n.global_position.x - p.x, n.global_position.z - p.z).length() + float(player.target_zoom)), -1.2, 0.4)
+		await get_tree().process_frame
+
+
+## Testing (--goto_mob with --look_at): a free camera stays a few metres from the mob or bird, looking at it.
+func _look_at(n: Node3D, dist: float) -> void:
+	set_camera_mode(true)
+	while is_instance_valid(n) and free_cam:
+		var c := n.global_position + Vector3(dist * 0.6, dist * 0.35, dist * 0.75)
+		free_cam.global_transform = Transform3D(Basis(), c).looking_at(n.global_position + Vector3.UP * 0.3, Vector3.UP)
 		await get_tree().process_frame

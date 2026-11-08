@@ -210,7 +210,7 @@ static func _template(id: String) -> PackedScene:
 	var anim := root.find_children("*", "AnimationPlayer", true, false)
 	if not anim.is_empty():
 		var ap := anim[0] as AnimationPlayer
-		for n in ["idle", "walk", "run", "look", "glide", "hover", "fly"]:
+		for n in ["idle", "walk", "run", "look", "glide", "hover", "fly", "swim"]:
 			if ap.has_animation(n):
 				ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
 	var packed := PackedScene.new()
