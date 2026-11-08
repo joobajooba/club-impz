@@ -33,9 +33,13 @@ const MOBS := [
 ## animals in sight as soon as you arrive: [kind, count, metres along the path, metres to the side].
 const MOBS_AT_ARRIVAL := [["cow", 3, 26.0, 9.0], ["pig", 2, 40.0, -10.0]]
 ## [kind, landmark, metres away]: the ember dragon by the volcanic obsidian cave, the stone golem under the
-## highest peak, the pale dragon by the ice spire, the dark dragon by the dreadstone pit.
+## highest peak, the pale dragon by the ice spire.
 const MOB_LAIRS := [["ember_dragon", "obsidian_cave", 34.0], ["stone_golem", "highest_peak", 24.0],
-	["pale_dragon", "ice_spire", 30.0], ["dragon", "dreadstone_pit", 32.0]]
+	["pale_dragon", "ice_spire", 30.0]]
+## [kind, biome, metres into the biome, metres to the side of the path]: the dark dragon waits where the path
+## enters the swamp (J00BA, 2026-11-08).
+const MOBS_AT_BIOME_START := [["dragon", "swamp", 30.0, 22.0]]
+const MOB_SIZE := {"pale_dragon": 0.5}   # J00BA: the pale dragon at half size
 ## Voidstone and stellarite veins are world events (autoload/ore_events.gd): they appear on one of these
 ## spots, the same list on every client (fixed seed, any biome), which the server picks by index.
 const EVENT_SPOTS := 48
@@ -290,6 +294,18 @@ func _place_mobs() -> void:
 					n += 1
 					_mob(root, spec[0], c + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0)), 1000 + n)
 				break
+	var biomes := ["forest", "mountain", "frost", "plains", "swamp"]
+	for spec in MOBS_AT_BIOME_START:                  # by the path where it enters the biome
+		var x0: float = biomes.find(spec[1]) * 256.0 + float(spec[2])
+		for tries in 30:
+			var x := x0 + tries * 3.0
+			var side: float = float(spec[3]) * (1.0 if tries % 2 == 0 else -1.0)
+			var c := Vector2(x, _path_z(x) + side)
+			if data.biome_name(c.x, c.y) == spec[1] and _ore_spot_ok(spec[1], c.x, c.y, true, homes):
+				homes.append(c)
+				n += 1
+				_mob(root, spec[0], c, 1000 + n)
+				break
 	var lm: Dictionary = data.layout["landmarks"]
 	for lair in MOB_LAIRS:
 		if not lm.has(lair[1]):
@@ -331,6 +347,7 @@ func _mob(root: Node3D, kind: String, p: Vector2, mob_seed: int) -> void:
 	m.set("mob_seed", mob_seed)
 	m.set("data", data)
 	m.set("view", world.player)
+	m.set("size", float(MOB_SIZE.get(kind, 1.0)))
 	m.name = "%s_%d" % [kind, mob_seed - 1000]
 	root.add_child(m)
 

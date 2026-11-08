@@ -1,32 +1,43 @@
 extends Node
-## Mining the event ore veins (voidstone and stellarite, autoload/ore_events.gd) with the pickaxe.
+## Mining the ore veins with the pickaxe (resource_gathering.md section 4, the rules in scripts/world/mining.gd).
 ## A child of the player (imp_player.gd), next to tree_chopper.gd.
 ##
-## Walk up to an event vein with a pickaxe in hand: the prompt shows "E  Mine Voidstone". Press E and the
-## Imp faces the vein and keeps swinging. The vein is never locked to one player: everyone near it mines
-## at once, and every swing that lands has a chance to give the ore, about one ore per the doc's time to
-## mine (resource_gathering.md 4.1: voidstone 600 s with a dreadstone pickaxe, stellarite 1000 s with a
-## voidstone one; 5% faster for every pickaxe tier above that, section 2.3). An ore goes through
-## Inventory.gather (5 energy, the raw ore and the gem roll: arcanium / eclipsium).
-## E again, moving, or putting the pickaxe away stops. When the event ends the vein sinks away.
+## Walk up to a vein with a pickaxe in hand: the prompt shows "E  Mine Copper (45s)", or what is missing
+## ("Needs a Bronze pickaxe"). Press E and the Imp faces the vein and keeps swinging; every swing that lands
+## throws chips.
+## - An ordinary vein fills a bar over the doc's time to mine (faster with a better pickaxe). When it is full the
+##   ore goes into the inventory, the gem may come with it, and the bar starts again: veins never run out.
+## - Voidstone and stellarite event veins (autoload/ore_events.gd) are shared by everyone: every swing has a
+##   chance to give the ore (about one per the time to mine), so no player holds the vein. When the event
+##   ends the vein sinks away.
+## E again, moving, or putting the pickaxe away stops. Progress on an ordinary vein is kept.
 
 const ToolFx := preload("res://scripts/player/tool_fx.gd")
-const TIME := {"void": 600.0, "stellarite": 1000.0}   # seconds per ore with the minimum pickaxe
-const SPEED_PER_TIER := 0.05
-const REACH := 2.0               # metres from the side of the mound to start mining
 const CHIPS := {
+	"coal": [Color("#1c1c22"), Color("#4a4e5c"), Color("#575b64")],
+	"tin": [Color("#9ea4aa"), Color("#d6dbe0"), Color("#6b6f78")],
+	"copper": [Color("#c4642e"), Color("#f28c52"), Color("#4e525b")],
+	"iron": [Color("#86462c"), Color("#c47a5a"), Color("#5e4d43")],
+	"gold": [Color("#e6b22a"), Color("#ffe27a"), Color("#6f645c")],
+	"obsidian": [Color("#2b1f40"), Color("#6a4c9c"), Color("#24222d")],
+	"titanite": [Color("#547ea2"), Color("#a8d4f0"), Color("#a7aaae")],
+	"dreadstone": [Color("#6c1820"), Color("#b0242c"), Color("#2e3628")],
 	"void": [Color("#4a1878"), Color("#a448e0"), Color("#2a2234")],
 	"stellarite": [Color("#ecbc2c"), Color("#fff08c"), Color("#273457")],
 }
+const HIT_SOUNDS := ["res://assets/sounds/pick_hit_1.wav", "res://assets/sounds/pick_hit_2.wav", "res://assets/sounds/pick_hit_3.wav"]
 
 var player: CharacterBody3D
 var visual: Node3D
-var target: Node3D               # event vein in reach (for the prompt)
+var target: Node3D               # vein in reach (for the prompt)
 var vein: Node3D                 # the vein being mined
-var chance_scale := 1.0          # testing (--mine_chance=20): multiplies the chance per swing
+var chance_scale := 1.0          # testing (--mine_chance=20): multiplies the event veins' chance per swing
+var time_override := 0.0         # testing (--mine_time=3): every ore takes this long
 var mined := 0                   # ores from this vein so far (shown in the prompt)
 var _last_hit := 0.0
 var _prompt := []
+var _hit_player: AudioStreamPlayer3D
+var _hits: Array[AudioStream] = []
 
 
 func _ready() -> void:
@@ -34,14 +45,26 @@ func _ready() -> void:
 	visual = player.get_node("visual")
 	visual.struck.connect(_on_struck)
 	OreEvents.ended.connect(func(_id): call_deferred("_check_vein"))
+	for p in HIT_SOUNDS:
+		if ResourceLoader.exists(p):
+			_hits.append(load(p))
+	_hit_player = AudioStreamPlayer3D.new()
+	_hit_player.unit_size = 6.0
+	_hit_player.max_distance = 40.0
+	_hit_player.bus = "Master"
+	add_child(_hit_player)
 
 
 func is_mining() -> bool:
 	return is_instance_valid(vein)
 
 
-func _row(v: Node3D) -> Dictionary:
-	return GameData.tier_row("mining", str(v.get("ore")))
+func _ore(v: Node3D) -> String:
+	return str(v.get("ore"))
+
+
+func _is_event(v: Node3D) -> bool:
+	return v.is_in_group("event_vein")
 
 
 ## E (use_tool): start or stop mining. Returns false if there is nothing to mine, so the Imp just swings.
@@ -51,7 +74,7 @@ func use() -> bool:
 		return true
 	if Inventory.in_hand != "pickaxe" or not is_instance_valid(target):
 		return false
-	var why := Inventory.gather_blocker("mining", _row(target))
+	var why := Mining.blocker(_ore(target), Inventory.held.pickaxe)
 	if why != "":
 		Inventory.message.emit(why)
 		return false
@@ -68,8 +91,8 @@ func stop() -> void:
 
 
 func _check_vein() -> void:
-	if is_mining() and not vein.is_in_group("event_vein"):
-		Inventory.message.emit("The %s vein sank back into the ground." % OreEvents.label(str(vein.get("ore"))).to_lower())
+	if is_mining() and _is_event(vein) == false and String(vein.name).contains("_event_"):
+		Inventory.message.emit("The %s vein sank back into the ground." % Mining.ORES[_ore(vein)].label.to_lower())
 		stop()
 
 
@@ -88,16 +111,11 @@ func _face() -> void:
 	visual.rotation.y = atan2(u.x, u.z)
 
 
-## Seconds per ore with the pickaxe in hand.
 func mine_time(ore: String) -> float:
-	var row := GameData.tier_row("mining", ore)
-	var list: Array = GameData.tools_of["pickaxe"]
-	var held := list.find(GameData.tools[Inventory.held.pickaxe])
-	var need := list.find(GameData.tool_for_tier("pickaxe", int(row.tier)))
-	return float(TIME.get(ore, 600.0)) * maxf(0.2, 1.0 - SPEED_PER_TIER * maxi(0, held - need))
+	return time_override if time_override > 0.0 else Mining.mine_time(ore, Inventory.held.pickaxe)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not is_mining():
 		_look_for_vein()
 		return
@@ -108,32 +126,58 @@ func _process(_delta: float) -> void:
 		return
 	if not visual.is_busy():
 		visual.play_action("pickaxe")
-	var label := OreEvents.label(str(vein.get("ore")))
-	_set_prompt("", "Mining %s%s" % [label, ("  (%d mined)" % mined) if mined > 0 else ""], "E", "Stop")
+	var ore := _ore(vein)
+	var label: String = Mining.ORES[ore].label
+	var got := ("  (%d mined)" % mined) if mined > 0 else ""
+	if _is_event(vein):
+		_set_prompt("", "Mining %s%s" % [label, got], "E", "Stop")
+		return
+	# an ordinary vein: the bar fills while mining; a full bar is one ore, then it starts again
+	var key := String(vein.name)
+	var done: float = Mining.progress.get(key, 0.0) + delta
+	var need := mine_time(ore)
+	if done >= need:
+		var why := Mining.blocker(ore, Inventory.held.pickaxe)
+		if why != "":
+			Inventory.message.emit(why)
+			stop()
+			return
+		done = 0.0
+		Mining.give(ore)
+		mined += 1
+		ToolFx.burst(get_tree().current_scene, vein.call("centre") + Vector3.UP * 0.9, CHIPS.get(ore, [Color.WHITE]), 24, 3.2, 0.08)
+	Mining.progress[key] = done
+	_set_prompt("", "Mining %s  %d%%%s" % [label, int(done / need * 100.0), got], "E", "Stop")
 
 
 func _look_for_vein() -> void:
 	target = null
 	if not player.frozen and not player.menu_open():
 		var best := INF
-		for v: Node3D in get_tree().get_nodes_in_group("event_vein"):
+		for v: Node3D in get_tree().get_nodes_in_group("ore_vein"):
 			var c: Vector3 = v.call("centre")
+			if absf(c.y - player.global_position.y) > 3.0:
+				continue
 			var d := Vector2(player.global_position.x - c.x, player.global_position.z - c.z).length() - float(v.call("mound_radius"))
-			if d < REACH and d < best:
+			if d < Mining.REACH and d < best:
 				best = d
 				target = v
 	if target == null:
 		_set_prompt("", "")
 		return
-	var label := OreEvents.label(str(target.get("ore")))
+	var ore := _ore(target)
+	var label: String = Mining.ORES[ore].label
 	if Inventory.in_hand != "pickaxe":
-		_set_prompt("", "%s vein: mine it with a pickaxe (1)" % label)
+		_set_prompt("", "%s vein: take out a pickaxe (1) to mine it" % label)
 		return
-	var why := Inventory.gather_blocker("mining", _row(target))
+	var why := Mining.blocker(ore, Inventory.held.pickaxe)
 	if why != "":
 		_set_prompt("", why)
-	else:
+	elif _is_event(target):
 		_set_prompt("E", "Mine %s" % label)
+	else:
+		var left := maxi(1, int(ceil(mine_time(ore) - float(Mining.progress.get(String(target.name), 0.0)))))
+		_set_prompt("E", "Mine %s  (%ds)" % [label, left])
 
 
 func _set_prompt(key: String, text: String, key2 := "", text2 := "") -> void:
@@ -146,24 +190,30 @@ func _set_prompt(key: String, text: String, key2 := "", text2 := "") -> void:
 		hud.set_prompt(key, text, key2, text2)
 
 
-## Every swing that lands: chips fly, and a chance (the time since the last swing over the time per ore)
-## to get the ore. Rolled by each player for themselves, so any number of players can mine one vein.
+## Every swing that lands: chips fly and the pick rings on the stone. On an event vein, a chance (the time
+## since the last swing over the time per ore) to get the ore, rolled by each player for themselves.
 func _on_struck(kind: String, pos: Vector3) -> void:
 	if kind != "pickaxe" or not is_mining():
 		return
-	var ore := str(vein.get("ore"))
+	var ore := _ore(vein)
+	var host := get_tree().current_scene
+	ToolFx.burst(host, pos, CHIPS.get(ore, [Color.GRAY]), 10, 2.4, 0.06)
+	if not _hits.is_empty():
+		_hit_player.global_position = pos
+		_hit_player.stream = _hits[randi() % _hits.size()]
+		_hit_player.pitch_scale = randf_range(0.92, 1.08)
+		_hit_player.play()
+	if not _is_event(vein):
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	var dt := clampf(now - _last_hit, 0.2, 3.0)
 	_last_hit = now
-	var host := get_tree().current_scene
-	ToolFx.burst(host, pos, CHIPS.get(ore, [Color.GRAY]), 10, 2.4, 0.06)
-	var row := _row(vein)
-	var why := Inventory.gather_blocker("mining", row)
+	var why := Mining.blocker(ore, Inventory.held.pickaxe)
 	if why != "":
 		Inventory.message.emit(why)
 		stop()
 		return
 	if randf() < minf(0.95, dt / mine_time(ore) * chance_scale):
-		Inventory.gather("mining", row)
+		Mining.give(ore)
 		mined += 1
 		ToolFx.burst(host, pos + Vector3.UP * 0.2, CHIPS.get(ore, [Color.WHITE]), 26, 3.4, 0.08)

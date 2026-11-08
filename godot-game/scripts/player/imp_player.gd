@@ -26,7 +26,18 @@ var bob_time := 0.0
 var frozen := false
 var fast_sprint := false
 var chopper: Node                 # scripts/player/tree_chopper.gd: chopping trees with the axe
-var miner: Node                   # scripts/player/ore_miner.gd: mining the event ore veins
+var miner: Node                   # scripts/player/ore_miner.gd: mining the ore veins
+## Footsteps (assets/sounds, made by build scripts/make_sounds.py): one per step of the walk bob, in the
+## ground's sound for the biome underfoot; running steps are quicker, louder and a little higher.
+const STEP_SOUNDS := {
+	"grass": ["step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"],
+	"snow": ["step_snow_1", "step_snow_2", "step_snow_3"],
+	"stone": ["step_stone_1", "step_stone_2", "step_stone_3"],
+}
+const GROUND := {"frost": "snow", "mountain": "stone"}   # biome -> ground; everywhere else is grass
+var _steps := {}                  # ground -> Array[AudioStream]
+var _step_player: AudioStreamPlayer
+var _last_step := 0
 
 
 func _ready() -> void:
@@ -44,6 +55,11 @@ func _ready() -> void:
 	miner = preload("res://scripts/player/ore_miner.gd").new()
 	miner.name = "ore_miner"
 	add_child(miner)
+	for ground in STEP_SOUNDS:
+		_steps[ground] = STEP_SOUNDS[ground].map(func(n): return load("res://assets/sounds/%s.wav" % n))
+	_step_player = AudioStreamPlayer.new()
+	_step_player.name = "footsteps"
+	add_child(_step_player)
 
 
 func _apply_settings() -> void:
@@ -117,6 +133,10 @@ func _animate(delta: float, ground_speed: float) -> void:
 		return
 	if is_on_floor() and ground_speed > 0.3:
 		bob_time += delta * ground_speed * 3.2
+		var step := floori(bob_time / PI)                 # one footstep per bob
+		if step != _last_step:
+			_last_step = step
+			_footstep(ground_speed)
 		body.position.y = abs(sin(bob_time)) * 0.05
 		var squash := 1.0 + sin(bob_time * 2.0) * 0.04
 		body.scale = Vector3(1.0 / sqrt(squash), squash, 1.0 / sqrt(squash))
@@ -131,3 +151,18 @@ func _process(delta: float) -> void:
 	camera_pivot.global_position = camera_pivot.global_position.lerp(follow, clamp(delta * 12.0, 0.0, 1.0))
 	camera_pivot.rotation = Vector3(cam_pitch, cam_yaw, 0)
 	spring_arm.spring_length = lerp(spring_arm.spring_length, target_zoom, clamp(delta * 8.0, 0.0, 1.0))
+
+
+
+func _footstep(ground_speed: float) -> void:
+	var main := get_tree().get_first_node_in_group("game_main")
+	var biome: String = main.biome_name_at(global_position) if main else "forest"
+	var list: Array = _steps.get(GROUND.get(biome, "grass"), [])
+	if list.is_empty():
+		return
+	var running := ground_speed > walk_speed * 1.25
+	_step_player.stream = list[randi() % list.size()]
+	_step_player.volume_db = -9.0 if running else -15.0
+	_step_player.pitch_scale = randf_range(1.02, 1.14) if running else randf_range(0.9, 1.04)
+	_step_player.play()
+
