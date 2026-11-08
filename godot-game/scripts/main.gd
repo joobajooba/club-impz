@@ -4,6 +4,7 @@ extends Node
 ##
 ## Command line (after `--`), used by the screenshot tool and for quick testing:
 ##   --world=hub|resource|test   start world          --biome=forest|mountain|frost|plains|swamp   jump to a biome
+##   --at=x,z                    stand at (x, z) on the ground of the current world
 ##   --shot=res://path.png       save a screenshot     --shot_delay=6   seconds before the screenshot   --yaw=0.5 --pitch=-0.3 --zoom=10
 
 const WORLDS := {
@@ -46,6 +47,12 @@ func _ready() -> void:
 	if args.has("biome") and current_world.has_method("biome_centre"):
 		await get_tree().process_frame
 		player.place_at(current_world.biome_centre(args["biome"]))
+	if args.has("at") and current_world.has_method("ground_height"):
+		await get_tree().process_frame
+		var xz: PackedStringArray = str(args["at"]).split(",")
+		var ax := float(xz[0])
+		var az := float(xz[1])
+		player.place_at(Transform3D(Basis(), Vector3(ax, current_world.ground_height(ax, az) + 0.5, az)))
 	if args.has("yaw"): player.cam_yaw = float(args["yaw"])
 	if args.has("pitch"): player.cam_pitch = float(args["pitch"])
 	if args.has("zoom"): player.target_zoom = float(args["zoom"])
