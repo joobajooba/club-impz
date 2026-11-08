@@ -5,7 +5,7 @@
   "description": "Club Impz live beta: serves the web build and runs the multiplayer room.",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node test/smoke.mjs && node test/ore_events.mjs",
+    "test": "node test/smoke.mjs && node test/ore_events.mjs && node test/chat.mjs",
     "load": "node test/load.mjs 100"
   },
   "engines": {

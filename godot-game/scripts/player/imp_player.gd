@@ -103,7 +103,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var locked := frozen or menu_open()
+	var locked: bool = frozen or menu_open() or Chat.is_typing()   # typing in the chat box: stand still
 	var input := Vector2.ZERO if locked else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := (Basis(Vector3.UP, cam_yaw) * Vector3(input.x, 0, input.y))
 	if dir.length() > 1.0:

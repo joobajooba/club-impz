@@ -18,6 +18,7 @@ import { createServer } from "node:http";
 import { dirname, extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
+import { cleanChat, checkChat } from "./chat_filter.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || process.argv[2] || 8080);   // `node server.mjs 8060` works too
@@ -148,6 +149,12 @@ setInterval(() => {
 }, Math.min(EVENT_CHECK_MS, 1000));
 
 const players = new Map();             // id -> player
+
+// Global chat: everyone in every world sees it. Each message is cleaned (at most 100 characters), checked by
+// chat_filter.mjs (slurs and abuse are refused, swearing starred out) and rate limited; the last CHAT_KEEP go to
+// new players in the welcome.
+const CHAT_KEEP = 30;
+const chatLog = [];
 let nextId = 1;
 
 function publicInfo(p) {
@@ -214,7 +221,7 @@ async function onMessage(p, msg) {
       p.ready = true;
       const others = [...players.values()].filter((o) => o !== p && o.ready).map(publicInfo);
       send(p, { t: "welcome", id: p.id, name: p.name, guest: p.guest, look: p.look, players: others, online: others.length + 1,
-        events: [...events.values()].map(eventInfo) });
+        events: [...events.values()].map(eventInfo), chat: chatLog });
       broadcast({ t: "join", player: publicInfo(p) }, p);
       broadcast({ t: "online", n: countReady() });
       console.log(`join #${p.id} ${p.name}${p.wallet ? " " + p.wallet.slice(0, 8) : ""} (${countReady()} online)`);
@@ -236,6 +243,29 @@ async function onMessage(p, msg) {
       await setLook(p, msg.look);
       broadcast({ t: "update", id: p.id, look: p.look });
       return;
+    case "chat": {
+      if (!p.ready) return;
+      const now = Date.now();
+      p.chatTimes = (p.chatTimes || []).filter((t) => now - t < 5000);
+      if (p.chatTimes.length >= 3 || now - (p.chatTimes.at(-1) || 0) < 700) {
+        send(p, { t: "chat_blocked", why: "slow" });          // 3 messages per 5 s at most
+        return;
+      }
+      const text = cleanChat(msg.text);
+      if (!text) return;
+      const res = checkChat(text);
+      if (!res.ok) {
+        send(p, { t: "chat_blocked", why: res.why });
+        console.log(`chat refused from #${p.id} ${p.name}`);
+        return;
+      }
+      p.chatTimes.push(now);
+      const line = { t: "chat", id: p.id, name: p.name, guest: p.guest, text: res.text };
+      chatLog.push(line);
+      if (chatLog.length > CHAT_KEEP) chatLog.shift();
+      broadcast(line);
+      return;
+    }
     case "auth": {
       // signed in or out in the Profile menu: the name and the traits follow
       if (!p.ready) return;
