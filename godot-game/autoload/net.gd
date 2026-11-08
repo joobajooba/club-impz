@@ -109,6 +109,14 @@ func _process(delta: float) -> void:
 			_lost()
 
 
+## Global chat: false when not online (the chat box then shows it locally).
+func send_chat(text: String) -> bool:
+	if state != "online":
+		return false
+	_send({t = "chat", text = text})
+	return true
+
+
 func _send(msg: Dictionary) -> void:
 	if _ws and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN and (state == "online" or msg.t == "hello"):
 		_ws.send_text(JSON.stringify(msg))
@@ -180,6 +188,7 @@ func _on_message(msg: Dictionary) -> void:
 			for p in msg.players:
 				_add(p)
 			OreEvents.on_welcome(msg.get("events", []))
+			Chat.load_history(msg.get("chat", []))
 			_show()
 		"join":
 			_add(msg.player)
@@ -223,6 +232,10 @@ func _on_message(msg: Dictionary) -> void:
 			OreEvents.on_server_event(msg.get("ev", {}))
 		"ore_event_end":
 			OreEvents.on_server_end(int(msg.get("id", 0)))
+		"chat":                                        # global chat (ui/chat.gd), already filtered by the server
+			Chat.add_chat(str(msg.get("name", "")), str(msg.get("text", "")))
+		"chat_blocked":
+			Chat.refused(str(msg.get("why", "")))
 
 
 func _add(p: Dictionary) -> void:
