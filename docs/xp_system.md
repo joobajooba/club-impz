@@ -71,9 +71,21 @@ The player level is the "how much have you played" track. Skills already show "h
 
 **Nothing else gives XP.** No XP for chatting, emotes, logging in, walking, buying, selling or trading. Each of these can be spammed or bought. Coins never buy XP.
 
-### 3.3 Holder bonuses (Open question, with a recommendation)
+### 3.3 Holder XP bonus (Decided, D-122)
 
-`game_direction.md` section 8 says holder bonuses are still to be decided. **Recommendation: no XP multipliers for Imp holders.** Player level, prestige and total level are the game's main ways of showing off. If holding an Imp made them faster, they would show who bought an NFT, not who played. That also clashes with the IMPLINGZ pillar "Fair to free players … never more power" (D-085). Holder bonuses that don't touch XP (skins, traits, mint tokens) avoid the problem.
+- **Imp holders get +5% skill XP.** Every skill XP gain from a gather, gems included, is multiplied by 1.05 and rounded down (coal 20 → 21, diamond 40 → 42).
+- **Skill XP only.** Player XP, the player level and prestige are the same for everyone, so the main show-off track can't be bought.
+- **Flat.** Holding one Imp gives the full 5%. More Impz, or a higher imp tier, add nothing.
+- **Checked on the server**, from the wallet's held Impz (`owned_imps`, `ACCOUNTS-AND-DATA.md`) at the moment the gather is accepted. If the wallet no longer holds an Imp, the bonus stops. XP already earned is kept.
+- Effect: Mining 100 takes about 71 days of nonstop play instead of 75.
+- This supersedes D-085's "never more power" for this one bonus. The rest of D-085 stands.
+
+### 3.4 Energy and XP (Decided, D-123)
+
+- **Energy no longer limits gathering or XP.** A player can gather for as long as they like. Gather times (`resource_gathering.md`) set the pace.
+- **Energy limits mint token rolls.** Energy stays at 100, resets at 00:00 and 12:00 UTC (D-057), and a gather spends 5 while there is energy left. Only a gather that spends energy can roll a mint token. That is at most 40 rolls a day, the same as before. At 0 energy, gathering still gives items and XP, with no mint token roll.
+- **Why:** mint tokens claim real NFT mints, so they are the reward bots would farm. XP and items have no value outside the game.
+- **Open question:** energy refills (D-075, D-076). Refilled energy never rolls mint tokens (D-076), and energy no longer limits gathering, so a refill now does nothing. It needs a new use, or it is removed from the merchant.
 
 ---
 
@@ -178,10 +190,11 @@ For whoever builds it in Godot. Only decided or approved rules get built (`BUILD
 
 1. ~~**Player XP amounts.**~~ *Answered (D-121): the sources and amounts in section 3.2 are accepted.*
 2. **Processing XP.** Should processing ever give skill XP? Today the pace is worked out from gathering only.
-3. **Holder bonuses.** Is "no XP multipliers for holders" (section 3.3) accepted?
+3. ~~**Holder bonuses.**~~ *Answered (D-122): holders get a flat +5% on skill XP only (section 3.3).*
 4. **XP events.** Can a world event (like the ore events in PR #50) give bonus XP? If yes, only to players who join it in the world, never to everyone online.
 5. **Leaderboards.** Are XP leaderboards wanted (per skill, total level, lifetime player XP)? This doc stores what they would need.
-6. **The other doc set.** The IMPLINGZ docs say "there are no skill levels" and gate gathering with energy. See section 10.
+6. **The other doc set.** The IMPLINGZ docs say "there are no skill levels". See section 10. *Energy is answered for this doc (D-123, section 3.4); J00BA still needs to agree.*
+7. **Energy refills.** What are they for now that energy only limits mint token rolls (section 3.4)?
 
 ---
 
@@ -192,5 +205,5 @@ Not fixed here. Which set wins is an Open question for the two collaborators (`d
 | Topic | J00BA's docs | IMPLINGZ docs | Effect on XP |
 | --- | --- | --- | --- |
 | Skill levels | Five skills, 1 to 100, with skill trees (`game_direction.md` section 6.2) | "There are no skill levels" (`01-activities.md` question 3) | This doc only works with J00BA's set |
-| Energy | Not mentioned. The pace is worked out for nonstop play | 100 energy, 5 per gather, reset twice a day (D-008, D-061); sessions of 10 to 20 minutes twice a day (D-084) | With energy, a player gets 40 gathers a day. Claude's model of that (best tier at each level, every gather used) puts Mining 100 at about **180 days**, not 75. And at the top tiers, 20 gathers of 1,000 seconds take over 5 hours, so the "10 to 20 minute session" can't hold either. The two sets need one answer before XP values are final |
+| Energy | Not mentioned. The pace is worked out for nonstop play | 100 energy, 5 per gather, reset twice a day (D-008, D-061); sessions of 10 to 20 minutes twice a day (D-084) | **Answered by the user (D-123):** energy limits mint token rolls only, not gathering or XP (section 3.4). Why: with energy limiting gathering, a player gets 40 gathers a day. Claude's model of that (best tier at each level, every gather used) put Mining 100 at about 180 days, not 75, and at the top tiers 20 gathers of 1,000 seconds take over 5 hours, so the "10 to 20 minute session" couldn't hold either. J00BA has not agreed yet. The other IMPLINGZ docs still describe energy as a limit on gathering and are not changed here |
 | Resource tables | Coal to Stellarite, Pine to Worldbark, 10 tiers each | Different trees (Ash, Oak, D-105), 10 plants (D-062), 16 animals (D-068), 10 fish (D-109) | Foraging, Fishing and Hunting XP can't be set until one table is chosen per skill |
