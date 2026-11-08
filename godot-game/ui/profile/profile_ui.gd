@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Profile button in the top-right corner. Opens a menu with "Connect wallet".
+## Profile button (a person icon) in the top-right corner. Opens a menu with "Connect wallet".
 ## Loaded as an autoload (ProfileUI in project.godot), so it sits on top of every scene.
 ## Prototype: the wallet is not saved anywhere. Reloading the page forgets it.
 
@@ -64,15 +64,13 @@ func _label(text := "", color := Color.WHITE, size := 15) -> Label:
 
 
 func _build() -> void:
-	profile_button = _button("Profile")
-	profile_button.custom_minimum_size = Vector2(110, 46)
-	for state in ["normal", "hover", "pressed"]:
-		profile_button.add_theme_stylebox_override(state, UIKit.button_box(state, BG))
+	# a person icon on the black HUD button; the Settings gear sits to its left (ui/settings_menu.gd)
+	profile_button = UIKit.icon_button(UIKit.PERSON, "Profile")
 	profile_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	profile_button.offset_left = -126
+	profile_button.offset_left = -70
 	profile_button.offset_top = 16
 	profile_button.offset_right = -16
-	profile_button.offset_bottom = 62
+	profile_button.offset_bottom = 70
 	profile_button.pressed.connect(_toggle_menu)
 	add_child(profile_button)
 
@@ -80,7 +78,7 @@ func _build() -> void:
 	menu.add_theme_stylebox_override("panel", UIKit.panel(BG))
 	menu.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	menu.offset_left = -336
-	menu.offset_top = 72
+	menu.offset_top = 80
 	menu.offset_right = -16
 	menu.visible = false
 	add_child(menu)
@@ -132,7 +130,7 @@ func _clear_wallet_list() -> void:
 
 func _show_disconnected(message := "No wallet connected.") -> void:
 	address = ""
-	profile_button.text = "Profile"
+	profile_button.tooltip_text = "Profile"
 	status_label.text = message
 	connect_button.visible = true
 	connect_button.disabled = false
@@ -178,7 +176,7 @@ func _start_connect(w: Dictionary) -> void:
 
 func _on_connected(new_address: String, chain_id: int) -> void:
 	address = new_address
-	profile_button.text = WalletBridge.short_address(address)
+	profile_button.tooltip_text = "Profile: " + WalletBridge.short_address(address)
 	status_label.text = "Wallet connected."
 	address_label.text = WalletBridge.short_address(address)
 	address_label.tooltip_text = address
@@ -196,7 +194,7 @@ func _on_account_changed(new_address: String) -> void:
 		_show_disconnected("Your wallet disconnected.")
 	elif address != "":
 		address = new_address
-		profile_button.text = WalletBridge.short_address(address)
+		profile_button.tooltip_text = "Profile: " + WalletBridge.short_address(address)
 		address_label.text = WalletBridge.short_address(address)
 		address_label.tooltip_text = address
 		status_label.text = "Switched to another account."
