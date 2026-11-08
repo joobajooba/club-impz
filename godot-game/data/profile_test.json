@@ -1,77 +1,514 @@
 {
   "_doc": "TEST values for the player profile menu (ui/profile/profile_menu.gd), debug builds only. Nothing here is designed: player level and prestige, skill XP, skill trees (skill_trees.md is only planned), challenges and trophies (challenges.md is only planned), titles, emblems and prestige badges. Every name and id says TEST. Delete this file once the real systems exist; release builds never read it and show 'Not built yet' instead.",
-  "player": {"level": 22, "prestige": 1},
+  "player": {
+    "level": 1,
+    "prestige": 0
+  },
   "skills": {
-    "mining": {"level": 12, "xp": 340, "need": 600},
-    "lumbering": {"level": 11, "xp": 120, "need": 560},
-    "fishing": {"level": 5, "xp": 200, "need": 320},
-    "foraging": {"level": 2, "xp": 40, "need": 180},
-    "hunting": {"level": 1, "xp": 15, "need": 150}
+    "mining": {
+      "level": 12,
+      "xp": 340,
+      "need": 600
+    },
+    "lumbering": {
+      "level": 11,
+      "xp": 120,
+      "need": 560
+    },
+    "fishing": {
+      "level": 5,
+      "xp": 200,
+      "need": 320
+    },
+    "foraging": {
+      "level": 2,
+      "xp": 40,
+      "need": 180
+    },
+    "hunting": {
+      "level": 1,
+      "xp": 15,
+      "need": 150
+    }
   },
   "skill_trees": {
     "mining": [
-      {"id": "test_mining_node_1", "name": "TEST Steady Swing", "buff": "TEST: +5% mining speed", "level": 5},
-      {"id": "test_mining_node_2", "name": "TEST Keen Eye", "buff": "TEST: +1% gem chance", "level": 10},
-      {"id": "test_mining_node_3", "name": "TEST Deep Vein", "buff": "TEST: +10% ore per swing", "level": 25},
-      {"id": "test_mining_node_4", "name": "TEST Stone Heart", "buff": "TEST: -10% energy per swing", "level": 50}
+      {
+        "id": "test_mining_node_1",
+        "name": "TEST Steady Swing",
+        "buff": "TEST: +5% mining speed",
+        "level": 5
+      },
+      {
+        "id": "test_mining_node_2",
+        "name": "TEST Keen Eye",
+        "buff": "TEST: +1% gem chance",
+        "level": 10
+      },
+      {
+        "id": "test_mining_node_3",
+        "name": "TEST Deep Vein",
+        "buff": "TEST: +10% ore per swing",
+        "level": 25
+      },
+      {
+        "id": "test_mining_node_4",
+        "name": "TEST Stone Heart",
+        "buff": "TEST: -10% energy per swing",
+        "level": 50
+      }
     ],
     "lumbering": [
-      {"id": "test_lumbering_node_1", "name": "TEST Sharp Edge", "buff": "TEST: +5% chopping speed", "level": 5},
-      {"id": "test_lumbering_node_2", "name": "TEST Clean Cut", "buff": "TEST: +1 log per tree", "level": 10},
-      {"id": "test_lumbering_node_3", "name": "TEST Timber", "buff": "TEST: +10% chopping speed", "level": 25},
-      {"id": "test_lumbering_node_4", "name": "TEST Old Growth", "buff": "TEST: rare logs twice as often", "level": 50}
+      {
+        "id": "test_lumbering_node_1",
+        "name": "TEST Sharp Edge",
+        "buff": "TEST: +5% chopping speed",
+        "level": 5
+      },
+      {
+        "id": "test_lumbering_node_2",
+        "name": "TEST Clean Cut",
+        "buff": "TEST: +1 log per tree",
+        "level": 10
+      },
+      {
+        "id": "test_lumbering_node_3",
+        "name": "TEST Timber",
+        "buff": "TEST: +10% chopping speed",
+        "level": 25
+      },
+      {
+        "id": "test_lumbering_node_4",
+        "name": "TEST Old Growth",
+        "buff": "TEST: rare logs twice as often",
+        "level": 50
+      }
     ],
     "fishing": [
-      {"id": "test_fishing_node_1", "name": "TEST Patient Hands", "buff": "TEST: +5% bite chance", "level": 5},
-      {"id": "test_fishing_node_2", "name": "TEST Strong Line", "buff": "TEST: fewer fish get away", "level": 10},
-      {"id": "test_fishing_node_3", "name": "TEST Lucky Lure", "buff": "TEST: +5% rare fish", "level": 25},
-      {"id": "test_fishing_node_4", "name": "TEST Master Angler", "buff": "TEST: +1 fish per catch", "level": 50}
+      {
+        "id": "test_fishing_node_1",
+        "name": "TEST Patient Hands",
+        "buff": "TEST: +5% bite chance",
+        "level": 5
+      },
+      {
+        "id": "test_fishing_node_2",
+        "name": "TEST Strong Line",
+        "buff": "TEST: fewer fish get away",
+        "level": 10
+      },
+      {
+        "id": "test_fishing_node_3",
+        "name": "TEST Lucky Lure",
+        "buff": "TEST: +5% rare fish",
+        "level": 25
+      },
+      {
+        "id": "test_fishing_node_4",
+        "name": "TEST Master Angler",
+        "buff": "TEST: +1 fish per catch",
+        "level": 50
+      }
     ],
     "foraging": [
-      {"id": "test_foraging_node_1", "name": "TEST Quick Pick", "buff": "TEST: +5% picking speed", "level": 5},
-      {"id": "test_foraging_node_2", "name": "TEST Green Thumb", "buff": "TEST: +1 plant per pick", "level": 10},
-      {"id": "test_foraging_node_3", "name": "TEST Herbalist", "buff": "TEST: +5% rare plants", "level": 25},
-      {"id": "test_foraging_node_4", "name": "TEST Wild Bounty", "buff": "TEST: plants regrow faster", "level": 50}
+      {
+        "id": "test_foraging_node_1",
+        "name": "TEST Quick Pick",
+        "buff": "TEST: +5% picking speed",
+        "level": 5
+      },
+      {
+        "id": "test_foraging_node_2",
+        "name": "TEST Green Thumb",
+        "buff": "TEST: +1 plant per pick",
+        "level": 10
+      },
+      {
+        "id": "test_foraging_node_3",
+        "name": "TEST Herbalist",
+        "buff": "TEST: +5% rare plants",
+        "level": 25
+      },
+      {
+        "id": "test_foraging_node_4",
+        "name": "TEST Wild Bounty",
+        "buff": "TEST: plants regrow faster",
+        "level": 50
+      }
     ],
     "hunting": [
-      {"id": "test_hunting_node_1", "name": "TEST Light Step", "buff": "TEST: mobs notice you later", "level": 5},
-      {"id": "test_hunting_node_2", "name": "TEST Steady Aim", "buff": "TEST: +5% hit chance", "level": 10},
-      {"id": "test_hunting_node_3", "name": "TEST Skinner", "buff": "TEST: +1 hide per hunt", "level": 25},
-      {"id": "test_hunting_node_4", "name": "TEST Apex", "buff": "TEST: +10% rare drops", "level": 50}
+      {
+        "id": "test_hunting_node_1",
+        "name": "TEST Light Step",
+        "buff": "TEST: mobs notice you later",
+        "level": 5
+      },
+      {
+        "id": "test_hunting_node_2",
+        "name": "TEST Steady Aim",
+        "buff": "TEST: +5% hit chance",
+        "level": 10
+      },
+      {
+        "id": "test_hunting_node_3",
+        "name": "TEST Skinner",
+        "buff": "TEST: +1 hide per hunt",
+        "level": 25
+      },
+      {
+        "id": "test_hunting_node_4",
+        "name": "TEST Apex",
+        "buff": "TEST: +10% rare drops",
+        "level": 50
+      }
     ]
   },
   "trophies": [
-    {"id": "test_trophy_mining_10", "name": "TEST Rock Breaker", "challenge": "Reach Mining 10", "earned": true, "title": "test_title_rock_breaker"},
-    {"id": "test_trophy_lumbering_10", "name": "TEST Woodsman", "challenge": "Reach Lumbering 10", "earned": true, "emblem": "test_emblem_axe"},
-    {"id": "test_trophy_first_gem", "name": "TEST First Sparkle", "challenge": "Find your first gem", "earned": true, "emblem": "test_emblem_gem"},
-    {"id": "test_trophy_first_fish", "name": "TEST First Catch", "challenge": "Catch your first fish", "earned": false, "title": "test_title_angler"},
-    {"id": "test_trophy_mining_50", "name": "TEST Deep Digger", "challenge": "Reach Mining 50", "earned": false, "title": "test_title_deep_digger"},
-    {"id": "test_trophy_lumbering_50", "name": "TEST Forest Lord", "challenge": "Reach Lumbering 50", "earned": false, "emblem": "test_emblem_tree"},
-    {"id": "test_trophy_void", "name": "TEST Void Touched", "challenge": "Mine voidstone in a world event", "earned": false, "title": "test_title_void_touched"},
-    {"id": "test_trophy_stellar", "name": "TEST Star Catcher", "challenge": "Mine stellarite in a world event", "earned": false, "emblem": "test_emblem_star"},
-    {"id": "test_trophy_tame", "name": "TEST Beast Friend", "challenge": "Tame 5 animals", "earned": false, "emblem": "test_emblem_paw"},
-    {"id": "test_trophy_battles", "name": "TEST Champion", "challenge": "Win 25 battles", "earned": false, "title": "test_title_champion"},
-    {"id": "test_trophy_prestige", "name": "TEST Reborn", "challenge": "Prestige once", "earned": false, "emblem": "test_emblem_crown"},
-    {"id": "test_trophy_all_100", "name": "TEST Living Legend", "challenge": "Reach 100 in every skill", "earned": false, "title": "test_title_legend"}
+    {
+      "id": "test_trophy_mining_10",
+      "name": "TEST Rock Breaker",
+      "challenge": "Reach Mining 10",
+      "earned": true,
+      "title": "test_title_rock_breaker"
+    },
+    {
+      "id": "test_trophy_lumbering_10",
+      "name": "TEST Woodsman",
+      "challenge": "Reach Lumbering 10",
+      "earned": true,
+      "emblem": "test_emblem_axe"
+    },
+    {
+      "id": "test_trophy_first_gem",
+      "name": "TEST First Sparkle",
+      "challenge": "Find your first gem",
+      "earned": true,
+      "emblem": "test_emblem_gem"
+    },
+    {
+      "id": "test_trophy_first_fish",
+      "name": "TEST First Catch",
+      "challenge": "Catch your first fish",
+      "earned": false,
+      "title": "test_title_angler"
+    },
+    {
+      "id": "test_trophy_mining_50",
+      "name": "TEST Deep Digger",
+      "challenge": "Reach Mining 50",
+      "earned": false,
+      "title": "test_title_deep_digger"
+    },
+    {
+      "id": "test_trophy_lumbering_50",
+      "name": "TEST Forest Lord",
+      "challenge": "Reach Lumbering 50",
+      "earned": false,
+      "emblem": "test_emblem_tree"
+    },
+    {
+      "id": "test_trophy_void",
+      "name": "TEST Void Touched",
+      "challenge": "Mine voidstone in a world event",
+      "earned": false,
+      "title": "test_title_void_touched"
+    },
+    {
+      "id": "test_trophy_stellar",
+      "name": "TEST Star Catcher",
+      "challenge": "Mine stellarite in a world event",
+      "earned": false,
+      "emblem": "test_emblem_star"
+    },
+    {
+      "id": "test_trophy_tame",
+      "name": "TEST Beast Friend",
+      "challenge": "Tame 5 animals",
+      "earned": false,
+      "emblem": "test_emblem_paw"
+    },
+    {
+      "id": "test_trophy_battles",
+      "name": "TEST Champion",
+      "challenge": "Win 25 battles",
+      "earned": false,
+      "title": "test_title_champion"
+    },
+    {
+      "id": "test_trophy_prestige",
+      "name": "TEST Reborn",
+      "challenge": "Prestige once",
+      "earned": false,
+      "emblem": "test_emblem_crown"
+    },
+    {
+      "id": "test_trophy_all_100",
+      "name": "TEST Living Legend",
+      "challenge": "Reach 100 in every skill",
+      "earned": false,
+      "title": "test_title_legend"
+    },
+    {
+      "id": "test_trophy_tin_tapper",
+      "name": "TEST Tin Tapper",
+      "challenge": "Mine 100 tin",
+      "earned": false,
+      "title": "test_title_tin_tapper"
+    },
+    {
+      "id": "test_trophy_copper_head",
+      "name": "TEST Copper Head",
+      "challenge": "Mine 100 copper",
+      "earned": false,
+      "emblem": "test_emblem_copper"
+    },
+    {
+      "id": "test_trophy_iron_will",
+      "name": "TEST Iron Will",
+      "challenge": "Mine 100 iron",
+      "earned": false,
+      "title": "test_title_iron_will"
+    },
+    {
+      "id": "test_trophy_gold_rush",
+      "name": "TEST Gold Rush",
+      "challenge": "Mine 50 gold",
+      "earned": false,
+      "emblem": "test_emblem_nugget"
+    },
+    {
+      "id": "test_trophy_fisher_king",
+      "name": "TEST Fisher King",
+      "challenge": "Reach Fishing 50",
+      "earned": false,
+      "title": "test_title_fisher_king"
+    },
+    {
+      "id": "test_trophy_big_one",
+      "name": "TEST Big One",
+      "challenge": "Catch a rare fish",
+      "earned": false,
+      "emblem": "test_emblem_fish"
+    },
+    {
+      "id": "test_trophy_green_fingers",
+      "name": "TEST Green Fingers",
+      "challenge": "Reach Foraging 25",
+      "earned": false,
+      "emblem": "test_emblem_leaf"
+    },
+    {
+      "id": "test_trophy_herb_hoarder",
+      "name": "TEST Herb Hoarder",
+      "challenge": "Pick 500 plants",
+      "earned": false,
+      "title": "test_title_herb_hoarder"
+    },
+    {
+      "id": "test_trophy_tracker",
+      "name": "TEST Tracker",
+      "challenge": "Reach Hunting 25",
+      "earned": false,
+      "emblem": "test_emblem_bow"
+    },
+    {
+      "id": "test_trophy_dragon_slayer",
+      "name": "TEST Dragon Slayer",
+      "challenge": "Defeat the swamp dragon",
+      "earned": false,
+      "title": "test_title_dragon_slayer"
+    },
+    {
+      "id": "test_trophy_golem_breaker",
+      "name": "TEST Golem Breaker",
+      "challenge": "Defeat a stone golem",
+      "earned": false,
+      "emblem": "test_emblem_golem"
+    },
+    {
+      "id": "test_trophy_smelter",
+      "name": "TEST Smelter",
+      "challenge": "Smelt 100 ingots",
+      "earned": false,
+      "title": "test_title_smelter"
+    },
+    {
+      "id": "test_trophy_tool_maker",
+      "name": "TEST Tool Maker",
+      "challenge": "Craft every pickaxe",
+      "earned": false,
+      "emblem": "test_emblem_anvil"
+    },
+    {
+      "id": "test_trophy_explorer",
+      "name": "TEST Explorer",
+      "challenge": "Visit every biome",
+      "earned": false,
+      "title": "test_title_explorer"
+    },
+    {
+      "id": "test_trophy_night_owl",
+      "name": "TEST Night Owl",
+      "challenge": "Play through a whole night",
+      "earned": false,
+      "emblem": "test_emblem_moon"
+    },
+    {
+      "id": "test_trophy_social_imp",
+      "name": "TEST Social Imp",
+      "challenge": "Chat with 20 players",
+      "earned": false,
+      "title": "test_title_social_imp"
+    },
+    {
+      "id": "test_trophy_collector",
+      "name": "TEST Collector",
+      "challenge": "Hold 5 Impz",
+      "earned": false,
+      "emblem": "test_emblem_chest"
+    },
+    {
+      "id": "test_trophy_max_level",
+      "name": "TEST Max Level",
+      "challenge": "Reach player level 50",
+      "earned": false,
+      "title": "test_title_max_level"
+    }
   ],
   "titles": [
-    {"id": "test_title_rock_breaker", "name": "TEST Rock Breaker"},
-    {"id": "test_title_angler", "name": "TEST Angler"},
-    {"id": "test_title_deep_digger", "name": "TEST Deep Digger"},
-    {"id": "test_title_void_touched", "name": "TEST Void Touched"},
-    {"id": "test_title_champion", "name": "TEST Champion"},
-    {"id": "test_title_legend", "name": "TEST Living Legend"}
+    {
+      "id": "test_title_rock_breaker",
+      "name": "TEST Rock Breaker"
+    },
+    {
+      "id": "test_title_angler",
+      "name": "TEST Angler"
+    },
+    {
+      "id": "test_title_deep_digger",
+      "name": "TEST Deep Digger"
+    },
+    {
+      "id": "test_title_void_touched",
+      "name": "TEST Void Touched"
+    },
+    {
+      "id": "test_title_champion",
+      "name": "TEST Champion"
+    },
+    {
+      "id": "test_title_legend",
+      "name": "TEST Living Legend"
+    },
+    {
+      "id": "test_title_tin_tapper",
+      "name": "TEST Tin Tapper"
+    },
+    {
+      "id": "test_title_iron_will",
+      "name": "TEST Iron Will"
+    },
+    {
+      "id": "test_title_fisher_king",
+      "name": "TEST Fisher King"
+    },
+    {
+      "id": "test_title_herb_hoarder",
+      "name": "TEST Herb Hoarder"
+    },
+    {
+      "id": "test_title_dragon_slayer",
+      "name": "TEST Dragon Slayer"
+    },
+    {
+      "id": "test_title_smelter",
+      "name": "TEST Smelter"
+    },
+    {
+      "id": "test_title_explorer",
+      "name": "TEST Explorer"
+    },
+    {
+      "id": "test_title_social_imp",
+      "name": "TEST Social Imp"
+    },
+    {
+      "id": "test_title_max_level",
+      "name": "TEST Max Level"
+    }
   ],
   "emblems": [
-    {"id": "test_emblem_axe", "name": "TEST Axe"},
-    {"id": "test_emblem_gem", "name": "TEST Gem"},
-    {"id": "test_emblem_tree", "name": "TEST Tree"},
-    {"id": "test_emblem_star", "name": "TEST Star"},
-    {"id": "test_emblem_paw", "name": "TEST Paw"},
-    {"id": "test_emblem_crown", "name": "TEST Crown"}
+    {
+      "id": "test_emblem_axe",
+      "name": "TEST Axe"
+    },
+    {
+      "id": "test_emblem_gem",
+      "name": "TEST Gem"
+    },
+    {
+      "id": "test_emblem_tree",
+      "name": "TEST Tree"
+    },
+    {
+      "id": "test_emblem_star",
+      "name": "TEST Star"
+    },
+    {
+      "id": "test_emblem_paw",
+      "name": "TEST Paw"
+    },
+    {
+      "id": "test_emblem_crown",
+      "name": "TEST Crown"
+    },
+    {
+      "id": "test_emblem_copper",
+      "name": "TEST Copper"
+    },
+    {
+      "id": "test_emblem_nugget",
+      "name": "TEST Nugget"
+    },
+    {
+      "id": "test_emblem_fish",
+      "name": "TEST Fish"
+    },
+    {
+      "id": "test_emblem_leaf",
+      "name": "TEST Leaf"
+    },
+    {
+      "id": "test_emblem_bow",
+      "name": "TEST Bow"
+    },
+    {
+      "id": "test_emblem_golem",
+      "name": "TEST Golem"
+    },
+    {
+      "id": "test_emblem_anvil",
+      "name": "TEST Anvil"
+    },
+    {
+      "id": "test_emblem_moon",
+      "name": "TEST Moon"
+    },
+    {
+      "id": "test_emblem_chest",
+      "name": "TEST Chest"
+    }
   ],
   "prestige_badges": [
-    {"id": "test_prestige_badge_1", "name": "TEST Prestige 1 badge", "prestige": 1},
-    {"id": "test_prestige_badge_2", "name": "TEST Prestige 2 badge", "prestige": 2}
+    {
+      "id": "test_prestige_badge_1",
+      "name": "TEST Prestige 1 badge",
+      "prestige": 1
+    },
+    {
+      "id": "test_prestige_badge_2",
+      "name": "TEST Prestige 2 badge",
+      "prestige": 2
+    }
   ]
 }

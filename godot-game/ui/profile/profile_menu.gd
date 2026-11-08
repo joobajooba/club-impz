@@ -3,12 +3,12 @@ extends CanvasLayer
 ## ProfileMenu autoload. P opens and closes it, Esc closes it, and so does clicking the HUD's player card. Layout from
 ## J00BA's mockup (docs/images/player_profile_menu/mockup.png); the look is the shared UI kit (section 5.2).
 ##
-## Left panel (Decided, section 9): the username, the prestige icon and player level, the Imp as it is worn (a turning
-## 3D view like the customizer's: drag to turn, wheel to zoom), and the equipped emblem and title. Clicking the emblem
-## or the title opens its picker over the right side: None, then every emblem / title; locked rows say which challenge
-## gives them. Picking equips it at once (Save.profile, user://save.json).
-## Tabs (Decided, section 9), keys 1 to 4: Stats (the five skills, each with an XP bar, and the selected skill's tree),
-## Trophies, Collection (Impz first, then trait cosmetics, titles, emblems, prestige badges, items) and Information.
+## Left panel (Decided, section 9): the username, the prestige icon (half size, J00BA) and player level, the Imp as it
+## is worn (a turning 3D view like the customizer's: drag to turn, wheel to zoom), and the equipped emblem and title.
+## Clicking the emblem or the title opens its picker where the tabs' content goes: slots like the trophies (titles two
+## to a row), None first; locked ones say which challenge gives them. Picking equips it at once (Save.profile).
+## Tabs (Decided, section 9), clicked (no number keys, J00BA): Stats (the five skills, each with an XP bar, and the
+## selected skill's tree), Trophies, Collection (the pictures of the Impz in the linked wallet, J00BA) and Information.
 ##
 ## Real today: the username, joined date, Imp Coins and wallet (AccountPanel), the worn look and the traits the player
 ## can use (Look), the Impz in the wallet (impz.club), the skill names (GameData.SKILLS). Everything else (player level,
@@ -18,6 +18,9 @@ extends CanvasLayer
 ## Everything is drawn from one profile dictionary and an is_self flag (show_profile), so the same window can show
 ## another player's card (Proposed, game_menus.md section 3). Getting their profile from the server is not built:
 ## see request_player_profile().
+## Collection pictures: each Imp's metadata (impz.club/api/metadata/<id>, the same the marketplaces read) gives its name
+## (IMPLINGZ #12) and its ipfs:// image, loaded through a public IPFS gateway (or the game's own copy of the picture,
+## when it has one) and kept for the session.
 
 const AccountPanel := preload("res://ui/profile/account_panel.gd")
 const TEST_FILE := "res://data/profile_test.json"
@@ -30,6 +33,11 @@ const PREVIEW_SIZE := Vector2i(300, 330)
 const TARGET := Vector3(0, 52, 0)
 const MIN_TAP := 44                     # every button and slot at least 44 screen pixels (section 4.5)
 const NOT_BUILT := "Not built yet"
+const METADATA := "https://www.impz.club/api/metadata/"
+const IPFS_GATEWAY := "https://gateway.pinata.cloud/ipfs/"
+const LOCAL_PICTURES := "res://assets/sprites/implingz_generations/%d.png"
+const LOADERS := 4
+const IMP_PICTURE := 128                # the 640 px NFT picture at 1/5: each of its pixels stays whole
 const LOCK := ["..kkkk..", ".k....k.", ".k....k.", "kkkkkkkk", "kYyyyyok", "kyyooyok", "kyyyyyok", "kkkkkkkk"]
 const ARROW := ["....k...", "....kk..", "kkkkkYk.", "kYYYYYyk", "kyyyyyok", "kkkkkok.", "....kk..", "....k..."]
 
@@ -59,6 +67,10 @@ var _yaw := 0.4
 var _pitch := 0.1
 var _dist := 250.0
 var _dragging := false
+var _imp_pictures := {}                 # Imp id -> Texture2D, or "loading" / "failed"
+var _imp_names := {}                    # Imp id -> "IMPLINGZ #12" from its metadata
+var _imp_queue: Array = []              # Imp ids waiting for their metadata and picture
+var _imp_loading := 0                   # Imps loading right now (at most LOADERS)
 
 
 func _ready() -> void:
@@ -141,7 +153,7 @@ func _can_open() -> bool:
 
 
 func _input(event: InputEvent) -> void:
-	# _input, not _unhandled_input: while open, P, Esc and 1 to 4 belong to this menu, not the HUD's tool keys
+	# _input, not _unhandled_input: while open, P and Esc belong to this menu
 	var k := event as InputEventKey
 	if not visible or k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed:
 		return
@@ -153,9 +165,6 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif k.is_action("profile"):
 		close()
-		get_viewport().set_input_as_handled()
-	elif k.physical_keycode >= KEY_1 and k.physical_keycode <= KEY_4:
-		_set_tab(TABS[k.physical_keycode - KEY_1].key)
 		get_viewport().set_input_as_handled()
 
 
@@ -276,9 +285,8 @@ func _refresh() -> void:
 		return
 	_test_tag.visible = _testing()
 	_refresh_left()
-	_tabs_row.visible = _picker == ""
 	for key in _tab_buttons:
-		_style_tab(_tab_buttons[key], key == tab)
+		_style_tab(_tab_buttons[key], key == tab and _picker == "")
 	for c in _content.get_children():
 		_content.remove_child(c)
 		c.queue_free()
@@ -307,7 +315,7 @@ func _refresh_left() -> void:
 	else:
 		var tex := load("res://sprites/items/prestige_%d.png" % clampi(prestige, 0, 5)) as Texture2D
 		if tex:
-			_level_box.add_child(UIKit.icon(tex, 48))          # 48x48 art at 1x (section 5.2, Icons)
+			_level_box.add_child(UIKit.icon(tex, 24))          # half size (J00BA, 2026-11-08)
 		_level_box.add_child(UIKit.label(str(level), UIKit.RARE, 22))
 		_level_box.tooltip_text = "Player level %d · prestige %d" % [level, prestige]
 	for c in _level_box.get_children():
@@ -483,95 +491,108 @@ func _trophy_text(t: Dictionary, got: bool) -> String:
 # --- Collection ------------------------------------------------------------------------------
 
 func _render_collection() -> void:
+	var wallet: String = profile.get("wallet", "")
+	var imps: Array = profile.get("imps", [])
+	if wallet == "":
+		_content.add_child(_note("Connect a wallet in the Profile menu to see your Impz"))
+		if is_self:
+			_content.add_child(_left(UIKit.button("Open Profile menu", true, func(): close(); ProfileUI.open_menu())))
+		return
+	if Look.state == "loading" and is_self:
+		_content.add_child(_note("Checking your wallet..."))
+		return
+	if imps.is_empty():
+		_content.add_child(_note("No Impz in this wallet"))
+		return
+	_content.add_child(_heading("Your Impz (%d)" % imps.size()))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_content.add_child(scroll)
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.add_theme_constant_override("separation", 8)
-	scroll.add_child(col)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	scroll.add_child(grid)
+	for n in imps:
+		grid.add_child(_imp_card(int(n)))
+	_load_imp_pictures(imps)
 
-	# Impz first (J00BA)
-	col.add_child(_heading("Impz"))
-	var wallet: String = profile.get("wallet", "")
-	var imps: Array = profile.get("imps", [])
-	if wallet == "":
-		col.add_child(_note("Connect a wallet in the Profile menu to see your Impz"))
-		if is_self:
-			col.add_child(_left(UIKit.button("Open Profile menu", true, func(): close(); ProfileUI.open_menu())))
-	elif Look.state == "loading" and is_self:
-		col.add_child(_note("Checking your wallet..."))
-	elif imps.is_empty():
-		col.add_child(_note("No Impz in this wallet" + ("   (TEST: all traits are unlocked by the customizer's test switch)" if Look.test_all and is_self else "")))
+
+## One Imp: its NFT picture in a recessed slot and its number from the metadata under it.
+func _imp_card(id: int) -> Control:
+	var card := VBoxContainer.new()
+	card.add_theme_constant_override("separation", 4)
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", UIKit.slot(UIKit.SLOT, UIKit.OUTLINE, 1, 4.0))
+	card.add_child(frame)
+	var pic = _imp_pictures.get(id)
+	if pic is Texture2D:
+		var t := TextureRect.new()
+		t.texture = pic
+		t.custom_minimum_size = Vector2(IMP_PICTURE, IMP_PICTURE)
+		t.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		frame.add_child(t)
 	else:
-		var grid := GridContainer.new()
-		grid.columns = 6
-		grid.add_theme_constant_override("h_separation", 8)
-		grid.add_theme_constant_override("v_separation", 8)
-		col.add_child(grid)
-		var tiers: Dictionary = profile.get("tiers", {})
-		for n in imps:
-			var tier = tiers.get(str(int(n)), null)
-			var tier_text := ("Imp tier %s" % str(tier).trim_prefix("Tier ")) if tier != null else "Imp tier not known"
-			grid.add_child(_slot_button("#%d" % int(n), false, "", "Imp #%d\n%s" % [int(n), tier_text], Callable(), Vector2(92, 56)))
+		var wait := UIKit.label("Can't load" if pic == "failed" else "Loading...", UIKit.MUTED, 13)
+		wait.custom_minimum_size = Vector2(IMP_PICTURE, IMP_PICTURE)
+		wait.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		wait.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		frame.add_child(wait)
+	var label := UIKit.label(str(_imp_names.get(id, "IMPLINGZ #%d" % id)), UIKit.RARE, 15)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card.add_child(label)
+	return card
 
-	col.add_child(_heading("Trait cosmetics"))
-	if is_self:
-		var any := false
-		for slot in ImpBuilder.SLOTS:
-			var names := []
-			for e in ImpBuilder.manifest().get(slot, []):
-				if Look.owns(slot, e.id) and e.id != Look.BASE.get(slot, ""):
-					names.append(e.name)
-			if not names.is_empty():
-				any = true
-				col.add_child(_note("%s: %s" % [slot.capitalize(), ", ".join(names)], Color.WHITE))
-		if not any:
-			col.add_child(_note("Only the base imp. Traits come from the Impz in your wallet."))
-		elif Look.test_all:
-			col.add_child(_note("TEST: every trait is unlocked by the customizer's test switch."))
-		col.add_child(_left(_key_button("C", "Open customizer", _open_customizer)))
-	else:
-		col.add_child(_note(NOT_BUILT))
 
-	for kind in ["title", "emblem"]:
-		col.add_child(_heading("Titles" if kind == "title" else "Emblems"))
-		var list := _titles() if kind == "title" else _emblems()
-		var got := list.filter(func(e): return _unlocked(kind, e.id))
-		if list.is_empty():
-			col.add_child(_note(NOT_BUILT))
-		elif got.is_empty():
-			col.add_child(_note("None unlocked yet. Trophies give them."))
-		for e in got:
-			var r := HBoxContainer.new()
-			r.add_theme_constant_override("separation", 10)
-			if kind == "emblem":
-				r.add_child(_emblem_art(e.id, 48))
-			r.add_child(UIKit.label(e.name, UIKit.RARE if kind == "title" else Color.WHITE, 15))
-			r.add_child(UIKit.spacer())
-			if is_self:
-				var on: bool = profile.get(kind, "") == e.id
-				var b := UIKit.button("Equipped" if on else "Equip", not on, func(): _equip(kind, e.id))
-				b.custom_minimum_size = Vector2(110, MIN_TAP)
-				r.add_child(b)
-			col.add_child(r)
+## Fetch the metadata and picture of every Imp not loaded yet, LOADERS at a time.
+func _load_imp_pictures(imps: Array) -> void:
+	for n in imps:
+		var id := int(n)
+		if not _imp_pictures.has(id) and not id in _imp_queue:
+			_imp_pictures[id] = "loading"
+			_imp_queue.append(id)
+	while _imp_loading < LOADERS and not _imp_queue.is_empty():
+		_load_imp(_imp_queue.pop_front())
 
-	col.add_child(_heading("Prestige badges"))
-	var badges: Array = _test.get("prestige_badges", [])
-	if badges.is_empty():
-		col.add_child(_note(NOT_BUILT))
-	else:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		col.add_child(row)
-		for b in badges:
-			var reached: bool = int(profile.get("prestige", -1)) >= int(b.prestige)
-			row.add_child(_slot_button(str(int(b.prestige)), not reached, "", "%s\n%s" % [b.name,
-				"Earned" if reached else "Prestige %d to earn it" % int(b.prestige)], Callable()))
 
-	col.add_child(_heading("Items"))
-	col.add_child(_note(NOT_BUILT + " (what this section holds is an open question)"))
+## One Imp: its name and image from the metadata. The picture comes from the game's own copy of the collection
+## (assets/sprites/implingz_generations, the same pictures) when it has it, otherwise from IPFS.
+func _load_imp(id: int) -> void:
+	_imp_loading += 1
+	var http := HTTPRequest.new()
+	http.timeout = 30.0
+	add_child(http)
+	var meta := await _fetch(http, METADATA + str(id))
+	var data = JSON.parse_string(meta.get_string_from_utf8()) if not meta.is_empty() else null
+	var image_url := ""
+	if data is Dictionary:
+		_imp_names[id] = str(data.get("name", "IMPLINGZ #%d" % id))
+		image_url = str(data.get("image", "")).replace("ipfs://", IPFS_GATEWAY)
+	var img := Image.new()
+	var ok := false
+	var local := ProjectSettings.globalize_path(LOCAL_PICTURES % id)
+	if FileAccess.file_exists(local):
+		ok = img.load(local) == OK
+	if not ok and image_url != "":
+		var bytes := await _fetch(http, image_url)
+		ok = not bytes.is_empty() and img.load_png_from_buffer(bytes) == OK
+	http.queue_free()
+	if ok:
+		img.resize(IMP_PICTURE, IMP_PICTURE, Image.INTERPOLATE_NEAREST)
+	_imp_pictures[id] = ImageTexture.create_from_image(img) if ok else "failed"
+	_imp_loading -= 1
+	if visible and tab == "collection" and _picker == "":
+		_refresh()
+	_load_imp_pictures([])
+
+
+func _fetch(http: HTTPRequest, url: String) -> PackedByteArray:
+	if http.request(url) != OK:
+		return PackedByteArray()
+	var res: Array = await http.request_completed
+	return res[3] if res[0] == HTTPRequest.RESULT_SUCCESS and res[1] == 200 else PackedByteArray()
 
 
 func _open_customizer() -> void:
@@ -626,62 +647,75 @@ func _open_picker(kind: String) -> void:
 func _render_picker(kind: String) -> void:
 	var head := HBoxContainer.new()
 	_content.add_child(head)
-	head.add_child(UIKit.label("Pick a title" if kind == "title" else "Pick an emblem", UIKit.RARE, 18))
+	head.add_child(UIKit.label("Titles" if kind == "title" else "Emblems", Color.WHITE, 18))
 	head.add_child(UIKit.spacer())
 	var back := UIKit.button("Back", true, _close_picker)
 	back.custom_minimum_size = Vector2(90, MIN_TAP)
 	head.add_child(back)
+	var items := _titles() if kind == "title" else _emblems()
+	if items.is_empty():
+		_content.add_child(_note(NOT_BUILT))
+		return
+	var grid := GridContainer.new()
+	grid.columns = 2 if kind == "title" else 8
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_child(grid)
 	_content.add_child(scroll)
-	var list := VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 4)
-	scroll.add_child(list)
-	var items := _titles() if kind == "title" else _emblems()
-	list.add_child(_picker_row(kind, "", "None", true, ""))
-	if items.is_empty():
-		list.add_child(_note(NOT_BUILT))
+	grid.add_child(_pick_slot(kind, {id = "", name = "None"}, true))
 	for e in items:
-		var open := _unlocked(kind, e.id)
-		var t := _trophy_for(kind, e.id)
-		list.add_child(_picker_row(kind, e.id, e.name, open, "" if open else "From: " + str(t.get("challenge", "?"))))
+		grid.add_child(_pick_slot(kind, e, _unlocked(kind, e.id)))
+	_content.add_child(UIKit.divider())
+	var info := UIKit.label(_detail.get(kind, "Click one to equip it. Locked ones come from trophies."),
+		Color.WHITE if _detail.has(kind) else UIKit.MUTED, 14)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.custom_minimum_size.y = 44
+	_content.add_child(info)
 
 
-func _picker_row(kind: String, id: String, label: String, open: bool, from: String) -> Button:
-	var on: bool = profile.get(kind, "") == id
-	var b := _plain_button(func(): _equip(kind, id))
-	b.disabled = not open
-	b.custom_minimum_size = Vector2(0, 56 if kind == "emblem" else MIN_TAP + 4)
+## A title or emblem in a slot: unlocked in full colour (click equips it), locked greyed with a lock (click says
+## which challenge gives it). The equipped one has the gold rim.
+func _pick_slot(kind: String, e: Dictionary, open: bool) -> Button:
+	var on: bool = profile.get(kind, "") == e.id
+	var from := "" if open else "From: " + str(_trophy_for(kind, e.id).get("challenge", "?"))
+	var tip := "%s\n%s" % [e.name, "Equipped" if on else ("Click to equip" if open else from)]
+	var size := Vector2(0, 56) if kind == "title" else Vector2(64, 64)
+	var on_click := func():
+		if open:
+			_detail.erase(kind)
+			_equip(kind, e.id)
+		else:
+			_detail[kind] = "%s  ·  %s" % [e.name, from]
+			_refresh()
+	var b := _slot_button("", false, "", tip, on_click, size)
+	if kind == "title":
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if on:
+		for state in ["normal", "hover", "pressed"]:
+			b.add_theme_stylebox_override(state, UIKit.slot(UIKit.SLOT, UIKit.GOLD, 2, 4.0))
+	var center: Control = b.get_child(0)
+	for c in center.get_children():
+		center.remove_child(c)
+		c.queue_free()
 	var row := HBoxContainer.new()
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = 12
-	row.offset_right = -12
-	row.add_theme_constant_override("separation", 10)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(row)
-	row.add_child(UIKit.label(">" if on else " ", UIKit.RARE, 16))       # the equipped row, like the worn trait
-	if kind == "emblem" and id != "":
-		var art := _emblem_art(id, 40)
-		art.modulate = Color(1, 1, 1, 1.0 if open else 0.4)
-		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(art)
-	var color := (UIKit.RARE if on or (kind == "title" and id != "") else Color.WHITE) if open else UIKit.MUTED
-	var lbl := UIKit.label(label, color, 16)
-	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(lbl)
-	row.add_child(UIKit.spacer())
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	center.add_child(row)
 	if not open:
 		row.add_child(UIKit.pixel_icon(LOCK, UIKit.MUTED))
-		var f := UIKit.label(from, UIKit.MUTED, 13)
-		f.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(f)
-	elif on:
-		var w := UIKit.label("equipped", UIKit.RARE, 13)
-		w.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(w)
-	for c in row.find_children("*", "Control", true, false):
+	if kind == "emblem" and e.id != "":
+		var art := _emblem_art(e.id, 40)
+		art.modulate.a = 1.0 if open else 0.35
+		if open:
+			row.add_child(art)
+	else:
+		row.add_child(UIKit.label(e.name, (UIKit.RARE if e.id != "" else Color.WHITE) if open else UIKit.MUTED,
+			15 if kind == "title" else 13))
+	for c in row.find_children("*", "Control", true, false) + [row]:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return b
 
@@ -726,6 +760,20 @@ func _slot_button(text: String, locked: bool, under: String, tip: String, on_pre
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if c is Label:
 			c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return b
+
+
+## A tab: clicked, no key (J00BA, 2026-11-08).
+func _tab_button(text: String, on_press: Callable) -> Button:
+	var b := _plain_button(on_press)
+	var l := UIKit.label(text, Color.WHITE, 15)
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(l)
+	b.set_meta("label", l)
+	b.custom_minimum_size = Vector2(120, MIN_TAP)
 	return b
 
 
@@ -962,7 +1010,7 @@ func _build() -> void:
 	right.add_child(_tabs_row)
 	for i in TABS.size():
 		var t: Dictionary = TABS[i]
-		var b := _key_button(str(i + 1), t.label, func(): _set_tab(t.key))
+		var b := _tab_button(t.label, func(): _set_tab(t.key))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_tab_buttons[t.key] = b
 		_tabs_row.add_child(b)
