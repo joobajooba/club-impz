@@ -87,6 +87,7 @@ func populate(w: GameWorld) -> void:
 	_landmark("hollow_tree", lm, 0.6)
 	_landmark("dreadstone_pit", lm, 0.0)
 	_landmark("sunken_ruins", lm, 0.3, -0.6)
+	_landmark("waterfall_rocks", {"waterfall_rocks": lm["waterfall"]}, -PI / 2.0)  # facing -x, down the fall
 	var ob: Array = lm["obsidian_cave"]
 	_place("res://scenes/resource/obsidian_vent_placeholder.tscn", ob[0], ob[1], 0.5).name = "obsidian_cave"
 	var pk: Array = lm["highest_peak"]
@@ -106,6 +107,10 @@ func _landmark(key: String, lm: Dictionary, yaw: float, sink := 0.0) -> void:
 
 func _place(path: String, x: float, z: float, yaw: float, sink := 0.0) -> Node3D:
 	var n := (load(path) as PackedScene).instantiate() as Node3D
+	if "ground" in n:  # placeholders that sit each piece on the terrain need the transform while they build
+		n.set("ground", data.height)
+		n.position = to_local(Vector3(x, data.height(x, z) + sink - 0.15, z))
+		n.rotation.y = yaw
 	add_child(n)
 	n.global_position = Vector3(x, data.height(x, z) + sink - 0.15, z)
 	n.rotation.y = yaw

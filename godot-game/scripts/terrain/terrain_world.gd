@@ -71,7 +71,8 @@ func _make_material(near_cut: float, drop: float) -> ShaderMaterial:
 	var ints := {"r_base": "base", "r_patch": "patch", "r_litter": "litter", "r_steep": "steep", "r_mid": "mid",
 		"r_high": "high", "r_wet": "wet", "r_special": "special", "r_path": "path"}
 	var floats := {"patch_threshold": ["patch_threshold", 1.0], "steep_slope": ["steep_slope", 0.45],
-		"mid_slope": ["mid_slope", 9.0], "high_y": ["high_y", 9999.0], "border_patch": ["border_patch", 0.0]}
+		"mid_slope": ["mid_slope", 9.0], "high_y": ["high_y", 9999.0], "border_patch": ["border_patch", 0.0],
+		"special_on_steep": ["special_on_steep", 0.0]}
 	for u in ints:
 		var arr := PackedInt32Array()
 		for b in WorldData.BIOMES:
