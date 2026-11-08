@@ -15,6 +15,7 @@ extends Node
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing
 ##   --mine_at=4  start mining the vein in reach after 4 s
+##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it
 ##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
 ##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
@@ -84,6 +85,17 @@ func _ready() -> void:
 		Inventory.take_out("pickaxe")
 	if args.has("mine_chance"):                            # testing: multiply the chance per swing
 		player.miner.chance_scale = float(args["mine_chance"])
+	if args.has("goto_mob"):                               # testing: --goto_mob=wolf stands 7 m from the first wolf
+		for n in current_world.find_children(args["goto_mob"] + "_*", "Node3D", true, false):
+			if n.get_script() == null:
+				continue
+			var p: Vector3 = n.global_position + Vector3(0, 0, 7.0)
+			p.y = current_world.ground_height(p.x, p.z) + 0.3
+			player.place_at(Transform3D(Basis(), p))
+			print("MOB at ", n.name, " ", n.global_position)
+			if args.has("follow"):                         # keep standing beside it (for screenshots of it walking)
+				_follow(n, float(args.get("follow_dist", "4.5")))
+			break
 	if args.has("goto_scatter"):                           # testing: --goto_scatter=rock_swamp_l stands by the first of those
 		var sc := get_tree().get_first_node_in_group("scatter") as Scatter
 		for cell in (sc.tree_cells.values() if sc else []):
@@ -372,3 +384,16 @@ func _chop_test() -> void:
 	await get_tree().physics_frame
 	print("CHOP chopping %s (%s) at %s, %.1f s" % [t.tree, t.key, c, Lumbering.chop_time(t.tree, Inventory.held.axe)])
 	player.chopper.start(t)
+
+
+## Testing (--goto_mob with --follow): the player keeps standing beside the mob, to watch it walk.
+func _follow(n: Node3D, dist: float) -> void:
+	while is_instance_valid(n):
+		var p := n.global_position + Vector3(dist * 0.5, 0, dist)
+		p.y = current_world.ground_height(p.x, p.z) + 0.3
+		player.global_position = p
+		player.velocity = Vector3.ZERO
+		player.cam_yaw = atan2(-(n.global_position.x - p.x), -(n.global_position.z - p.z)) + 0.35
+		var mid: float = n.global_position.y + float(args.get("follow_h", "0.8"))   # aim at the mob's middle
+		player.cam_pitch = clampf(-atan2(p.y + 2.0 - mid, Vector2(n.global_position.x - p.x, n.global_position.z - p.z).length() + float(player.target_zoom)), -1.2, 0.4)
+		await get_tree().process_frame
