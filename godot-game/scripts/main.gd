@@ -15,6 +15,7 @@ extends Node
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing
 ##   --mine_at=4  start mining the vein in reach after 4 s
+##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
 ##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
@@ -83,6 +84,21 @@ func _ready() -> void:
 		Inventory.take_out("pickaxe")
 	if args.has("mine_chance"):                            # testing: multiply the chance per swing
 		player.miner.chance_scale = float(args["mine_chance"])
+	if args.has("goto_scatter"):                           # testing: --goto_scatter=rock_swamp_l stands by the first of those
+		var sc := get_tree().get_first_node_in_group("scatter") as Scatter
+		for cell in (sc.tree_cells.values() if sc else []):
+			var found := false
+			for mmi in cell.get_children():
+				if String(mmi.name).ends_with(args["goto_scatter"]) and mmi.has_meta("xforms") and not mmi.get_meta("xforms").is_empty():
+					var xf: Transform3D = mmi.get_meta("xforms")[0]
+					var p: Vector3 = xf.origin + Vector3(0, 0, 4.0)
+					p.y = current_world.ground_height(p.x, p.z) + 0.3
+					player.place_at(Transform3D(Basis(), p))
+					print("SCATTER at ", mmi.name, " ", xf.origin)
+					found = true
+					break
+			if found:
+				break
 	if args.has("goto_ore"):                               # testing: --goto_ore=gold stands by the first gold vein
 		for n in current_world.find_children(args["goto_ore"] + "_vein_*", "Node3D", true, false):
 			var p: Vector3 = n.global_position + Vector3(0, 0, 1.8)
