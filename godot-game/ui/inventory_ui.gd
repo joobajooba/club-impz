@@ -1,17 +1,21 @@
 extends CanvasLayer
-## The inventory screen (I). Items fill a 6 x 8 grid (D-008), plus any rows bought from the merchant
-## (D-077), in pickup order with their counts. Tools sit above the grid, one row per kind; click one
-## to hold it, the held one of each kind is outlined. (D-008 puts pickaxes in the grid; with five
-## kinds of tools, a separate strip is Proposed.) Below are the TEST tools, for reviewers. Remove
-## before launch.
+## The inventory screen (I). Across the top, the equipped tools: one slot per kind (pickaxe, sickle,
+## axe, bow, rod, sword), the same size as the item slots; the one in the Imp's hand is outlined, a
+## click takes it out. Only one tool of a kind is equipped: every other tool the player owns sits in
+## the grid below, one slot each (Inventory.hold). To swap, drag a tool from the grid onto its slot
+## (or the equipped one onto a tool of the same kind in the grid); the old one takes its place in the grid.
+## Items fill a 6 x 8 grid (D-008), plus any rows bought from the merchant (D-077), in pickup order
+## with their counts. Below are the TEST tools, for reviewers. Remove before launch.
 
 const HELD := Color(1.0, 0.86, 0.4)
 const SLOT_SIZE := 52
-const TOOL_SIZE := 34
+const GAP := 6                     # between slots, the grid's h_separation
+const TOOL_ORDER := ["pickaxe", "sickle", "axe", "bow", "rod", "sword"]
 
 @onready var vbox: VBoxContainer = $Center/Panel/VBox
 @onready var slots: GridContainer = $Center/Panel/VBox/Slots
-var _tools: VBoxContainer
+var _tools: HBoxContainer
+var _tool_slots := {}            # tool kind -> Button
 var _scroll: ScrollContainer
 var _buttons: Array[Button] = []
 
@@ -27,13 +31,23 @@ func _ready() -> void:
 	var rule := UIKit.divider()
 	vbox.add_child(rule)
 	vbox.move_child(rule, title.get_index() + 1)
-	_tools = VBoxContainer.new()
-	_tools.add_theme_constant_override("separation", 4)
+	var tools_head := UIKit.label("Equipped tools  ·  drag a tool from your bag onto its slot to swap", UIKit.MUTED, 12)
+	tools_head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(tools_head)
+	vbox.move_child(tools_head, slots.get_index())
+	_tools = HBoxContainer.new()
+	_tools.add_theme_constant_override("separation", GAP)
+	_tools.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(_tools)
 	vbox.move_child(_tools, slots.get_index())
+	_build_tool_slots()
+	var bag_rule := UIKit.divider()
+	vbox.add_child(bag_rule)
+	vbox.move_child(bag_rule, slots.get_index())
 	# The grid scrolls when it is taller than the window (bought rows, small screens).
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	vbox.add_child(_scroll)
 	vbox.move_child(_scroll, slots.get_index())
 	slots.reparent(_scroll)
@@ -78,11 +92,13 @@ func _render() -> void:
 	_render_tools()
 	while _buttons.size() < Inventory.slots():
 		var b := _slot(SLOT_SIZE)
+		var i := _buttons.size()
+		b.set_drag_forwarding(_drag_from_grid.bind(b, i), _can_drop_on_grid.bind(i), _drop_on_grid.bind(i))
 		slots.add_child(b)
 		_buttons.append(b)
 	var rows := Inventory.slots() / GameData.INVENTORY_COLUMNS
-	var room := get_viewport().get_visible_rect().size.y - 420.0   # the title, tools, TEST row and frame
-	_scroll.custom_minimum_size = Vector2(GameData.INVENTORY_COLUMNS * (SLOT_SIZE + 6) + 12, minf(rows * (SLOT_SIZE + 6), maxf(room, 160.0)))
+	var room := get_viewport().get_visible_rect().size.y - 330.0   # the title, tools, TEST row and frame
+	_scroll.custom_minimum_size = Vector2(GameData.INVENTORY_COLUMNS * (SLOT_SIZE + GAP) + 12, minf(rows * (SLOT_SIZE + 6), maxf(room, 160.0)))
 	var ids := Inventory.items.keys()
 	for i in _buttons.size():
 		var b := _buttons[i]
@@ -91,28 +107,97 @@ func _render() -> void:
 		var tex := GameData.item_icon(id) if id else null
 		b.icon = tex
 		b.text = "" if tex or not id else GameData.item_label(id)   # hilts have no picture yet
-		b.tooltip_text = "%s × %d" % [GameData.item_label(id), Inventory.items[id]] if id else ""
-		(b.get_node("Count") as Label).text = str(Inventory.items[id]) if id else ""
+		var tool := id != "" and Inventory.is_tool(id)
+		if tool:
+			b.tooltip_text = "%s
+Drag onto the %s slot to equip it" % [GameData.item_label(id), GameData.TOOL_KINDS[GameData.tools[id].kind].label.to_lower()]
+		else:
+			b.tooltip_text = "%s × %d" % [GameData.item_label(id), Inventory.items[id]] if id else ""
+		(b.get_node("Count") as Label).text = str(Inventory.items[id]) if id and not tool else ""
+
+
+func _build_tool_slots() -> void:
+	for kind in TOOL_ORDER:
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 2)
+		_tools.add_child(col)
+		var b := _slot(SLOT_SIZE)
+		b.pressed.connect(Inventory.take_out.bind(kind))
+		b.set_drag_forwarding(_drag_from_tool.bind(b, kind), _can_drop_on_tool.bind(kind), _drop_on_tool.bind(kind))
+		col.add_child(b)
+		var name := UIKit.label(GameData.TOOL_KINDS[kind].label, UIKit.MUTED, 11)
+		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name.custom_minimum_size = Vector2(SLOT_SIZE, 0)
+		col.add_child(name)
+		_tool_slots[kind] = b
 
 
 func _render_tools() -> void:
-	for c in _tools.get_children():
-		_tools.remove_child(c)
-		c.queue_free()
-	for kind in GameData.TOOL_KINDS:
-		var r := UIKit.row(_tools)
-		r.add_theme_constant_override("separation", 4)
-		var name := UIKit.label(GameData.TOOL_KINDS[kind].label + "s", UIKit.MUTED, 13)
-		name.custom_minimum_size = Vector2(64, 0)
-		r.add_child(name)
-		for id in Inventory.owned[kind]:
-			var b := _slot(TOOL_SIZE)
-			var held: bool = Inventory.held[kind] == id
-			_style_slot(b, held)
-			b.icon = GameData.tool_icon(id)
-			b.tooltip_text = GameData.tools[id].label
-			b.pressed.connect(Inventory.hold.bind(id))
-			r.add_child(b)
+	for kind in _tool_slots:
+		var b: Button = _tool_slots[kind]
+		var id: String = Inventory.held[kind]
+		_style_slot(b, kind == Inventory.in_hand)
+		b.icon = GameData.tool_icon(id)
+		b.tooltip_text = "%s%s" % [GameData.tools[id].label, "  (in hand)" if kind == Inventory.in_hand else ""]
+
+
+# --- dragging tools: grid <-> equipped slots ------------------------------------------------------
+
+func _grid_id(i: int) -> String:
+	var ids := Inventory.items.keys()
+	return ids[i] if i < ids.size() else ""
+
+
+func _drag_preview(b: Button, id: String) -> void:
+	var tr := TextureRect.new()
+	tr.texture = GameData.tool_icon(id)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.size = Vector2(SLOT_SIZE, SLOT_SIZE)
+	tr.position = -tr.size / 2.0
+	tr.modulate.a = 0.85
+	var holder := Control.new()
+	holder.add_child(tr)
+	b.set_drag_preview(holder)
+
+
+func _drag_from_grid(_at: Vector2, b: Button, i: int) -> Variant:
+	var id := _grid_id(i)
+	if id == "" or not Inventory.is_tool(id):
+		return null                                   # only tools are dragged (to equip them)
+	_drag_preview(b, id)
+	return {tool = id, from = "grid"}
+
+
+func _drag_from_tool(_at: Vector2, b: Button, kind: String) -> Variant:
+	var id: String = Inventory.held[kind]
+	_drag_preview(b, id)
+	return {tool = id, from = "equipped"}
+
+
+func _kind_of(data: Variant) -> String:
+	if data is Dictionary and data.has("tool") and GameData.tools.has(data.tool):
+		return GameData.tools[data.tool].kind
+	return ""
+
+
+## A tool from the grid onto the equipped slot of its kind: equip it (the old one goes to its grid slot).
+func _can_drop_on_tool(_at: Vector2, data: Variant, kind: String) -> bool:
+	return data is Dictionary and data.get("from") == "grid" and _kind_of(data) == kind
+
+
+func _drop_on_tool(_at: Vector2, data: Variant, _kind: String) -> void:
+	Inventory.hold(data.tool)
+
+
+## The equipped tool onto a tool of the same kind in the grid: the same swap.
+func _can_drop_on_grid(_at: Vector2, data: Variant, i: int) -> bool:
+	var id := _grid_id(i)
+	return data is Dictionary and data.get("from") == "equipped" and id != "" and Inventory.is_tool(id) 		and GameData.tools[id].kind == _kind_of(data)
+
+
+func _drop_on_grid(_at: Vector2, _data: Variant, i: int) -> void:
+	Inventory.hold(_grid_id(i))
 
 
 func _build_test_tools() -> void:

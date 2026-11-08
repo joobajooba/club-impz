@@ -5,8 +5,8 @@ extends CanvasLayer
 ##   bar. Clicking it opens the Profile menu.
 ## - Under it, the tool bar: five square slots (pickaxe, sword, axe, sickle, rod), each showing the tool of
 ##   that kind the player uses; everyone starts with the stone ones (and a driftwood rod). The one in hand
-##   is lit and held in the Imp's right fist; 1 to 5 or a click takes one out, Q switches to the next tier
-##   of the same kind, left click or E swings it (imp_visual.gd ACTIONS).
+##   is lit and held in the Imp's right fist; 1 to 5 or a click takes one out; tools are swapped in the inventory (I)
+##   and left click or E swings it (imp_visual.gd ACTIONS).
 ## - At the bottom, the "F Mine Tin" prompt, a short "+1 Tin ore" line for every pickup (rare drops and
 ##   new tools are highlighted) and short notices such as "Inventory full".
 ## Colours from UIKit.
@@ -318,7 +318,7 @@ func _build_toolbar() -> Control:
 	_tool_name.add_theme_constant_override("outline_size", 4)
 	_tool_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_tool_name)
-	var hint := UIKit.label("1-5 tools  ·  Click/E use  ·  Q next tier", UIKit.MUTED, 12)
+	var hint := UIKit.label("1-5 tools  ·  Click/E use  ·  I inventory", UIKit.MUTED, 12)
 	hint.add_theme_color_override("font_outline_color", UIKit.OUTLINE)
 	hint.add_theme_constant_override("outline_size", 4)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE

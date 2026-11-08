@@ -78,6 +78,20 @@ func set_player(p: Node3D) -> void:
 			c.set_player(p)
 
 
+## Loading screen (main.gd): builds the whole world before the player joins it, so nothing is built
+## (and nothing hitches) while they play. Each call spends about `budget_usec`; returns the share done.
+## Terrain is 30% of the bar, trees and plants the rest.
+var _load_chunks: Array[Vector2i] = []
+
+func load_step(budget_usec: int) -> float:
+	if _load_chunks.is_empty():
+		_load_chunks = terrain.load_list(player.global_position if player else _marker_pos("spawn_point"))
+	var built := terrain.load_some(_load_chunks, budget_usec)
+	var t := float(built) / maxf(_load_chunks.size(), 1)
+	var s := scatter.load_some(budget_usec) if t >= 1.0 else 0.0
+	return 0.3 * t + 0.7 * s
+
+
 func set_view_focus(f: Node3D) -> void:
 	## The local view (player, or the free camera in camera mode). Terrain meshes, the foliage build order, tree
 	## shadows and weather particles follow it; colliders stay round the player.

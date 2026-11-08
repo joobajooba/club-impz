@@ -138,6 +138,35 @@ func _process(_delta: float) -> void:
 			colliders.erase(c)
 
 
+## Loading screen (main.gd): every chunk this world shows from `pos` (all of them with keep_loaded),
+## nearest first.
+func load_list(pos: Vector3) -> Array[Vector2i]:
+	var pc := Vector2i(floori((pos.x - data.origin.x) / CHUNK), floori((pos.z - data.origin.y) / CHUNK))
+	var max_x := int(ceil(data.size.x / CHUNK))
+	var max_z := int(ceil(data.size.y / CHUNK))
+	var out: Array[Vector2i] = []
+	for z in max_z:
+		for x in max_x:
+			var c := Vector2i(x, z)
+			if keep_loaded or (c - pc).length_squared() <= (view_chunks + 0.5) * (view_chunks + 0.5):
+				out.append(c)
+	out.sort_custom(func(a, b): return (a - pc).length_squared() < (b - pc).length_squared())
+	return out
+
+
+## Builds chunks of `list` that are missing until `budget_usec` is spent. Returns how many are built.
+func load_some(list: Array[Vector2i], budget_usec: int) -> int:
+	var t0 := Time.get_ticks_usec()
+	var done := 0
+	for c in list:
+		if not chunks.has(c):
+			if Time.get_ticks_usec() - t0 > budget_usec:
+				continue
+			_build_chunk(c)
+		done += 1
+	return done
+
+
 func build_now_around(pos: Vector3, radius_chunks := 1) -> void:
 	## Build the chunks and colliders round a point straight away (used before placing the player).
 	var pc := Vector2i(floori((pos.x - data.origin.x) / CHUNK), floori((pos.z - data.origin.y) / CHUNK))

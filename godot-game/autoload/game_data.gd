@@ -228,6 +228,7 @@ func _init() -> void:
 	_build_foraging()
 	_build_hunting()
 	_build_lumbering()
+	_add_chopped_logs()
 	_build_fishing()
 	for id in HILTS:
 		items[id] = {label = HILTS[id].label, icon = "res://sprites/items/hilt_%s.png" % id, tier = 0, skill = "", kind = "hilt"}
@@ -300,6 +301,16 @@ func _build_lumbering() -> void:
 		_item(row.rare, w[3], "sap_" + w[0], i + 1, "lumbering", "rare")
 
 
+## The logs of the world's choppable trees (Lumbering.TREES, resource_gathering.md section 5) that the
+## lumbering table above has no item for yet (maple, hickory, frostbark...). Their icon is the oak log
+## recoloured to the tree's bark (item_icon): TEST art until they have pictures.
+func _add_chopped_logs() -> void:
+	for t in Lumbering.TREES.values():
+		if not items.has(t.log):
+			items[t.log] = {label = t.label + " log", icon = "res://sprites/items/log_oak.png", tint = t.bark,
+					tier = t.tier, skill = "lumbering", kind = "raw"}
+
+
 func _build_fishing() -> void:
 	for i in _FISH.size():
 		var f: Array = _FISH[i]
@@ -358,7 +369,28 @@ func item_icon(id: String) -> Texture2D:
 	if tools.has(id):
 		return tool_icon(id)
 	var path: String = items[id].icon if items.has(id) else ""
-	return load(path) if path != "" and ResourceLoader.exists(path) else null
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	if items[id].has("tint"):                        # a recoloured picture (_add_chopped_logs)
+		if not _icon_cache.has(id):
+			_icon_cache[id] = _tinted((load(path) as Texture2D).get_image(), Color(items[id].tint))
+		return _icon_cache[id]
+	return load(path)
+
+
+## The picture in one colour, keeping its shading (each pixel's brightness) and its outline.
+static func _tinted(img: Image, tint: Color) -> Texture2D:
+	img = img.duplicate()
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a > 0.0:
+				var l := clampf(c.get_luminance() * 1.7, 0.0, 1.4)
+				img.set_pixel(x, y, Color(minf(tint.r * l, 1.0), minf(tint.g * l, 1.0), minf(tint.b * l, 1.0), c.a))
+	return ImageTexture.create_from_image(img)
 
 
 func tier_row(skill: String, id: String) -> Dictionary:

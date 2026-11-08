@@ -48,7 +48,7 @@ func use() -> bool:
 		return true
 	if Inventory.in_hand != "axe" or target.is_empty():
 		return false
-	var why := Lumbering.blocker(target.tree, Inventory.held.axe)
+	var why := _blocker(target)
 	if why != "":
 		Inventory.message.emit(why)
 		return false
@@ -125,7 +125,7 @@ func _look_for_tree() -> void:
 	if target.is_empty():
 		_set_prompt("", "")
 		return
-	var why := Lumbering.blocker(target.tree, Inventory.held.axe)
+	var why := _blocker(target)
 	if why != "":
 		_set_prompt("", why)
 	else:
@@ -133,6 +133,14 @@ func _look_for_tree() -> void:
 		var done: float = Lumbering.progress.get(target.key, 0.0)
 		var left := maxi(1, int(ceil(secs - done)))
 		_set_prompt("E", "Chop %s  (%s)" % [Lumbering.TREES[target.tree].label, _clock(left)])
+
+
+## Why this tree can't be chopped now ("Needs a Bronze axe", "Inventory full"), or "".
+func _blocker(t: Dictionary) -> String:
+	var why := Lumbering.blocker(t.tree, Inventory.held.axe)
+	if why == "" and not Inventory.has_room(Lumbering.TREES[t.tree].log):
+		why = "Inventory full"
+	return why
 
 
 static func _clock(s: int) -> String:
@@ -211,4 +219,5 @@ func _fell() -> void:
 	tw.tween_interval(0.5)
 	tw.tween_method(sink, 1.0, 0.0, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(node.queue_free)
+	Inventory.gain(Lumbering.TREES[t.tree].log)        # one log per tree (resource_gathering.md section 5)
 	Inventory.message.emit("%s chopped down. It grows back in %d minutes." % [Lumbering.TREES[t.tree].label, int(Lumbering.regrow / 60.0)])

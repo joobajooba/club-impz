@@ -34,6 +34,8 @@ var focus: Node3D              # what the local view follows: the player, or the
 var persistent := true
 var build_queue: Array = []    # [cell coord, cell size, trees?] still to build (persistent mode)
 const BUILD_BUDGET_USEC := 6000
+var tree_places := {}         # Vector3i(cell x, cell z, rule) -> _place result of a built tree cell
+var queued_total := 0          # cells queued at the start (for the loading screen's bar)
 var patch_noise := FastNoiseLite.new()
 var wind_shader: Shader
 var trunk_shapes := {}         # tree key -> its trunk CollisionShape3D (cells next to the player only)
@@ -126,7 +128,24 @@ func _process(_delta: float) -> void:
 				return
 
 
-func _build_queued(view: Vector3) -> void:
+## Loading screen (main.gd): builds queued cells, and the trunk colliders round the player, until
+## `budget_usec` is spent. Returns the share of the world built (0 to 1).
+func load_some(budget_usec: int) -> float:
+	if queued_total == 0:
+		queued_total = maxi(build_queue.size(), 1)
+	var view := player.global_position if player else Vector3.ZERO
+	_build_queued(view, budget_usec)
+	if build_queue.is_empty() and player:
+		var pc := Vector2i(floori(view.x / TREE_CELL), floori(view.z / TREE_CELL))
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var c := pc + Vector2i(dx, dz)
+				if not collider_cells.has(c):
+					collider_cells[c] = _build_colliders(c)
+	return 1.0 - float(build_queue.size()) / queued_total
+
+
+func _build_queued(view: Vector3, budget_usec := BUILD_BUDGET_USEC) -> void:
 	## Persistent mode: build queued cells nearest the view first, within a small time budget per frame
 	## (at least one cell per frame), and keep them for the life of the world.
 	if build_queue.is_empty():
@@ -141,7 +160,7 @@ func _build_queued(view: Vector3) -> void:
 		var store := tree_cells if job[2] else foliage_cells
 		if not store.has(job[0]):
 			store[job[0]] = _build_cell(job[0], job[1], job[2])
-		if Time.get_ticks_usec() - t0 > BUILD_BUDGET_USEC:
+		if Time.get_ticks_usec() - t0 > budget_usec:
 			break
 
 
@@ -180,6 +199,8 @@ func _build_cell(c: Vector2i, cell: float, trees: bool) -> Node3D:
 		if (rule.get("kind", "foliage") == "tree") != trees:
 			continue
 		var per_alias := _place(rule, ri, c, cell)
+		if trees:
+			tree_places[Vector3i(c.x, c.y, ri)] = per_alias   # the trunk colliders reuse it
 		for alias in per_alias:
 			var xforms: Array = per_alias[alias]
 			if xforms.is_empty():
@@ -224,11 +245,40 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 	var out := {}
 	for a in aliases:
 		out[a[0]] = []
+	if not _cell_biomes(c, cell).has(rule["biomes"]):
+		return out                     # none of the rule's biomes reach this cell: every spot would fail
 	var sc: Array = rule.get("scale", [1.0, 1.0])
 	var avoid: Array = rule.get("avoid", [])
 	var req: Dictionary = rule.get("require", {})
 	var biomes: Array = rule["biomes"]
 	var trees: bool = rule.get("kind", "foliage") == "tree"
+	# Everything that is the same for every spot, looked up once (this loop builds the whole world).
+	var x_end := c.x * cell + cell
+	var z_end := c.y * cell + cell
+	var no_path := avoid.has("path")
+	var path_max := float(rule.get("path_max", 0.2))
+	var no_wet := avoid.has("wet")
+	var no_special := avoid.has("special")
+	var no_steep := avoid.has("steep")
+	var water_gap := 0.35 if avoid.has("water") else 0.05
+	var need_litter := float(req.get("litter", -1.0))
+	var need_wet := float(req.get("wet", -1.0))
+	var need_special := float(req.get("special", -1.0))
+	var near_path := float(req.get("near_path", -1.0))
+	var h_range: Array = rule.get("height", [])
+	var patch: Dictionary = rule.get("patch", {})
+	var patch_cut := float(patch.get("threshold", 0.0)) + 0.25
+	if not patch.is_empty():
+		patch_noise.frequency = patch["freq"]
+	var litter_mask: bool = rule.get("patch_mask", "") == "litter"
+	var near_lm := Vector2(1e9, 1e9)
+	var near_r := -1.0
+	if rule.has("near"):
+		var lm: Array = data.layout["landmarks"].get(rule["near"][0], [1e9, 1e9])
+		near_lm = Vector2(lm[0], lm[1])
+		near_r = float(rule["near"][1])
+	var waters := _cell_waters(c, cell)
+	var clears := [] if rule.has("near") else _cell_exclusions(c, cell, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {}))
 	for gz in n:
 		for gx in n:
 			var x := c.x * cell + (gx + rng.randf()) * spacing
@@ -237,34 +287,35 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 			var yaw := rng.randf() * TAU
 			var s := rng.randf_range(sc[0], sc[1])
 			var roll := rng.randf()
-			if x >= c.x * cell + cell or z >= c.y * cell + cell:
+			if x >= x_end or z >= z_end:
 				continue
 			if not data.in_bounds(x, z, 2.0):
 				continue
 			if not biomes.has(WorldData.BIOMES[data.biome_pick(x, z, roll)]):
 				continue
 			var m := data.mask_at(x, z)
-			if avoid.has("path") and m.r > float(rule.get("path_max", 0.2)): continue
-			if avoid.has("wet") and m.g > 0.3: continue
-			if avoid.has("special") and m.b > 0.25: continue
+			if no_path and m.r > path_max: continue
+			if no_wet and m.g > 0.3: continue
+			if no_special and m.b > 0.25: continue
 			var h := data.height(x, z)
-			if avoid.has("steep") and data.normal(x, z).y < 0.8: continue
-			if data.normal(x, z).y < 0.62: continue
-			var wl := data.water_level(x, z)
-			if h < wl + (0.35 if avoid.has("water") else 0.05): continue
-			if req.has("litter") and m.a < float(req["litter"]): continue
-			if req.has("wet") and m.g < float(req["wet"]): continue
-			if req.has("special") and m.b < float(req["special"]): continue
-			if req.has("near_path") and not _near_path(x, z, float(req["near_path"])): continue
-			if rule.has("height") and (h < rule["height"][0] or h > rule["height"][1]): continue
-			if rule.has("patch"):
-				patch_noise.frequency = rule["patch"]["freq"]
-				if patch_noise.get_noise_2d(x + ri * 97.0, z) * 0.5 + 0.5 > float(rule["patch"]["threshold"]) + 0.25: continue
-			if rule.get("patch_mask", "") == "litter" and roll > 0.3 + m.a * 0.9: continue
-			if rule.has("near"):
-				var lm: Array = data.layout["landmarks"].get(rule["near"][0], [1e9, 1e9])
-				if Vector2(x, z).distance_to(Vector2(lm[0], lm[1])) > float(rule["near"][1]): continue
-			elif _excluded(x, z, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {})): continue
+			var up := data.normal(x, z).y
+			if no_steep and up < 0.8: continue
+			if up < 0.62: continue
+			var wl := -1000.0
+			for w in waters:
+				if x >= w[0] and x <= w[2] and z >= w[1] and z <= w[3]:
+					wl = maxf(wl, w[4])
+			if h < wl + water_gap: continue
+			if need_litter >= 0.0 and m.a < need_litter: continue
+			if need_wet >= 0.0 and m.g < need_wet: continue
+			if need_special >= 0.0 and m.b < need_special: continue
+			if near_path >= 0.0 and not _near_path(x, z, near_path): continue
+			if not h_range.is_empty() and (h < h_range[0] or h > h_range[1]): continue
+			if not patch.is_empty() and patch_noise.get_noise_2d(x + ri * 97.0, z) * 0.5 + 0.5 > patch_cut: continue
+			if litter_mask and roll > 0.3 + m.a * 0.9: continue
+			if near_r >= 0.0:
+				if Vector2(x, z).distance_to(near_lm) > near_r: continue
+			elif _in_clearing(clears, x, z): continue
 			var alias: String = aliases[0][0]
 			var acc := 0.0
 			for a in aliases:
@@ -277,6 +328,75 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 	return out
 
 
+## The biome names that can come up anywhere in a cell (biome_pick), as a set with a has(Array) test.
+## Found from the warped depth on a coarse grid, widened by the border blend and a safety margin, so a
+## skipped rule is one that could not have placed anything there: the world is the same, built faster.
+var _biome_sets := {}
+
+class BiomeSet:
+	var names := {}
+	func has(biomes: Array) -> bool:
+		for b in biomes:
+			if names.has(b):
+				return true
+		return false
+
+
+func _cell_biomes(c: Vector2i, cell: float) -> BiomeSet:
+	var key := Vector3i(c.x, c.y, int(cell))
+	if _biome_sets.has(key):
+		return _biome_sets[key]
+	var bs := BiomeSet.new()
+	if data.fixed_biome >= 0:
+		bs.names[WorldData.BIOMES[data.fixed_biome]] = true
+	else:
+		var lo := 1e9
+		var hi := -1e9
+		var n := int(cell / 8.0)
+		for j in n + 1:
+			for i in n + 1:
+				var d := data.depth(c.x * cell + cell * i / n, c.y * cell + cell * j / n)
+				lo = minf(lo, d)
+				hi = maxf(hi, d)
+		var margin: float = data.blend_half + 16.0
+		var i0 := clampi(int(floor((lo - margin) / data.band)), 0, 4)
+		var i1 := clampi(int(floor((hi + margin) / data.band)), 0, 4)
+		for i in range(i0, i1 + 1):
+			bs.names[WorldData.BIOMES[i + 1]] = true
+	_biome_sets[key] = bs
+	return bs
+
+
+## The water planes over a cell: [x0, z0, x1, z1, level] (WorldData.water_level, for this cell only).
+func _cell_waters(c: Vector2i, cell: float) -> Array:
+	var out := []
+	for w in data.layout.get("water", []):
+		var r: Array = w["rect"]
+		if r[2] >= c.x * cell and r[0] <= c.x * cell + cell and r[3] >= c.y * cell and r[1] <= c.y * cell + cell:
+			out.append([r[0], r[1], r[2], r[3], float(w["level"])])
+	return out
+
+
+## The landmark clearings (_excluded) that reach into a cell: [centre, radius].
+func _cell_exclusions(c: Vector2i, cell: float, extra: float, trees: bool, override: Dictionary) -> Array:
+	var out := []
+	var rect := Rect2(c.x * cell, c.y * cell, cell, cell)
+	for e in exclusions:
+		var r: float = float(override.get(e[2], e[1]))
+		if trees:
+			r = maxf(r, extra)
+		var p: Vector2 = e[0]
+		var nearest := Vector2(clampf(p.x, rect.position.x, rect.end.x), clampf(p.y, rect.position.y, rect.end.y))
+		if nearest.distance_to(p) < r + 1.0:
+			out.append([p, r])
+	return out
+
+
+static func _in_clearing(clears: Array, x: float, z: float) -> bool:
+	for e in clears:
+		if Vector2(x, z).distance_to(e[0]) < e[1]:
+			return true
+	return false
 func _excluded(x: float, z: float, extra: float, trees: bool, override: Dictionary = {}) -> bool:
 	## override = per-rule {landmark: radius} replacing the global exclusion_radius (e.g. hub grass hugs the buildings).
 	for e in exclusions:
@@ -307,7 +427,8 @@ func _build_colliders(c: Vector2i) -> Node3D:
 		var rule: Dictionary = rules[ri]
 		if rule.get("kind", "foliage") != "tree":
 			continue
-		var per_alias := _place(rule, ri, c, TREE_CELL)
+		var k := Vector3i(c.x, c.y, ri)
+		var per_alias: Dictionary = tree_places[k] if tree_places.has(k) else _place(rule, ri, c, TREE_CELL)
 		for alias in per_alias:
 			for i in per_alias[alias].size():
 				var xf: Transform3D = per_alias[alias][i]
