@@ -65,7 +65,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | File | Size | Contents |
 | --- | --- | --- |
 | `resource_terrain.png` | 641 × 257 (2 m per pixel) | **RG** = height, 16 bit: `height = (R × 256 + G) / 200 − 20` m. **BA** = warped depth `s`, 16 bit: `s = (B × 256 + A) / 50` m |
-| `resource_mask.png` | 1280 × 512 (1 m per pixel) | **R** path, **G** wet / low ground (riverbanks, frozen lake, dry riverbeds), **B** special patch (plains green grass at the watering hole, swamp slime at the dreadstone pit), **A** forest leaf litter / tree clusters |
+| `resource_mask.png` | 1280 × 512 (1 m per pixel) | **R** path, **G** wet / low ground (riverbanks, frozen lake, dry riverbeds), **B** special patch (plains green grass at the watering hole, swamp slime at the dreadstone pit, rock on the forest waterfall cliff), **A** forest leaf litter / tree clusters |
 | `resource_layout.json` | | Main path and branch polylines, landmark positions, water planes, waterfall, spawn point |
 | `hub_terrain.png`, `hub_mask.png`, `hub_layout.json` | 101 × 101 / 200 × 200 | Same for the 200 × 200 m hub. Mask **R** dirt paths, **B** cobblestone |
 
@@ -99,7 +99,8 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | `wet` | Mask G (riverbanks, frozen lake ice, dry riverbeds) |
 | `high`, `high_y` | Above a height (mountain snow, plains mesa tops, swamp islands) |
 | `mid`, `mid_slope` | Moderate slopes (mountain scree below cliffs) |
-| `special` | Mask B (plains green grass, swamp slime, hub cobblestone) |
+| `special` | Mask B (plains green grass, swamp slime, hub cobblestone, forest waterfall cliff rock) |
+| `special_on_steep` | Forest only: steep cells inside the special patch use the special layer, not `steep` |
 | `steep`, `steep_slope` | Cliffs (triplanar) |
 | `path` | Mask R |
 | `border_patch` | Frost only: tundra gets more likely near the biome borders |
@@ -108,7 +109,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 
 - **Planes:** flat water planes from `water` in the layout JSON: the forest river below and above the waterfall, the frost open pool, the plains watering hole, and the swamp water over the whole swamp. The colour is the biome's `water` value in `biomes.json`.
 - **Look:** stepped pixel ripples snapped to 32 px per metre, soft transparency, no refraction.
-- **Waterfall:** the same shader on a vertical quad with `flow` > 0.
+- **Waterfall:** a ribbon draped over the baked notch (`game_world.gd _make_waterfall`), from the pool channel over the crest and down the face into the river, drawn over the pools (render priority 1). The same shader with `flow` > 0: ripples and white streaks scroll down it, faster on the face. A foam disc and CPU spray sit at the foot.
 
 ---
 
@@ -154,7 +155,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | Wildflowers, alpine flowers, plains flowers (rose with recoloured petals) | Forest, mountain, plains | Their own flower models |
 | `dry_grass_tuft`, `frost_grass_tuft`, `tundra_grass_tuft`, `mountain_grass_tuft`, `plains_tall_grass`, `swamp_grass_tuft` (recoloured forest grass tufts) | All biomes | Fine as recolours (section 4.10), or dedicated models |
 | `forest_fern`, `forest_reeds`, `heather_bush`, `red_flame_bush`, `copper_autumn_bush`, `frost_bush`, `frozen_dead_bush`, `berry_shrub`, `wild_wheat`, `dry_bush`, `swamp_reeds`, `swamp_fern`, `swamp_big_leaf`, `giant_mushroom` (recoloured tufts and bushes, all `_placeholder` in `scatter.json`) | Biomes | Their models from `game_worlds.md` section 4.10 |
-| Landmarks: `stone_ruin`, `standing_stones`, `obsidian_vent` (cave), `giant_stone_peak_cairn`, `frozen_waterfall`, `ice_spire`, `stone_arch`, `pillar_ring`, `hollow_tree`, `dreadstone_pit`, `sunken_ruins`, `log_bridge` | Resource world | Landmark models |
+| Landmarks: `stone_ruin`, `standing_stones`, `obsidian_vent` (cave), `giant_stone_peak_cairn`, `frozen_waterfall`, `ice_spire`, `stone_arch`, `pillar_ring`, `hollow_tree`, `dreadstone_pit`, `sunken_ruins`, `log_bridge`, `waterfall_rocks` (boulder clusters at the forest waterfall's crest corners and plunge pool, plus stepping stones) | Resource world | Landmark models |
 | Not placed yet | | Lily pads, hanging moss, glow fungus, cave glow mushrooms, ice and gem crystal clusters, ground leaf litter models, mobs |
 | Ambient sounds | Every biome | Loops for the `ambient_<biome>` players |
 
@@ -207,7 +208,7 @@ Measured with `--perf=4` (desktop, 1280 × 720, standing at each biome centre, c
 ## 9. World generation fixes
 
 - **Walkable terrain:** after the height pass, `bake_world_data.gd` blurs the heights (3 passes of a 5 × 5 box blur, skipping the edge ring) and limits the slopes. The limit is about 35° everywhere and about 20° in path corridors, which now include the branch paths. Peaks above 70 m, the edge ring, the frost ice cliffs and the waterfall stay steep, except where a path runs through them. The bake prints a check line; currently it shows 0 cells over 44°, a 19.8° max path grade and 0 water leaks.
-- **Water banks:** each water rect's bed is sunk 0.5 m under the level, and its edges are raised to 0.4 m above it. A slope cone raises the dry land next to those banks, so water never pokes out over low ground. The upper pool keeps a 10 m lip at the waterfall. Path corridors through water (the swamp) are kept 0.25 m above the water so the path stays dry.
+- **Water banks:** each water rect's bed is sunk 0.5 m under the level, and its edges are raised to 0.4 m above it. A slope cone raises the dry land next to those banks, so water never pokes out over low ground. The upper pool leaves only through the waterfall notch; everywhere else along its shared border with the river a bank of at least 10.5 m closes it off. Still water also fades out over the last 0.75 m inside its rect, so no plane shows a straight cut line. The bake's `edge leaks` check counts rect border cells with the terrain under the water (target 0). Path corridors through water (the swamp) are kept 0.25 m above the water so the path stays dry.
 - **Swamp path** uses `forest_dirt` instead of `swamp_boardwalk`.
 - **Terrain textures:** every layer is now sampled triplanar (blend sharpness 8, flat ground takes a single sample), with anisotropic nearest filtering, so scree and slopes no longer stretch.
 - **Water shader:** a Compatibility-safe lookalike of the stylised water J00BA asked for. That asset store shader needs Forward+ and has a proprietary licence, so it couldn't be used. The lookalike has 4 depth colour bands from a per-rect depth map (built in `game_world.gd` `_make_water`), shore foam, a fade to clear at the waterline, 0.04 m vertex waves and toon sparkles.
@@ -222,5 +223,5 @@ Measured with `--perf=4` (desktop, 1280 × 720, standing at each biome centre, c
 - **Swamp path.** Through the water it now blends up to `level + 0.35` over 2.5 to 7 m, instead of a raised strip with square edges.
 - **Water shader.** The depth map is 2 px per metre and sampled in smooth world coordinates. The colour is a smooth shallow-to-deep gradient. Foam is a soft half-strength band, and alpha fades out over the first 22 cm of depth, which hides the triangle edge at the waterline. There are fewer sparkles and smaller waves.
 - **Water kept through the smoothing.** Cells that were under water before the blur get their carved height back afterwards. Each water bed is a smooth bowl: at most 0.3 m per 2 m cell, and 1.4 m deep. The river covers 12% of its rect (11% before smoothing). The swamp covers 10% (26% before), because tiny puddles now get proper shores and merge into the land. Dry land only has to stay above a water level inside that water's rect, or within 4 m of the water. Further out the bank blends back into the land.
-- **Waterfall cliff line.** The river (3 m) meets the upper pool (10 m) along x = 214. A 16 × 54 m band there is `rugged` (37°): the step up to the upper plateau. Only the waterfall's rectangle (12 × 28 m) is fully exempt. Rect sides shared with other water are open (no shore margin) only at the waterfall.
+- **Waterfall cliff line.** The river (3 m) meets the upper pool (10 m) along x = 211. The pool pours through a 10 m notch at the waterfall landmark: a channel (bed 9.4), a rounded crest (9.7, 0.3 m of water), a 4 m face down to a plunge pool (at most 1.6, 1.4 m under the river). Everywhere else a bank of at least 10.5 m runs along x 209..216 and falls west to the river at 37° (`rugged`, a 23 × 60 m band). Only the notch (x 200..218, 12 m wide) is fully exempt, and rect sides shared with other water are open only there. The steep cliff is baked into mask B, so it shows forest's special layer (mountain_rock, `special_on_steep`). `waterfall_rocks` boulders hide the corners, bank plants (`waterfall_bank_plants`, a 4..14 m ring) cover the seams, and nothing is scattered on the falling water.
 - **BAKE CHECK** after smoothing: 0 leaks, 0 cells over 30° outside the waterfall or rugged ground, path grade 16.7° (target 18°), shore step 0.30 m (target 0.3).
