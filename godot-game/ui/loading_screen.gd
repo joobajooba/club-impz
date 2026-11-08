@@ -8,7 +8,7 @@ const TIPS := [
 	"Hold an axe and press E by a tree to chop it.",
 	"A better axe chops faster: 5% for every tier above the one a tree needs.",
 	"A chopped tree leaves its stump and grows back after 5 minutes.",
-	"Press 1 to 5 to take out a tool, Q for the next tier of it.",
+	"Press 1 to 5 to take out a tool. To swap a tool, drag one from your inventory onto its tool slot.",
 ]
 
 var _title: Label

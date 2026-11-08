@@ -129,23 +129,66 @@ func owns(tool_id: String) -> bool:
 	return tool_id in owned[GameData.tools[tool_id].kind]
 
 
-## Puts a tool of this kind in the Imp's hand (the held one unless `id` is given).
+## One tool of each kind is equipped (held[kind], the tool bar). Every other tool the player owns is
+## kept in the inventory grid, one slot each, as items[tool id] = 1. Equipping one from the grid
+## (dragging it onto its tool slot) swaps it with the equipped one, which takes its place in the grid.
+func is_tool(id: String) -> bool:
+	return GameData.tools.has(id)
+
+
+## Equips this owned tool (swapping it with the one equipped, which goes into its grid slot) and puts
+## that kind in the Imp's hand.
 func hold(id: String) -> void:
 	var kind: String = GameData.tools[id].kind
 	if not owns(id):
 		return
-	held[kind] = id
+	var old: String = held[kind]
+	if old != id:
+		_replace_item(id, old)
+		held[kind] = id
 	in_hand = kind
 	held_changed.emit(id)
 	changed.emit()
 
 
+## Puts `new_id` in `old_id`'s place in the grid (the same slot), or just removes `old_id`.
+func _replace_item(old_id: String, new_id: String) -> void:
+	var out := {}
+	for k in items:
+		if k == old_id:
+			if new_id != "":
+				out[new_id] = 1
+		else:
+			out[k] = items[k]
+	if not items.has(old_id) and new_id != "":
+		out[new_id] = 1
+	items = out
+
+
 func take_out(kind: String) -> void:
 	if in_hand != kind:
-		hold(held[kind])
+		in_hand = kind
+		held_changed.emit(held[kind])
+		changed.emit()
 
 
-## Q: the next owned tool of the kind in hand, in tier order.
+## Tools in the grid and equipped agree with `owned`: every owned tool that is not equipped has a grid
+## slot (saves from before this rule had them all on the tool bar), and nothing else is a tool slot.
+func sync_tools() -> void:
+	for kind in GameData.TOOL_KINDS:
+		if not held[kind] in owned[kind]:          # testing (--axe): an equipped tool counts as owned
+			owned[kind].append(held[kind])
+	for id in items.keys():
+		if is_tool(id) and (not owns(id) or held[GameData.tools[id].kind] == id):
+			items.erase(id)
+	for kind in owned:
+		for id in owned[kind]:
+			if id != held[kind] and not items.has(id):
+				items[id] = 1
+	changed.emit()
+
+
+## The next owned tool of the kind in hand, in tier order (the old demo's Q; it swaps like a drag).
 func cycle_held() -> void:
 	var list: Array = owned[in_hand]
 	hold(list[(list.find(held[in_hand]) + 1) % list.size()])
@@ -269,7 +312,7 @@ func tool_cost(t: Dictionary) -> Dictionary:
 
 
 func can_craft_tool(t: Dictionary) -> bool:
-	return not t.cost.is_empty() and not owns(t.id) and has_all(tool_cost(t))
+	return not t.cost.is_empty() and not owns(t.id) and has_all(tool_cost(t)) and has_room(t.id)
 
 
 func craft_tool(t: Dictionary) -> void:
@@ -278,6 +321,7 @@ func craft_tool(t: Dictionary) -> void:
 	_pay(tool_cost(t))
 	owned[t.kind].append(t.id)
 	owned[t.kind].sort_custom(func(a, b): return GameData.tools[a].tier < GameData.tools[b].tier)
+	items[t.id] = 1                                  # into the grid, then equipped: the old one takes its slot
 	hold(t.id)
 	looted.emit(t.id, 1, true)
 
@@ -350,7 +394,8 @@ func test_add_raw(n := 20) -> void:
 func test_unlock_tools() -> void:
 	for kind in owned:
 		owned[kind] = GameData.tools_of[kind].map(func(t): return t.id)
-	changed.emit()
+	extra_rows = maxi(extra_rows, 20)   # room for every tool in the grid (past the TEST cap)
+	sync_tools()
 
 
 func test_add_coins(n := 1000) -> void:

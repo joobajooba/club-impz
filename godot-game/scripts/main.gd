@@ -13,6 +13,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
+##   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -41,7 +42,7 @@ var joined_world := ""
 var busy := false
 var args := {}
 const LOAD_BUDGET_USEC := 25000           # world building per frame on the loading screen (the bar still moves)
-const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering the Resource World"}
+const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering The Wilds"}
 var loading: CanvasLayer                  # ui/loading_screen.gd
 var inventory_ui: CanvasLayer             # ui/inventory_ui.tscn, I
 
@@ -79,6 +80,11 @@ func _ready() -> void:
 	if args.has("give"):                                   # testing: --give=maple_log,pine_log
 		for id in args["give"].split(","):
 			Inventory.gain(id, 3)
+	if args.has("unlock_tools"):                           # testing: own every tool (the spare ones go in the grid)
+		Inventory.test_unlock_tools()
+	if args.has("equip"):                                  # testing: --equip=iron_axe, as if dragged onto its slot
+		Inventory.hold(args["equip"])
+		print("EQUIP held ", Inventory.held, " grid ", Inventory.items.keys().slice(0, 12))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
 	if args.has("shot"):
@@ -101,6 +107,7 @@ func _ready() -> void:
 		player.chopper.measure = true
 	if args.has("axe"):                                    # testing: hold any axe
 		Inventory.held["axe"] = args["axe"]
+		Inventory.sync_tools()
 	if args.has("chop_at"):
 		get_tree().create_timer(float(args["chop_at"])).timeout.connect(_chop_test)
 	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account

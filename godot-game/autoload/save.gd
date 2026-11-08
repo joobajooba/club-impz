@@ -74,7 +74,7 @@ func read() -> void:
 func _apply_inventory(inv: Dictionary) -> void:
 	var items := {}
 	for id in inv.get("items", {}):
-		if GameData.items.has(id) and int(inv.items[id]) > 0:
+		if (GameData.items.has(id) or GameData.tools.has(id)) and int(inv.items[id]) > 0:   # tools: the unequipped ones
 			items[id] = int(inv.items[id])
 	Inventory.items = items
 	for kind in GameData.TOOL_KINDS:
@@ -86,6 +86,7 @@ func _apply_inventory(inv: Dictionary) -> void:
 		var held: String = inv.get("held", {}).get(kind, "")
 		if held in list:
 			Inventory.held[kind] = held
+	Inventory.sync_tools()                                # one equipped per kind, the rest in the grid
 	if inv.get("in_hand", "") in GameData.TOOL_KINDS:
 		Inventory.in_hand = inv.in_hand
 	Inventory.coins = maxi(0, int(inv.get("coins", 0)))
