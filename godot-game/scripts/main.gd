@@ -194,6 +194,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory") and not event.is_echo():
 		if inventory_ui.visible:
 			inventory_ui.visible = false
+		elif ProfileMenu.visible and not busy and free_cam == null:
+			ProfileMenu.close()                                # opening a menu over another replaces it
+			inventory_ui.visible = true
 		elif not busy and free_cam == null and not player.menu_open():
 			inventory_ui.visible = true
 		get_viewport().set_input_as_handled()

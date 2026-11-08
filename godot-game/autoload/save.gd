@@ -1,6 +1,7 @@
 extends Node
 ## Keeps the player's progress between visits, as the Save autoload: items, tools, coins, bought
-## rows, the stable and the Imp's look (Look.worn). Energy already keeps itself (Inventory.ENERGY_FILE).
+## rows, the stable, the Imp's look (Look.worn) and the title and emblem equipped on the profile
+## (ui/profile/profile_menu.gd; whether those also save to the account is an Open question). Energy already keeps itself (Inventory.ENERGY_FILE).
 ##
 ## TEST, on this device only: the file is user://save.json (the browser's storage in the web
 ## build), so a player can edit it. That is fine while nothing is worth anything. Once the server
@@ -12,6 +13,11 @@ const FILE := "user://save.json"
 const VERSION := 1
 const DELAY := 1.0           # seconds of quiet before writing, so a burst of changes is one write
 
+## The title and emblem equipped on the player profile (ids, "" = none). Kept here rather than in the
+## ProfileMenu autoload so they are loaded before any menu or the HUD reads them.
+signal profile_changed
+var profile := {title = "", emblem = ""}
+
 var _timer := Timer.new()
 
 
@@ -21,7 +27,7 @@ func _ready() -> void:
 	_timer.timeout.connect(write)
 	add_child(_timer)
 	read()
-	for s in [Inventory.changed, Inventory.coins_changed, Inventory.held_changed, Stable.changed, Look.changed]:
+	for s in [Inventory.changed, Inventory.coins_changed, Inventory.held_changed, Stable.changed, Look.changed, profile_changed]:
 		s.connect(func(_a = null): _timer.start())
 
 
@@ -45,7 +51,16 @@ func state() -> Dictionary:
 			paid_wins = Stable.paid_wins, next_uid = Stable._next_uid,
 		},
 		look = Look.worn,
+		profile = profile,
 	}
+
+
+## Equip a title or an emblem on the profile ("title" or "emblem", "" = none).
+func equip(kind: String, id: String) -> void:
+	if not profile.has(kind) or profile[kind] == id:
+		return
+	profile[kind] = id
+	profile_changed.emit()
 
 
 func write() -> void:
@@ -69,6 +84,10 @@ func read() -> void:
 	var look = data.get("look", {})
 	if look is Dictionary:
 		Look.wear(look)               # trait ids the build no longer has fall back to the base imp (Look.shown)
+	var prof = data.get("profile", {})
+	if prof is Dictionary:            # ids the build doesn't know are hidden by the profile menu, not dropped
+		for kind in profile:
+			profile[kind] = str(prof.get(kind, ""))
 
 
 func _apply_inventory(inv: Dictionary) -> void:
