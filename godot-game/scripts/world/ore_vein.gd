@@ -12,7 +12,7 @@ extends Node3D
 
 const PATH := "res://assets/models/ores/%s_vein.glb"
 const VIEW := 140.0
-const GLOW_ENERGY := 1.8
+const GLOW_ENERGY := 0.55
 
 static var _merged := {}          # ore -> {plain: ArrayMesh, glow: ArrayMesh or null, aabb: AABB}
 
@@ -39,6 +39,17 @@ func _ready() -> void:
 	cs.position = Vector3(box.get_center().x, sh.size.y / 2.0, box.get_center().z)
 	body.add_child(cs)
 	add_child(body)
+
+
+## Metres from the vein's centre to the side of its stone mound (where a pickaxe lands), and the centre.
+func mound_radius() -> float:
+	var box: AABB = _meshes(ore).aabb
+	return maxf(box.size.x, box.size.z) * 0.31 * global_basis.get_scale().x
+
+
+func centre() -> Vector3:
+	var box: AABB = _meshes(ore).aabb
+	return global_transform * Vector3(box.get_center().x, 0.0, box.get_center().z)
 
 
 static func _meshes(id: String) -> Dictionary:

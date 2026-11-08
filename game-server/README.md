@@ -21,6 +21,17 @@ One small Node program (`server.mjs`) that runs the beta on a single web address
 
 Each game moves its own Imp, so this isn't cheat-proof movement. That's fine for walking around together. Anything that is worth something (drops, coins) stays on impz.club and Supabase (ACCOUNTS-AND-DATA).
 
+## Ore events
+
+Voidstone and stellarite veins don't grow in the world. The server rolls them as world events:
+
+- Once a minute, each ore with no event running rolls its chance: voidstone 1 in 45 (about every 45 minutes), stellarite 1 in 120 (about every 2 hours). Nothing rolls while nobody is online.
+- An event lasts 15 minutes. Its vein sits on one of 48 spots that every game works out the same way (`resource_landmarks.gd`), so everyone sees it in the same place.
+- Every player is told when an event starts (`ore_event`) and when it ends (`ore_event_end`). Players who join during an event get it in their `welcome`.
+- Mining is rolled by each game, so any number of players can mine one vein at once. The server doesn't hand out ore.
+
+Testing: `EVENT_SCALE=600` speeds the clock up (a 15-minute event lasts 1.5 s), and `ORE_EVENT_NOW=void` starts one when the first player joins. `npm test` covers events too.
+
 ## Run it locally
 
 ```sh
