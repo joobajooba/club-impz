@@ -25,6 +25,7 @@ var target_zoom := 7.5
 var bob_time := 0.0
 var frozen := false
 var fast_sprint := false
+var chopper: Node                 # scripts/player/tree_chopper.gd: chopping trees with the axe
 
 
 func _ready() -> void:
@@ -36,6 +37,9 @@ func _ready() -> void:
 	spring_arm.spring_length = target_zoom
 	Settings.changed.connect(_apply_settings)
 	_apply_settings()
+	chopper = preload("res://scripts/player/tree_chopper.gd").new()
+	chopper.name = "tree_chopper"
+	add_child(chopper)
 
 
 func _apply_settings() -> void:
@@ -66,7 +70,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fast_sprint"):
 		fast_sprint = not fast_sprint
 	if event.is_action_pressed("use_tool") and visual.has_method("play_action"):
-		visual.play_action(Inventory.in_hand)            # left click or E: swing the tool in hand
+		if not chopper.use():                            # E by a tree with the axe: chop it (tree_chopper.gd)
+			visual.play_action(Inventory.in_hand)        # left click or E: swing the tool in hand
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
 		var sens := orbit_sensitivity * Settings.mouse_sensitivity
 		cam_yaw -= event.relative.x * sens

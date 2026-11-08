@@ -8,6 +8,9 @@ extends Node
 ##   --bot=40                    walk in a circle in front of the spawn for 40 s, then quit (a second player
 ##                               for testing multiplayer: run one with --headless next to a normal game)
 ##   --tool=sword --swing_at=5.8 take out a tool kind and swing it after that many seconds (with --shot)
+##   --chop_at=5 --chop_time=4 --regrow=12   step up to the nearest choppable tree and chop it after 5 s, with
+##                               every tree taking 4 s and growing back after 12 s   --chop_measure  print where
+##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -67,6 +70,16 @@ func _ready() -> void:
 		Inventory.take_out(args["tool"])
 		if args.has("swing_at"):
 			get_tree().create_timer(float(args["swing_at"])).timeout.connect(func(): player.visual.play_action(args["tool"]))
+	if args.has("regrow"):
+		Lumbering.regrow = float(args["regrow"])
+	if args.has("chop_time"):
+		player.chopper.time_override = float(args["chop_time"])
+	if args.has("chop_measure"):
+		player.chopper.measure = true
+	if args.has("axe"):                                    # testing: hold any axe
+		Inventory.held["axe"] = args["axe"]
+	if args.has("chop_at"):
+		get_tree().create_timer(float(args["chop_at"])).timeout.connect(_chop_test)
 	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account
 		ProfileUI.account.set_wallet(args["wallet"])
 		if args.has("profile_open"):
@@ -213,3 +226,20 @@ func _bot(seconds: float) -> void:
 		player.visual.rotation.y = atan2(-d.x, -d.z)
 	print("bot: net ", Net.state, " as ", Net.my_name, ", ", Net.online, " online")
 	get_tree().quit()
+
+
+## Testing (--chop_at): walk up to the nearest choppable tree and start chopping it.
+func _chop_test() -> void:
+	Inventory.take_out("axe")
+	var sc := get_tree().get_first_node_in_group("scatter") as Scatter
+	var t := sc.find_tree(player.global_position, 60.0) if sc else {}
+	if t.is_empty():
+		print("CHOP no tree near the player")
+		return
+	var c: Vector3 = t.xform.origin
+	var u := Vector3(player.global_position.x - c.x, 0, player.global_position.z - c.z).normalized()
+	player.global_position = c + u * (float(t.trunk) + 1.0) + Vector3.UP * 0.5
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	print("CHOP chopping %s (%s) at %s, %.1f s" % [t.tree, t.key, c, Lumbering.chop_time(t.tree, Inventory.held.axe)])
+	player.chopper.start(t)
