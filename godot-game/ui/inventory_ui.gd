@@ -5,7 +5,7 @@ extends CanvasLayer
 ## the grid below, one slot each (Inventory.hold). To swap, drag a tool from the grid onto its slot
 ## (or the equipped one onto a tool of the same kind in the grid); the old one takes its place in the grid.
 ## Items fill a 6 x 8 grid (D-008), plus any rows bought from the merchant (D-077), in pickup order
-## with their counts. Below are the TEST tools, for reviewers. Remove before launch.
+## with their counts; right click a slot to drop it (shift: drop one). Below are the TEST tools, for reviewers. Remove before launch.
 
 const HELD := Color(1.0, 0.86, 0.4)
 const SLOT_SIZE := 52
@@ -94,6 +94,7 @@ func _render() -> void:
 		var b := _slot(SLOT_SIZE)
 		var i := _buttons.size()
 		b.set_drag_forwarding(_drag_from_grid.bind(b, i), _can_drop_on_grid.bind(i), _drop_on_grid.bind(i))
+		b.gui_input.connect(_on_slot_input.bind(i))
 		slots.add_child(b)
 		_buttons.append(b)
 	var rows := Inventory.slots() / GameData.INVENTORY_COLUMNS
@@ -109,11 +110,56 @@ func _render() -> void:
 		b.text = "" if tex or not id else GameData.item_label(id)   # hilts have no picture yet
 		var tool := id != "" and Inventory.is_tool(id)
 		if tool:
-			b.tooltip_text = "%s
-Drag onto the %s slot to equip it" % [GameData.item_label(id), GameData.TOOL_KINDS[GameData.tools[id].kind].label.to_lower()]
+			b.tooltip_text = "%s\nDrag onto the %s slot to equip it" % [GameData.item_label(id), GameData.TOOL_KINDS[GameData.tools[id].kind].label.to_lower()]
 		else:
-			b.tooltip_text = "%s × %d" % [GameData.item_label(id), Inventory.items[id]] if id else ""
+			b.tooltip_text = ("%s × %d\nRight click: drop  ·  Shift + right click: drop one" % [GameData.item_label(id), Inventory.items[id]]) if id else ""
 		(b.get_node("Count") as Label).text = str(Inventory.items[id]) if id and not tool else ""
+
+
+# --- dropping items: right click a slot ----------------------------------------------------------------
+
+const DROPPED := preload("res://scripts/world/dropped_item.gd")
+const DROP_SOUND := "res://assets/sounds/item_drop.wav"
+
+
+## Right click drops the whole stack, shift + right click drops one. Tools can't be dropped (a lost pickaxe
+## could only come back by crafting it again).
+func _on_slot_input(event: InputEvent, i: int) -> void:
+	var mb := event as InputEventMouseButton
+	if mb == null or not mb.pressed or mb.button_index != MOUSE_BUTTON_RIGHT:
+		return
+	var id := _grid_id(i)
+	if id == "":
+		return
+	if Inventory.is_tool(id):
+		Inventory.message.emit("Tools can't be dropped")
+		return
+	drop(id, 1 if mb.shift_pressed else Inventory.count(id))
+
+
+func drop(id: String, n: int) -> void:
+	var main := get_tree().get_first_node_in_group("game_main")
+	var player: Node3D = main.get("player") if main else null
+	if player == null or n < 1:
+		return
+	Inventory.remove(id, n)
+	var item: Node3D = DROPPED.new()
+	item.set("id", id)
+	item.set("count", n)
+	var world: Node = main.get("current_world")
+	(world if world else main).add_child(item)
+	var fwd := -(player.get_node("visual") as Node3D).global_basis.z
+	var p := player.global_position + Vector3(fwd.x, 0, fwd.z).normalized() * 1.3 + Vector3(randf_range(-0.3, 0.3), 0, randf_range(-0.3, 0.3))
+	if world and world.has_method("ground_height"):
+		p.y = world.ground_height(p.x, p.z)
+	item.global_position = p
+	var snd := AudioStreamPlayer.new()
+	snd.stream = load(DROP_SOUND)
+	snd.volume_db = -6.0
+	add_child(snd)
+	snd.finished.connect(snd.queue_free)
+	snd.play()
+	Inventory.message.emit("Dropped %s%s" % [GameData.item_label(id), (" × %d" % n) if n > 1 else ""])
 
 
 func _build_tool_slots() -> void:

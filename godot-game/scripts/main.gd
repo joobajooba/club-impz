@@ -13,7 +13,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
-##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing
+##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
 ##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it
 ##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
@@ -83,6 +83,8 @@ func _ready() -> void:
 		Inventory.held["pickaxe"] = args["pickaxe"]
 		Inventory.sync_tools()
 		Inventory.take_out("pickaxe")
+	if args.has("mine_time"):                              # testing: every ore takes this many seconds
+		player.miner.time_override = float(args["mine_time"])
 	if args.has("mine_chance"):                            # testing: multiply the chance per swing
 		player.miner.chance_scale = float(args["mine_chance"])
 	if args.has("mob_list"):                               # testing: where every mob is
@@ -136,6 +138,16 @@ func _ready() -> void:
 	if args.has("equip"):                                  # testing: --equip=iron_axe, as if dragged onto its slot
 		Inventory.hold(args["equip"])
 		print("EQUIP held ", Inventory.held, " grid ", Inventory.items.keys().slice(0, 12))
+	if args.has("drop_test"):                              # testing: drop 3 pine logs, walk onto them, report
+		Inventory.gain("pine_log", 3)
+		inventory_ui.drop("pine_log", 3)
+		print("DROP after drop: ", Inventory.count("pine_log"))
+		get_tree().create_timer(2.0).timeout.connect(func():
+			for n in current_world.get_children():
+				if n.get("id") == "pine_log":
+					player.global_position = n.global_position + Vector3.UP * 0.3
+			await get_tree().create_timer(0.5).timeout
+			print("DROP after walking onto it: ", Inventory.count("pine_log")))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
 	if args.has("shot"):

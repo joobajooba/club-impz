@@ -18,6 +18,7 @@ static var _merged := {}          # ore -> {plain: ArrayMesh, glow: ArrayMesh or
 
 
 func _ready() -> void:
+	add_to_group("ore_vein")                         # mined with the pickaxe (scripts/player/ore_miner.gd)
 	var m := _meshes(ore)
 	for key in ["plain", "glow"]:
 		if m[key] == null:
