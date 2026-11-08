@@ -164,6 +164,8 @@ func _make_water() -> void:
 				img.set_pixel(px, pz, Color(maxf(d, 0.0), 0, 0))
 		mat.set_shader_parameter("depth_map", ImageTexture.create_from_image(img))
 		mat.set_shader_parameter("rect", Vector4(r[0], r[1], dw / 2.0, dd / 2.0))
+		mat.set_shader_parameter("rect_size", size)  # the true rect (rect.zw is the rounded depth map size)
+		mat.render_priority = 0  # the waterfall ribbon (priority 1) always draws over the pools
 		mat.set_shader_parameter("use_depth", true)
 		var mi := MeshInstance3D.new()
 		mi.name = w["name"]
@@ -174,18 +176,132 @@ func _make_water() -> void:
 		water_root.add_child(mi)
 	var wf: Dictionary = terrain.data.layout.get("waterfall", {})
 	if not wf.is_empty():
-		var top: float = wf["top"]
-		var bottom: float = wf["bottom"]
-		var quad := QuadMesh.new()
-		quad.size = Vector2(10.0, top - bottom + 0.6)
-		var mat := ShaderMaterial.new()
-		mat.shader = shader
-		mat.set_shader_parameter("deep_color", Color("#5ab0e8"))
-		mat.set_shader_parameter("flow", 1.6)
-		var mi := MeshInstance3D.new()
-		mi.name = "waterfall"
-		mi.mesh = quad
-		mi.material_override = mat
-		mi.position = Vector3(wf["x"], (top + bottom) / 2.0, wf["z"])
-		mi.rotation.y = PI / 2.0
-		water_root.add_child(mi)
+		_make_waterfall(shader, wf)
+
+
+## The forest waterfall: a ribbon draped over the baked notch (bake_world_data.gd _shape_water step e) from the
+## pool channel (x 216) over the crest and down the face into the river (x 202), a foam disc on the plunge pool
+## and a little spray at the foot.
+func _make_waterfall(shader: Shader, wf: Dictionary) -> void:
+	var d := terrain.data
+	var lip_z: float = wf["z"]
+	var top: float = wf["top"]
+	var bottom: float = wf["bottom"]
+	const WIDTH := 9.0
+	var cols := 10  # 9 columns across
+	var xs := []
+	var x := 216.0
+	while x >= 201.99:
+		xs.append(x)
+		x -= 0.5
+	var rows := []
+	for xi in xs.size():
+		var s := float(xi) / float(xs.size() - 1)
+		var inset := 0.5 * cos(s * PI * 0.5)  # 0.5 m in on each side at the top, 0 at the bottom
+		var row := []
+		for c in cols:
+			var u := float(c) / float(cols - 1)
+			var z := lip_z - WIDTH / 2.0 + inset + u * (WIDTH - 2.0 * inset)
+			var y := maxf(d.height(xs[xi], z) + 0.15, bottom + 0.03)
+			if xs[xi] >= 211.0:
+				y = maxf(y, top + 0.03)  # just above the pool plane over the channel and the crest
+			row.append(Vector3(xs[xi], y, z))
+		rows.append(row)
+	# v: metres along the surface; travel: v divided by the flow speed (0.3x on the flat, 1x on the face)
+	var v := PackedFloat32Array()
+	var travel := PackedFloat32Array()
+	v.resize(rows.size())
+	travel.resize(rows.size())
+	for ri in range(1, rows.size()):
+		var a: Vector3 = rows[ri - 1][cols / 2]
+		var b: Vector3 = rows[ri][cols / 2]
+		var seg := a.distance_to(b)
+		var speed := lerpf(0.3, 1.0, clampf(absf(b.y - a.y) / maxf(seg, 0.001) * 1.5, 0.0, 1.0))
+		v[ri] = v[ri - 1] + seg
+		travel[ri] = travel[ri - 1] + seg / speed
+	var total := v[rows.size() - 1]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for ri in rows.size():
+		for c in cols:
+			st.set_uv(Vector2(float(c) / float(cols - 1) * WIDTH, v[ri]))
+			st.set_uv2(Vector2(total - v[ri], travel[ri]))  # metres to the bottom end (fade), flow travel
+			st.add_vertex(rows[ri][c])
+	for ri in rows.size() - 1:
+		for c in cols - 1:
+			var i0 := ri * cols + c
+			st.add_index(i0)
+			st.add_index(i0 + 1)
+			st.add_index(i0 + cols)
+			st.add_index(i0 + 1)
+			st.add_index(i0 + cols + 1)
+			st.add_index(i0 + cols)
+	st.generate_normals()
+	var arrays := st.commit_to_arrays()
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	if normals[0].y < 0.0:  # whichever way the winding went, light it from above
+		for i in normals.size():
+			normals[i] = -normals[i]
+		arrays[Mesh.ARRAY_NORMAL] = normals
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	var forest_water := Color(d.biome_data["biomes"]["forest"]["water"])
+	mat.set_shader_parameter("deep_color", forest_water.lightened(0.15))
+	mat.set_shader_parameter("flow", 1.6)
+	mat.set_shader_parameter("ribbon_width", WIDTH)
+	mat.render_priority = 1
+	var mi := MeshInstance3D.new()
+	mi.name = "waterfall"
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	water_root.add_child(mi)
+	# foam on the plunge pool
+	var foam := PlaneMesh.new()
+	foam.size = Vector2(7.0, 7.0)
+	foam.subdivide_width = 6
+	foam.subdivide_depth = 6
+	var fmat := ShaderMaterial.new()
+	fmat.shader = shader
+	fmat.set_shader_parameter("foam_only", true)
+	fmat.set_shader_parameter("wave_height", 0.015)
+	fmat.render_priority = 2
+	var fm := MeshInstance3D.new()
+	fm.name = "waterfall_foam"
+	fm.mesh = foam
+	fm.material_override = fmat
+	fm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fm.position = Vector3(205.0, bottom + 0.05, lip_z)
+	water_root.add_child(fm)
+	# spray at the foot (CPU particles: Compatibility and web safe)
+	var spray := CPUParticles3D.new()
+	spray.name = "waterfall_spray"
+	spray.amount = 40
+	spray.lifetime = 1.2
+	spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	spray.emission_box_extents = Vector3(0.5, 0.2, 3.0)
+	spray.direction = Vector3(-0.3, 1.0, 0.0)
+	spray.spread = 25.0
+	spray.initial_velocity_min = 2.0
+	spray.initial_velocity_max = 4.0
+	spray.gravity = Vector3(0.0, -6.0, 0.0)
+	spray.scale_amount_min = 0.3
+	spray.scale_amount_max = 0.6
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 0.85))
+	ramp.set_color(1, Color(1, 1, 1, 0.0))
+	spray.color_ramp = ramp
+	var q := QuadMesh.new()
+	q.size = Vector2(0.6, 0.6)
+	var qm := StandardMaterial3D.new()
+	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	qm.vertex_color_use_as_albedo = true
+	qm.albedo_color = Color.WHITE
+	q.material = qm
+	spray.mesh = q
+	spray.position = Vector3(207.0, bottom + 0.2, lip_z)
+	water_root.add_child(spray)
