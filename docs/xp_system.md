@@ -25,7 +25,7 @@
 
 **What is built today:** nothing for player or skill XP. `GameData.SKILLS` lists the five skills and their stations, but no XP is earned or saved. Battle animals have XP on TEST numbers (`Stable.xp_to_next` is `50 × level`). The profile menu prompt (PR #57) shows player level, prestige and skill levels as TEST data only, because this system was not designed yet.
 
-**Still open in the decided docs:** `resource_gathering.md` open question 1 asks how much **player level XP** each gather gives. Section 3 below answers it as a proposal.
+**Still open in the decided docs:** `resource_gathering.md` open question 1 asks how much **player level XP** each gather gives. Section 3.2 answers it (Decided, D-121).
 
 ---
 
@@ -43,16 +43,18 @@ From Claude's knowledge of these games, not sources checked in this pass.
 
 ---
 
-## 3. Where XP comes from (Proposed)
+## 3. Where XP comes from
 
-### 3.1 Skill XP
+### 3.1 Skill XP (Proposed)
 
 - **Only gathering gives skill XP.** Mining a rock gives Mining XP, chopping gives Lumbering XP, and so on, using the per-resource values in `resource_gathering.md`. A gem gives its own XP on top (Decided, `resource_gathering.md` section 4.2).
 - **Processing and crafting give no skill XP.** The 2.5-month pace in `resource_gathering.md` section 3.2 is worked out from gathering alone. Adding XP for smelting or sawing would make every skill faster than its target and the table would need redoing. Open question: whether that is wanted later.
 - **A cancelled gather gives nothing** (walking away, starting another action).
 - Foraging, Fishing and Hunting XP values wait for their tables (`resource_gathering.md` sections 6 to 8), and are set with the same method as section 3.2 there.
 
-### 3.2 Player XP
+### 3.2 Player XP (Decided, D-121)
+
+The sources and amounts in this section were accepted by the user on 2026-11-08.
 
 The player level is the "how much have you played" track. Skills already show "how far have you progressed". So player XP is based on **time spent playing**, not on resource tier.
 
@@ -174,7 +176,7 @@ For whoever builds it in Godot. Only decided or approved rules get built (`BUILD
 
 ## 9. Open questions
 
-1. **Player XP amounts.** Are the sources and amounts in section 3.2 right? This answers `resource_gathering.md` open question 1.
+1. ~~**Player XP amounts.**~~ *Answered (D-121): the sources and amounts in section 3.2 are accepted.*
 2. **Processing XP.** Should processing ever give skill XP? Today the pace is worked out from gathering only.
 3. **Holder bonuses.** Is "no XP multipliers for holders" (section 3.3) accepted?
 4. **XP events.** Can a world event (like the ore events in PR #50) give bonus XP? If yes, only to players who join it in the world, never to everyone online.
