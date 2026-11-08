@@ -1,7 +1,7 @@
 extends Node3D
-## Resource world landmarks (game_worlds.md section 4.8 Landmarks rows), ore node placeholders (section 4.4,
-## placed where section 4.8 says) and the portal back to the hub. Everything is placed from the baked layout and a
-## fixed seed, so it is the same every load.
+## Resource world landmarks (game_worlds.md section 4.8 Landmarks rows), ore veins (section 4.4: the Blockbench
+## models in assets/models/ores via scripts/world/ore_vein.gd, placed where section 4.8 says) and the portal back
+## to the hub. Everything is placed from the baked layout and a fixed seed, so it is the same every load.
 
 const ORES := {  # biome -> ores (game_worlds.md section 4.4)
 	"forest": ["coal", "tin", "copper"],
@@ -10,7 +10,14 @@ const ORES := {  # biome -> ores (game_worlds.md section 4.4)
 	"plains": ["coal", "titanite"],
 	"swamp": ["coal", "iron", "gold"],
 }
-const PER_ORE := 4
+## Veins of each ore in each of its biomes. Ores are kept far rarer than trees (a handful per biome, not
+## thousands); coal, the fuel, is a little more common. Obsidian and dreadstone sit round
+## their landmarks (RING). Voidstone and stellarite have no biome in this world yet (void, stellar).
+const PER_ORE := 3
+const PER_ORE_OF := {"coal": 4}
+const RING := 3                  # obsidian round the volcanic cave, dreadstone round the toxic pit
+
+const ORE_VEIN := preload("res://scripts/world/ore_vein.gd")
 
 var world: GameWorld
 var data: WorldData
@@ -103,7 +110,7 @@ func _place_ores() -> void:
 		for ore in ORES[biome]:
 			var count := 0
 			var tries := 0
-			while count < PER_ORE and tries < 6000:
+			while count < int(PER_ORE_OF.get(ore, PER_ORE)) and tries < 6000:
 				tries += 1
 				var x := rng.randf_range(bi * 256.0 + 12.0, bi * 256.0 + 244.0)
 				var z := rng.randf_range(-200.0, 200.0)
@@ -113,7 +120,7 @@ func _place_ores() -> void:
 					count += 1
 	# special nodes: obsidian round the volcanic cave, dreadstone in the most toxic swamp
 	var lm: Dictionary = data.layout["landmarks"]
-	for spec in [["obsidian", lm["obsidian_cave"], 14.0, 5], ["dreadstone", lm["dreadstone_pit"], 9.0, 5]]:
+	for spec in [["obsidian", lm["obsidian_cave"], 14.0, RING], ["dreadstone", lm["dreadstone_pit"], 9.0, RING]]:
 		var n: int = spec[3]
 		var r: float = spec[2]
 		var c: Array = spec[1]
@@ -152,9 +159,10 @@ func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Arra
 
 
 func _ore(root: Node3D, ore: String, x: float, z: float, rng: RandomNumberGenerator) -> void:
-	var n := (load("res://scenes/resource/ores/%s_vein_placeholder.tscn" % ore) as PackedScene).instantiate() as Node3D
+	var n: Node3D = ORE_VEIN.new()
+	n.set("ore", ore)
 	n.name = "%s_vein_%d" % [ore, root.get_child_count() + 1]
 	root.add_child(n)
 	n.global_position = Vector3(x, data.height(x, z) - 0.15, z)
 	n.rotation.y = rng.randf() * TAU
-	n.scale = Vector3.ONE * rng.randf_range(1.0, 1.35)
+	n.scale = Vector3.ONE * rng.randf_range(0.9, 1.15)   # the models are already to scale (16 units = 1 m)

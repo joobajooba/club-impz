@@ -13,7 +13,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
-##   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
+##   --goto_ore=gold  stand next to the first vein of that ore   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -72,6 +72,13 @@ func _ready() -> void:
 	await _enter_world(start, "spawn_point")
 	if args.has("biome") and current_world.has_method("biome_centre"):
 		player.place_at(current_world.biome_centre(args["biome"]))
+	if args.has("goto_ore"):                               # testing: --goto_ore=gold stands by the first gold vein
+		for n in current_world.find_children(args["goto_ore"] + "_vein_*", "Node3D", true, false):
+			var p: Vector3 = n.global_position + Vector3(0, 0, 3.2)
+			p.y = current_world.ground_height(p.x, p.z) + 0.3
+			player.place_at(Transform3D(Basis(), p))
+			print("ORE at ", n.name, " ", n.global_position)
+			break
 	if args.has("yaw"): player.cam_yaw = float(args["yaw"])
 	if args.has("pitch"): player.cam_pitch = float(args["pitch"])
 	if args.has("zoom"): player.target_zoom = float(args["zoom"])
