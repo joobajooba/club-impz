@@ -1,7 +1,8 @@
 // Serves the Godot web export on http://localhost:8060 for testing the wallet connection.
 // - Static files from godot-game/export/web (run `npm run export` first).
-// - /api/imps is forwarded to https://www.impz.club/api/imps, which sends no CORS header, so the game asks
-//   its own site instead (autoload/look.gd) and gets the wallet's Impz and traits through here.
+// - /api/imps and /api/profile are forwarded to https://www.impz.club, which sends no CORS header, so the
+//   game asks its own site instead and gets the wallet's Impz and traits (autoload/look.gd) and its
+//   impz.club account (ui/profile/account_panel.gd) through here. The sign-in header goes along.
 // No COOP/COEP headers: the export is single-threaded, and Glyph's login popup needs window.opener.
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
@@ -25,16 +26,18 @@ if (!existsSync(join(root, "index.html"))) {
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
   try {
-    if (url.pathname === "/api/imps") {
+    if (url.pathname === "/api/imps" || url.pathname === "/api/profile") {
+      const headers = { Accept: "application/json", "Content-Type": "application/json" };
+      if (req.headers["x-impz-session"]) headers["x-impz-session"] = req.headers["x-impz-session"];
       const upstream = await fetch(API + url.pathname + url.search, {
         method: req.method,
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        headers,
         body: req.method === "GET" || req.method === "HEAD" ? undefined : req,
         duplex: "half",
       });
       res.writeHead(upstream.status, { "Content-Type": upstream.headers.get("content-type") || "application/json", "Cache-Control": "no-store" });
       res.end(Buffer.from(await upstream.arrayBuffer()));
-      console.log(`api ${req.method} ${url.search} -> ${upstream.status}`);
+      console.log(`api ${req.method} ${url.pathname}${url.search} -> ${upstream.status}`);
       return;
     }
     const file = normalize(join(root, decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname)));
