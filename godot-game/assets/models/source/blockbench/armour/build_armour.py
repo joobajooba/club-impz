@@ -24,6 +24,10 @@ sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(HERE.parent / "weapons"))
 from bbkit import Mat, Model, put, ramp, stretch  # noqa: E402
 from build_weapons import TIERS as WEAPON_TIERS, LEATHER, VOID_GLOW, STAR_GLOW  # noqa: E402
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 GAME = HERE.parents[4]
 OUT = GAME / "assets" / "models" / "armour"
@@ -378,7 +382,9 @@ def sets_lineup(paths_by_tier, out, spacing=16, per_row=5):
            "variable_placeholder_buttons": [], "timeline_setups": [], "unhandled_root_fields": {},
            "resolution": {"width": res, "height": res}, "elements": elements, "groups": groups,
            "outliner": outliner, "textures": textures}
-    json.dump(doc, open(out, "w", encoding="utf-8"))
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump(doc, fh)
+    pad_file(out)
     print(out, len(elements), "boxes")
 
 

@@ -23,6 +23,10 @@ import uuid
 from pathlib import Path
 
 from PIL import Image
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 TEX = 64  # texture size in pixels
 PX = 0.5  # Blockbench units per texture pixel (D-053)
@@ -366,6 +370,7 @@ def build(out_dir):
         "elements": elements, "outliner": outliner, "textures": [texture],
     }
     (out_dir / "pickaxe.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / "pickaxe.bbmodel")
 
     used = sum(w * h for w, h in visible.values())
     print(f"boxes: {len(BOXES)}  visible faces: {len(visible)}  "

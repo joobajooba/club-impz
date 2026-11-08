@@ -41,6 +41,10 @@ import bbcreature  # noqa: E402
 from bbcreature import NORMAL, corners, el, hexrgb, tangents  # noqa: E402
 from bbcreature import face_frame, pack  # noqa: E402
 from bbcreature import Creature  # noqa: E402
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 # The HD Imp's scale (build_impling_hd_bbmodel.py), kept here so the oak
 # doesn't depend on that script.
@@ -634,12 +638,13 @@ class Oak(Creature):
 
     def write_bbmodel(self, out_dir, imp_height_px=IMP_HEIGHT_PX):
         """As Creature.write_bbmodel; the image is SUB times the UV size."""
-        super().write_bbmodel(out_dir, imp_height_px)
+        super().write_bbmodel(out_dir, imp_height_px, pad=False)
         path = Path(out_dir) / f"{self.name}.bbmodel"
         model = json.loads(path.read_text())
         for tx in model["textures"]:
             tx["width"] = tx["height"] = self.tex * SUB
         path.write_text(json.dumps(model, indent="	"))
+        pad_file(path)
 
     def backdrop(self, w, h, tile):
         top, bot = np.array((150, 196, 236)), np.array((214, 232, 240))

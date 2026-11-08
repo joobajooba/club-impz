@@ -25,6 +25,10 @@ import zlib
 
 import numpy as np
 from PIL import Image
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[5] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 
 def load_texture(src):
@@ -172,7 +176,9 @@ def main():
             for f in e.get("faces", {}).values():
                 if "uv" in f:
                     f["uv"] = [c * scale for c in f["uv"]]
-    json.dump(model, open(dst, "w", encoding="utf-8"))
+    with open(dst, "w", encoding="utf-8") as fh:
+        json.dump(model, fh)
+    pad_file(dst)
 
 
 if __name__ == "__main__":

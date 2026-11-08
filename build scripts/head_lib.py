@@ -6,6 +6,7 @@ import base64, copy, io, json, os, uuid
 import numpy as np
 from PIL import Image
 from render_bb import affine, face_corners
+from fix_texture_bleed import pad_file
 
 ASSETS = 'C:/Users/lucas/club-impz/godot-game/assets/'
 OUT = 'C:/Users/lucas/blockbench_models/impz/head/'
@@ -207,4 +208,6 @@ class Trait:
         Image.fromarray(atlas).save(OUT + self.name + '.png')
         with open(OUT + self.name + '.bbmodel', 'w', encoding='utf8', newline='') as f:
             json.dump(d, f, separators=(',', ':'))
+        # 2 px gaps and a 1 px border of each face's own colour, so cube edges don't sample the gutter
+        pad_file(OUT + self.name + '.bbmodel', [OUT + self.name + '.png'])
         print(f'{self.name:18s} {len(elements):3d} cubes  {size}px texture')

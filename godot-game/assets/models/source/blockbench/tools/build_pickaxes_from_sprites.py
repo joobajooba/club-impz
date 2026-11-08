@@ -40,6 +40,10 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 HERE = Path(__file__).resolve().parent
 GAME = HERE.parents[4]                                 # godot-game/
@@ -414,6 +418,7 @@ def main():
         d, dg, do = scale_dummy(12)
         doc = bbmodel(name, elements + [d], [g, dg], [o, do], [texture_entry(name, sheet, 0)], ATLAS)
         (OUT_MODELS / (name + ".bbmodel")).write_text(json.dumps(doc), encoding="utf-8")
+        pad_file(OUT_MODELS / (name + ".bbmodel"), [OUT_TEX / (name + ".png")])
         # the same pickaxe again, moved along X and pointing at its own texture, for the lineup
         row = k // 6                                       # two rows, so one view shows them all large
         x = (k % 6 - 2.5) * SPACING
@@ -431,6 +436,7 @@ def main():
     d, dg, do = scale_dummy(-3.5 * SPACING)
     doc = bbmodel("pickaxes_lineup", lineup_el + [d], lineup_groups + [dg], lineup_out + [do], lineup_tex, ATLAS)
     (OUT_MODELS / "pickaxes_lineup.bbmodel").write_text(json.dumps(doc), encoding="utf-8")
+    pad_file(OUT_MODELS / "pickaxes_lineup.bbmodel")
     print("lineup: %d pickaxes" % len(sprites))
 
 

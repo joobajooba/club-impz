@@ -46,6 +46,10 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from build_pickaxe_bbmodel import FACES, NORMAL, face_frame, texels  # noqa: E402
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[6] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
 
 PX = 0.5   # Blockbench units per texture pixel (D-053)
 CELL = 2   # the rock is sculpted in 2 px steps
@@ -711,6 +715,7 @@ def build(out_dir):
         "elements": elements, "outliner": outliner, "textures": [texture],
     }
     (out_dir / "copper_vein.bbmodel").write_text(json.dumps(model, indent="\t"))
+    pad_file(out_dir / "copper_vein.bbmodel")
 
     used = sum(w * h for w, h in visible.values())
     rock = sum(1 for e in ELEMENTS if e["group"] == "rock")

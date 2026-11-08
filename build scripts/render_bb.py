@@ -30,8 +30,10 @@ def load_tex(d,fallback=None):
     if s.startswith('data:'): im=Image.open(io.BytesIO(base64.b64decode(s.split(',',1)[1])))
     else: im=Image.open(fallback)
     return np.array(im.convert('RGBA')),t.get('uv_width',im.width),t.get('uv_height',im.height)
-def render(d,tex,view,ppu=6,bounds=(-48,48,-4,132),only=None,tint=None,hide=()):
-    """view: 3x3 matrix mapping world to (screen-right, screen-up, toward-viewer)"""
+def render(d,tex,view,ppu=6,bounds=(-48,48,-4,132),only=None,tint=None,hide=(),edge_bleed=False):
+    """view: 3x3 matrix mapping world to (screen-right, screen-up, toward-viewer).
+    edge_bleed: worst-case GPU edge sampling. Screen pixels on a face's outer edge sample the texel
+    just outside its UV rectangle, so a bad gutter shows as a line (see check_texture_bleed.py)."""
     T,uw,uh=tex;tw,th=T.shape[1],T.shape[0];W=cube_world(d);l,r,b,t=bounds
     w,h=int((r-l)*ppu),int((t-b)*ppu);img=np.zeros((h,w,3),np.uint8);img[:]=(40,42,48);zb=np.full((h,w),-1e9)
     L=np.array([.25,.45,.85]);L/=np.linalg.norm(L)
@@ -57,12 +59,15 @@ def render(d,tex,view,ppu=6,bounds=(-48,48,-4,132),only=None,tint=None,hide=()):
             if not mask.any(): continue
             z=o[2]+s*ex[2]+q*ey[2]
             u1,v1,u2,v2=f['uv'];rt=f.get('rotation',0) or 0
+            if edge_bleed:
+                es=1/max(ppu*np.linalg.norm(ex[:2]),1e-9);eq=1/max(ppu*np.linalg.norm(ey[:2]),1e-9)
+                s=np.where(s<es,-1e-4,np.where(s>1-es,1+1e-4,s));q=np.where(q<eq,-1e-4,np.where(q>1-eq,1+1e-4,q))
             ss,qq=s,q
             if rt==90: ss,qq=q,1-s
             elif rt==180: ss,qq=1-s,1-q
             elif rt==270: ss,qq=1-q,s
             uu=(u1+(u2-u1)*ss)*tw/uw;vv=(v1+(v2-v1)*qq)*th/uh
-            tx=np.clip(uu.astype(int),0,tw-1);ty=np.clip(vv.astype(int),0,th-1);col=T[ty,tx]
+            tx=np.clip(np.floor(uu).astype(int),0,tw-1);ty=np.clip(np.floor(vv).astype(int),0,th-1);col=T[ty,tx]
             nw=R@np.array(n,float);sh=.72+.28*max(0,float(nw@L))
             m=mask&(col[...,3]>32)&(z>zb[y0:y1,x0:x1])
             sub=img[y0:y1,x0:x1];rgb=(col[...,:3]*sh).astype(np.uint8)
