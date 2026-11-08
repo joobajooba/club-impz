@@ -271,6 +271,13 @@ func _bake_resource() -> void:
 				wet = maxf(wet, 1.0 - smoothstep(4.0, 7.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0)))))
 				special = 1.0 - smoothstep(18.0, 30.0, Vector2(x, z).distance_to(Vector2(900, 60)))
 			special = maxf(special, 1.0 - smoothstep(24.0, 38.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"])))
+			# the waterfall cliff reads as rock (forest special = mountain_rock): its steep cells, grown by 1.5 m
+			# and broken up with noise so the edge is ragged; the flat top and gentle slopes stay grass
+			if b == 0 and _in_fall_cliff(x, z):
+				var sl := _slope_at(hs, nx, nz, x, z)
+				for o in [Vector2(1.5, 0), Vector2(-1.5, 0), Vector2(0, 1.5), Vector2(0, -1.5)]:
+					sl = maxf(sl, _slope_at(hs, nx, nz, x + o.x, z + o.y))
+				special = maxf(special, smoothstep(0.3, 0.4, sl + n_detail.get_noise_2d(x * 3.0, z * 3.0) * 0.08))
 			var litter := clampf(n_litter.get_noise_2d(x, z) * 1.6 + 0.1, 0.0, 1.0) if b == 0 else 0.0
 			mask.set_pixel(mx, mz, Color(0.0, wet, special, litter))
 	# paths stamped along the main line and the branches
@@ -434,6 +441,26 @@ func _recarve(hs: PackedFloat32Array, carved: PackedFloat32Array, nx: int, nz: i
 							sum += minf(carved[j], lvl)
 							cnt += 1
 					hs[k] = minf(hs[k], sum / cnt)
+
+
+func _h_at(hs: PackedFloat32Array, nx: int, nz: int, x: float, z: float) -> float:
+	## bilinear height from the 2 m grid
+	var fx := clampf(x / STEP, 0.0, nx - 1.001)
+	var fz := clampf((z + RD / 2.0) / STEP, 0.0, nz - 1.001)
+	var ix := int(fx)
+	var iz := int(fz)
+	var tx := fx - ix
+	var tz := fz - iz
+	var a := lerpf(hs[iz * nx + ix], hs[iz * nx + ix + 1], tx)
+	var b := lerpf(hs[(iz + 1) * nx + ix], hs[(iz + 1) * nx + ix + 1], tx)
+	return lerpf(a, b, tz)
+
+
+func _slope_at(hs: PackedFloat32Array, nx: int, nz: int, x: float, z: float) -> float:
+	## 1 - normal.y, the same measure as the terrain shader's slope
+	var dx := (_h_at(hs, nx, nz, x + 1.0, z) - _h_at(hs, nx, nz, x - 1.0, z)) / 2.0
+	var dz := (_h_at(hs, nx, nz, x, z + 1.0) - _h_at(hs, nx, nz, x, z - 1.0)) / 2.0
+	return 1.0 - 1.0 / sqrt(1.0 + dx * dx + dz * dz)
 
 
 func _at_waterfall(x: float, z: float) -> bool:

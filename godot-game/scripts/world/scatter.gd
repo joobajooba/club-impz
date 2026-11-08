@@ -36,7 +36,12 @@ var patch_noise := FastNoiseLite.new()
 var wind_shader: Shader
 
 
+## z of the waterfall ribbon's centre line (game_world.gd _make_waterfall); no scatter inside its footprint.
+var fall_z := 1e9
+
+
 func setup(w: Node, d: WorldData) -> void:
+	fall_z = float(d.layout.get("waterfall", {}).get("z", 1e9))
 	world = w
 	data = d
 	var js: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/scatter.json"))
@@ -242,9 +247,12 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 				patch_noise.frequency = rule["patch"]["freq"]
 				if patch_noise.get_noise_2d(x + ri * 97.0, z) * 0.5 + 0.5 > float(rule["patch"]["threshold"]) + 0.25: continue
 			if rule.get("patch_mask", "") == "litter" and roll > 0.3 + m.a * 0.9: continue
+			if absf(z - fall_z) <= 5.5 and x >= 200.0 and x <= 218.0: continue  # nothing pokes through the waterfall
 			if rule.has("near"):
-				var lm: Array = data.layout["landmarks"].get(rule["near"][0], [1e9, 1e9])
-				if Vector2(x, z).distance_to(Vector2(lm[0], lm[1])) > float(rule["near"][1]): continue
+				var near: Array = rule["near"]
+				var lm: Array = data.layout["landmarks"].get(near[0], [1e9, 1e9])
+				var dl := Vector2(x, z).distance_to(Vector2(lm[0], lm[1]))
+				if dl > float(near[1]) or (near.size() > 2 and dl < float(near[2])): continue
 			elif _excluded(x, z, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {})): continue
 			var alias: String = aliases[0][0]
 			var acc := 0.0

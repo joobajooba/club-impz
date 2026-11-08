@@ -29,6 +29,7 @@ uniform float steep_slope[6];
 uniform float mid_slope[6];
 uniform float high_y[6];
 uniform float border_patch[6];
+uniform float special_on_steep[6];  // 1: steep cells in the special patch use the special layer (forest waterfall cliff)
 uniform float near_cut = 0.0;   // far terrain mesh: hide it close to the camera, where the detailed chunks are
 uniform float far_drop = 0.0;   // far terrain mesh sits slightly lower so the detailed chunks always win
 
@@ -103,14 +104,16 @@ void fragment() {
 	if (r_litter[b] >= 0 && m.a > 0.3 + d2 * 0.45) layer = r_litter[b];
 	if (r_wet[b] >= 0 && m.g > d) layer = r_wet[b];
 	if (r_high[b] >= 0 && wpos.y + (d - 0.5) * 5.0 > high_y[b]) layer = r_high[b];
-	if (r_special[b] >= 0 && m.b > d) layer = r_special[b];
+	bool special_here = r_special[b] >= 0 && m.b > d;
+	if (special_here) layer = r_special[b];
 	if (r_mid[b] >= 0 && slope + (d2 - 0.5) * 0.08 > mid_slope[b]) layer = r_mid[b];
 	bool steep = slope + (d - 0.5) * 0.06 > steep_slope[b];
 	if (r_path[b] >= 0 && m.r > d * 0.8 + 0.1) {
 		layer = r_path[b];
 		steep = false;
 	}
-	vec3 col = tri_sample(float(steep ? r_steep[b] : layer));
+	int steep_layer = (special_here && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
+	vec3 col = tri_sample(float(steep ? steep_layer : layer));
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
