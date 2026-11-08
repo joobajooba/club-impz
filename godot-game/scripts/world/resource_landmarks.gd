@@ -23,12 +23,15 @@ const MOB := preload("res://scripts/world/mob.gd")
 ## forest and plains, wolf packs at the forest edges, in the mountains and in the snow, ogres in the mountains and
 ## the swamp. The big ones live by a landmark of their own (MOB_LAIRS). No combat or hunting yet.
 const MOBS := [
-	["cow", "forest", 2, 3], ["pig", "forest", 2, 3], ["wolf", "forest", 2, 2],
-	["highland_cow", "mountain", 2, 3], ["wolf", "mountain", 1, 3], ["ogre", "mountain", 2, 1],
-	["wolf", "frost", 2, 2],
-	["cow", "plains", 3, 4], ["highland_cow", "plains", 1, 3],
-	["ogre", "swamp", 3, 1],
+	["cow", "forest", 4, 3], ["pig", "forest", 3, 3], ["wolf", "forest", 2, 2],
+	["highland_cow", "mountain", 3, 3], ["wolf", "mountain", 2, 3], ["ogre", "mountain", 3, 1],
+	["wolf", "frost", 3, 2],
+	["cow", "plains", 4, 4], ["highland_cow", "plains", 2, 3],
+	["ogre", "swamp", 4, 1],
 ]
+## Herds grazing beside the path just ahead of the arrival point (you arrive facing along it), so there are
+## animals in sight as soon as you arrive: [kind, count, metres along the path, metres to the side].
+const MOBS_AT_ARRIVAL := [["cow", 3, 26.0, 9.0], ["pig", 2, 40.0, -10.0]]
 ## [kind, landmark, metres away]: the ember dragon by the volcanic obsidian cave, the stone golem under the
 ## highest peak, the pale dragon by the ice spire, the dark dragon by the dreadstone pit.
 const MOB_LAIRS := [["ember_dragon", "obsidian_cave", 34.0], ["stone_golem", "highest_peak", 24.0],
@@ -262,6 +265,9 @@ func _place_mobs() -> void:
 			for tries in 3000:
 				var x := rng.randf_range(bi * 256.0 + 20.0, bi * 256.0 + 236.0)
 				var z := rng.randf_range(-180.0, 180.0)
+				if tries < 2000:                       # most herds live 20 to 60 m off the main path, in view of it
+					var pz := _path_z(x)
+					z = pz + rng.randf_range(20.0, 60.0) * (1.0 if rng.randf() < 0.5 else -1.0)
 				if _ore_spot_ok(spec[1], x, z, true, homes) and _clear_of_landmarks(x, z):
 					home = Vector2(x, z)
 					break
@@ -272,6 +278,18 @@ func _place_mobs() -> void:
 				n += 1
 				var off := Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
 				_mob(root, spec[0], home + off, 1000 + n)
+	var sp: Array = data.layout.get("spawn_point", [0, 0])
+	for spec in MOBS_AT_ARRIVAL:                      # herds in sight of the arrival point, beside the path ahead
+		for tries in 24:
+			var x: float = sp[0] + float(spec[2]) + tries * 2.0
+			var side: float = float(spec[3]) * (1.0 + 0.1 * tries) * (1.0 if tries % 2 == 0 else -1.0)
+			var c := Vector2(x, _path_z(x) + side)
+			if _ore_spot_ok("forest", c.x, c.y, true, homes):
+				homes.append(c)
+				for i in int(spec[1]):
+					n += 1
+					_mob(root, spec[0], c + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0)), 1000 + n)
+				break
 	var lm: Dictionary = data.layout["landmarks"]
 	for lair in MOB_LAIRS:
 		if not lm.has(lair[1]):
@@ -285,6 +303,17 @@ func _place_mobs() -> void:
 				n += 1
 				_mob(root, lair[0], p, 1000 + n)
 				break
+
+
+## z of the main path where it crosses x (the nearest point of the baked path).
+func _path_z(x: float) -> float:
+	var best := 0.0
+	var bd := 1e9
+	for pt in data.layout.get("main_path", []):
+		if absf(pt[0] - x) < bd:
+			bd = absf(pt[0] - x)
+			best = pt[1]
+	return best
 
 
 func _clear_of_landmarks(x: float, z: float) -> bool:

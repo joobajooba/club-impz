@@ -85,6 +85,11 @@ func _ready() -> void:
 		Inventory.take_out("pickaxe")
 	if args.has("mine_chance"):                            # testing: multiply the chance per swing
 		player.miner.chance_scale = float(args["mine_chance"])
+	if args.has("mob_list"):                               # testing: where every mob is
+		print("SPAWN ", player.global_position)
+		for n in current_world.find_children("*", "Node3D", true, false):
+			if n.get("mob_seed") != null:
+				print("MOBPOS ", n.get("kind"), " ", n.global_position)
 	if args.has("goto_mob"):                               # testing: --goto_mob=wolf stands 7 m from the first wolf
 		for n in current_world.find_children(args["goto_mob"] + "_*", "Node3D", true, false):
 			if n.get_script() == null:

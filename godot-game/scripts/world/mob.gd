@@ -14,7 +14,7 @@ extends Node3D
 ## template, the mobs are copies of it, and a mob far from the camera is hidden and its animation stopped.
 
 const PATH := "res://assets/models/mobs/%s.glb"
-const ACTIVE := 130.0            # metres from the view: closer mobs animate and move
+const ACTIVE := 180.0            # metres from the view: closer mobs show, animate and move
 const KINDS := {  # walk / run in m/s (build_mob_anims.py), how often a leg is a run, home radius (m)
 	"cow": {walk = 0.37, run = 1.68, run_chance = 0.08, radius = 9.0},
 	"highland_cow": {walk = 0.32, run = 1.53, run_chance = 0.06, radius = 9.0},
@@ -28,6 +28,7 @@ const KINDS := {  # walk / run in m/s (build_mob_anims.py), how often a leg is a
 }
 
 @export var kind := "cow"
+var radius := -1.0                # home radius in metres (-1 = the kind's own)
 var home := Vector3.ZERO
 var mob_seed := 1
 var data: WorldData
@@ -49,7 +50,7 @@ func _ready() -> void:
 	_anim = _body.find_children("*", "AnimationPlayer", true, false).front() as AnimationPlayer
 	var k: Dictionary = KINDS[kind]
 	# a leg is long enough to walk across the home area and still idle a while
-	_leg_len = maxf(10.0, 2.0 * float(k.radius) / float(k.walk) / 0.7)
+	_leg_len = maxf(10.0, 2.0 * (radius if radius > 0.0 else float(k.radius)) / float(k.walk) / 0.7)
 	_update(true)
 
 
@@ -100,7 +101,7 @@ func _spot(k: int) -> Vector3:
 		return _spots[k]
 	if _spots.size() > 8:
 		_spots.clear()
-	var r: float = KINDS[kind].radius
+	var r: float = radius if radius > 0.0 else float(KINDS[kind].radius)
 	var out := home
 	for i in 8:
 		var ang := _hash01(k, 11 + i) * TAU
