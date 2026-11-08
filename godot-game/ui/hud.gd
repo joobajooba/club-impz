@@ -3,9 +3,10 @@ extends CanvasLayer
 ## - Top left, the player card: the Imp's head (drawn from the look it wears), the impz.club username
 ##   and Imp Coin balance (the account in the Profile menu, ui/profile/account_panel.gd), and the energy
 ##   bar. Clicking it opens the Profile menu.
-## - Under it, the tool bar: five square slots, one per tool kind (pickaxe, sickle, axe, bow, rod),
-##   each showing the tool of that kind the player uses. The one in hand is lit; 1 to 5 or a click
-##   takes one out, Q switches to the next tier of the same kind.
+## - Under it, the tool bar: five square slots (pickaxe, sword, axe, sickle, rod), each showing the tool of
+##   that kind the player uses; everyone starts with the stone ones (and a driftwood rod). The one in hand
+##   is lit and held in the Imp's right fist; 1 to 5 or a click takes one out, Q switches to the next tier
+##   of the same kind, left click or E swings it (imp_visual.gd ACTIONS).
 ## - At the bottom, the "F Mine Tin" prompt, a short "+1 Tin ore" line for every pickup (rare drops and
 ##   new tools are highlighted) and short notices such as "Inventory full".
 ## Colours from UIKit.
@@ -19,6 +20,7 @@ const PORTRAIT_FOV := 31.0
 const PORTRAIT_EYE := Vector3(0, 1.02, -1.6)  # the Imp faces -z
 const PORTRAIT_AIM := Vector3(0, 0.95, 0)
 const SLOT_SIZE := 50
+const TOOLBAR := ["pickaxe", "sword", "axe", "sickle", "rod"]   # keys 1 to 5
 const SLOT_GAP := 6
 const CARD_WIDTH := 5 * SLOT_SIZE + 4 * SLOT_GAP   # the card is as wide as the tool bar
 
@@ -65,8 +67,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
 	var n := int(k.physical_keycode) - KEY_1
-	if n >= 0 and n < GameData.TOOL_KINDS.size():
-		Inventory.take_out(GameData.TOOL_KINDS.keys()[n])
+	if n >= 0 and n < TOOLBAR.size():
+		Inventory.take_out(TOOLBAR[n])
 		get_viewport().set_input_as_handled()
 
 
@@ -286,7 +288,7 @@ func _build_toolbar() -> Control:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(bar)
 	var n := 0
-	for kind in GameData.TOOL_KINDS:
+	for kind in TOOLBAR:
 		n += 1
 		var slot := PanelContainer.new()
 		slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
@@ -316,7 +318,7 @@ func _build_toolbar() -> Control:
 	_tool_name.add_theme_constant_override("outline_size", 4)
 	_tool_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_tool_name)
-	var hint := UIKit.label("1-5 tools  ·  Q next tier  ·  I inventory", UIKit.MUTED, 12)
+	var hint := UIKit.label("1-5 tools  ·  Click/E use  ·  Q next tier", UIKit.MUTED, 12)
 	hint.add_theme_color_override("font_outline_color", UIKit.OUTLINE)
 	hint.add_theme_constant_override("outline_size", 4)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
