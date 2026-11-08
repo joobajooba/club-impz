@@ -179,6 +179,7 @@ func _on_message(msg: Dictionary) -> void:
 			online = int(msg.online)
 			for p in msg.players:
 				_add(p)
+			OreEvents.on_welcome(msg.get("events", []))
 			_show()
 		"join":
 			_add(msg.player)
@@ -218,6 +219,10 @@ func _on_message(msg: Dictionary) -> void:
 		"full":
 			state = "full"
 			_show()
+		"ore_event":                                   # a voidstone / stellarite vein appeared (OreEvents)
+			OreEvents.on_server_event(msg.get("ev", {}))
+		"ore_event_end":
+			OreEvents.on_server_end(int(msg.get("id", 0)))
 
 
 func _add(p: Dictionary) -> void:

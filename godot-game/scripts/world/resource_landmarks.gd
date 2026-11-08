@@ -12,15 +12,21 @@ const ORES := {  # biome -> ores (game_worlds.md section 4.4)
 }
 ## Veins of each ore in each of its biomes. Ores are kept far rarer than trees (a handful per biome, not
 ## thousands); coal, the fuel, is a little more common. Obsidian and dreadstone sit round
-## their landmarks (RING). Voidstone and stellarite have no biome in this world yet (void, stellar).
+## their landmarks (RING). Voidstone and stellarite only appear as world events (EVENT_SPOTS).
 const PER_ORE := 3
 const PER_ORE_OF := {"coal": 4}
 const RING := 3                  # obsidian round the volcanic cave, dreadstone round the toxic pit
 
 const ORE_VEIN := preload("res://scripts/world/ore_vein.gd")
+## Voidstone and stellarite veins are world events (autoload/ore_events.gd): they appear on one of these
+## spots, the same list on every client (fixed seed, any biome), which the server picks by index.
+const EVENT_SPOTS := 48
 
 var world: GameWorld
 var data: WorldData
+var event_spots: Array[Vector2] = []
+var _event_root: Node3D
+var _event_veins := {}           # event id -> vein node
 
 
 func populate(w: GameWorld) -> void:
@@ -127,6 +133,61 @@ func _place_ores() -> void:
 		for i in n:
 			var a := i * TAU / n + 0.4
 			_ore(root, spec[0], c[0] + cos(a) * r, c[1] + sin(a) * r, rng)
+	_event_spots(placed)
+	_event_root = Node3D.new()
+	_event_root.name = "ore_events"
+	add_child(_event_root)
+	OreEvents.started.connect(_on_event)
+	OreEvents.ended.connect(_on_event_end)
+	for ev in OreEvents.events.values():               # events already running when this world loaded
+		_on_event(ev)
+
+
+func _event_spots(placed: Array[Vector2]) -> void:
+	## Open walkable ground anywhere in the world, away from the paths and the other veins.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var names := ["forest", "mountain", "frost", "plains", "swamp"]
+	var taken := placed.duplicate()
+	var tries := 0
+	while event_spots.size() < EVENT_SPOTS and tries < 20000:
+		tries += 1
+		var bi := event_spots.size() % names.size()     # spread evenly over the biomes
+		var x := rng.randf_range(bi * 256.0 + 12.0, bi * 256.0 + 244.0)
+		var z := rng.randf_range(-200.0, 200.0)
+		if _ore_spot_ok(names[bi], x, z, true, taken):
+			event_spots.append(Vector2(x, z))
+			taken.append(Vector2(x, z))
+
+
+func _on_event(ev: Dictionary) -> void:
+	if _event_veins.has(ev.id) or event_spots.is_empty():
+		return
+	var p: Vector2 = event_spots[int(ev.spot) % event_spots.size()]
+	var n: Node3D = ORE_VEIN.new()
+	n.set("ore", ev.ore)
+	n.name = "%s_vein_event_%d" % [ev.ore, absi(int(ev.id))]
+	n.add_to_group("event_vein")
+	n.set_meta("event_id", ev.id)
+	_event_root.add_child(n)
+	n.global_position = Vector3(p.x, data.height(p.x, p.y) - 0.15, p.y)
+	n.rotation.y = float(absi(int(ev.spot)) * 37 % 360) * PI / 180.0
+	_event_veins[ev.id] = n
+	# it rises out of the ground
+	var target := n.scale
+	n.scale = target * 0.05
+	n.create_tween().tween_property(n, "scale", target, 1.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _on_event_end(id: int) -> void:
+	var n: Node3D = _event_veins.get(id)
+	_event_veins.erase(id)
+	if not is_instance_valid(n):
+		return
+	n.remove_from_group("event_vein")
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", n.scale * 0.05, 0.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tw.tween_callback(n.queue_free)
 
 
 func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Array[Vector2]) -> bool:

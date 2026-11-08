@@ -26,6 +26,18 @@ const SITE = (process.env.SITE || "https://www.impz.club").replace(/\/$/, "");
 const MAX_PLAYERS = Number(process.env.MAX_PLAYERS || 100);
 const MANIFEST = process.env.MANIFEST || join(here, "../godot-game/data/impz/manifest.json");
 
+// Ore events (voidstone and stellarite veins don't grow in the world, they appear as events): every
+// EVENT_CHECK_MS each ore with no event running rolls its chance; a hit puts a vein on one of the game's
+// EVENT_SPOTS spots (godot-game/scripts/world/resource_landmarks.gd) for its duration, and every player
+// is told. EVENT_SCALE (env) speeds the clock up for testing: 60 makes a minute last a second.
+const EVENT_SCALE = Number(process.env.EVENT_SCALE || 1);
+const EVENT_CHECK_MS = 60 * 1000 / EVENT_SCALE;
+const EVENT_SPOTS = 48;
+const ORE_EVENTS = {
+  void: { chance: 1 / 45, minutes: 15 },        // about once every 45 minutes
+  stellarite: { chance: 1 / 120, minutes: 15 }, // about once every 2 hours
+};
+
 const TICK_MS = 100;                 // states go out 10 times a second
 const MAX_MSGS_PER_SEC = 40;         // a game sends ~10; more than this is closed
 const WORLDS = new Set(["hub", "resource", "test"]);
@@ -102,6 +114,39 @@ async function allowedLook(look, wallet) {
 
 // --- the room -----------------------------------------------------------------------------------
 
+const events = new Map();              // event id -> { id, ore, spot, until }
+let nextEvent = 1;
+
+function eventInfo(e) {
+  return { id: e.id, ore: e.ore, spot: e.spot, left: Math.max(0, e.until - Date.now()) };
+}
+
+function startEvent(ore) {
+  const taken = new Set([...events.values()].map((e) => e.spot));
+  let spot = Math.floor(Math.random() * EVENT_SPOTS);
+  for (let i = 0; i < EVENT_SPOTS && taken.has(spot); i++) spot = (spot + 1) % EVENT_SPOTS;
+  const e = { id: nextEvent++, ore, spot, until: Date.now() + ORE_EVENTS[ore].minutes * 60 * 1000 / EVENT_SCALE };
+  events.set(e.id, e);
+  broadcast({ t: "ore_event", ev: eventInfo(e) });
+  console.log(`ore event #${e.id}: ${ore} at spot ${spot} (${countReady()} online)`);
+  return e;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const e of [...events.values()]) {
+    if (now >= e.until) {
+      events.delete(e.id);
+      broadcast({ t: "ore_event_end", id: e.id });
+    }
+  }
+  if (countReady() === 0) return;      // nobody to see it: don't waste the event
+  for (const [ore, rule] of Object.entries(ORE_EVENTS)) {
+    const running = [...events.values()].some((e) => e.ore === ore);
+    if (!running && Math.random() < rule.chance * Math.min(EVENT_CHECK_MS, 1000) / EVENT_CHECK_MS) startEvent(ore);
+  }
+}, Math.min(EVENT_CHECK_MS, 1000));
+
 const players = new Map();             // id -> player
 let nextId = 1;
 
@@ -168,10 +213,13 @@ async function onMessage(p, msg) {
       if (!players.has(p.id)) return;
       p.ready = true;
       const others = [...players.values()].filter((o) => o !== p && o.ready).map(publicInfo);
-      send(p, { t: "welcome", id: p.id, name: p.name, guest: p.guest, look: p.look, players: others, online: others.length + 1 });
+      send(p, { t: "welcome", id: p.id, name: p.name, guest: p.guest, look: p.look, players: others, online: others.length + 1,
+        events: [...events.values()].map(eventInfo) });
       broadcast({ t: "join", player: publicInfo(p) }, p);
       broadcast({ t: "online", n: countReady() });
       console.log(`join #${p.id} ${p.name}${p.wallet ? " " + p.wallet.slice(0, 8) : ""} (${countReady()} online)`);
+      const now = process.env.ORE_EVENT_NOW;
+      if (now && ORE_EVENTS[now] && ![...events.values()].some((e) => e.ore === now)) startEvent(now);
       return;
     }
     case "s":

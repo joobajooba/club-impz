@@ -13,7 +13,9 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
-##   --goto_ore=gold  stand next to the first vein of that ore   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
+##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing
+##   --mine_at=4  start mining the vein in reach after 4 s
+##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
@@ -72,9 +74,18 @@ func _ready() -> void:
 	await _enter_world(start, "spawn_point")
 	if args.has("biome") and current_world.has_method("biome_centre"):
 		player.place_at(current_world.biome_centre(args["biome"]))
+	if args.has("ore_event"):                              # testing: --ore_event=void starts an event here
+		OreEvents.start_local(args["ore_event"])
+		await get_tree().process_frame
+	if args.has("pickaxe"):                                # testing: hold any pickaxe
+		Inventory.held["pickaxe"] = args["pickaxe"]
+		Inventory.sync_tools()
+		Inventory.take_out("pickaxe")
+	if args.has("mine_chance"):                            # testing: multiply the chance per swing
+		player.miner.chance_scale = float(args["mine_chance"])
 	if args.has("goto_ore"):                               # testing: --goto_ore=gold stands by the first gold vein
 		for n in current_world.find_children(args["goto_ore"] + "_vein_*", "Node3D", true, false):
-			var p: Vector3 = n.global_position + Vector3(0, 0, 3.2)
+			var p: Vector3 = n.global_position + Vector3(0, 0, 1.8)
 			p.y = current_world.ground_height(p.x, p.z) + 0.3
 			player.place_at(Transform3D(Basis(), p))
 			print("ORE at ", n.name, " ", n.global_position)
@@ -115,6 +126,13 @@ func _ready() -> void:
 	if args.has("axe"):                                    # testing: hold any axe
 		Inventory.held["axe"] = args["axe"]
 		Inventory.sync_tools()
+	if args.has("mine_at"):
+		get_tree().create_timer(float(args["mine_at"])).timeout.connect(func():
+			Inventory.take_out("pickaxe")
+			await get_tree().process_frame
+			Inventory.looted.connect(func(id, n, rare): print("MINE got ", id, " x", n, " rare" if rare else ""))
+			Inventory.message.connect(func(t): print("MINE message: ", t))
+			print("MINE use -> ", player.miner.use(), " target ", player.miner.target))
 	if args.has("chop_at"):
 		get_tree().create_timer(float(args["chop_at"])).timeout.connect(_chop_test)
 	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account
