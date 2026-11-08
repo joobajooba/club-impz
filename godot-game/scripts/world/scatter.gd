@@ -10,6 +10,8 @@ extends Node3D
 ##   nothing needs to be sent over the network.
 ## - Same seed per cell and rule, so the world looks the same every load.
 ## - Every plant and tree uses shaders/foliage_wind.gdshader (wind on the leaf cards, still trunks).
+## - Trees can be chopped down (lumbering.gd, tree_chopper.gd): a felled tree's instance is shrunk away,
+##   its trunk collider is switched off and its stump stands in its place until it grows back.
 
 const FOLIAGE_CELL := 64.0
 const TREE_CELL := 128.0
@@ -34,11 +36,15 @@ var build_queue: Array = []    # [cell coord, cell size, trees?] still to build 
 const BUILD_BUDGET_USEC := 6000
 var patch_noise := FastNoiseLite.new()
 var wind_shader: Shader
+var trunk_shapes := {}         # tree key -> its trunk CollisionShape3D (cells next to the player only)
+var stumps := {}               # tree key -> stump Node3D
+var stump_scenes := {}         # stump name -> PackedScene
 
 
 func setup(w: Node, d: WorldData) -> void:
 	world = w
 	data = d
+	add_to_group("scatter")
 	var js: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/scatter.json"))
 	mesh_paths = js["meshes"]
 	var biome_names: Array = WorldData.BIOMES
@@ -90,6 +96,7 @@ func set_focus(f: Node3D) -> void:
 func _process(_delta: float) -> void:
 	if player == null or data == null:
 		return
+	_regrow_due()
 	var p := player.global_position
 	var view := (focus if is_instance_valid(focus) else player).global_position
 	if persistent:
@@ -107,6 +114,8 @@ func _process(_delta: float) -> void:
 	var pc := Vector2i(floori(p.x / TREE_CELL), floori(p.z / TREE_CELL))
 	for c in collider_cells.keys():
 		if absi(c.x - pc.x) > 1 or absi(c.y - pc.y) > 1:
+			for key in collider_cells[c].get_meta("keys", []):
+				trunk_shapes.erase(key)
 			collider_cells[c].queue_free()
 			collider_cells.erase(c)
 	for dz in range(-1, 2):
@@ -184,6 +193,16 @@ func _build_cell(c: Vector2i, cell: float, trees: bool) -> Node3D:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.name = "%s_%s" % [rule["id"], alias]
 			mmi.multimesh = mm
+			if trees:
+				mmi.set_meta("rule", ri)
+				mmi.set_meta("alias", alias)
+				mmi.set_meta("cell", c)
+				mmi.set_meta("xforms", xforms)
+				for i in xforms.size():
+					var key := tree_key(rule, alias, c, i)
+					if Lumbering.is_felled(key):
+						mm.set_instance_transform(i, _hidden(xforms[i]))
+						_add_stump(key, rule, alias, xforms[i])
 			if not persistent:
 				var view: float = rule.get("view", tree_view if trees else foliage_view)
 				mmi.visibility_range_end = view + cell * 0.75
@@ -283,21 +302,28 @@ func _build_colliders(c: Vector2i) -> Node3D:
 	body.collision_layer = 4
 	body.collision_mask = 0
 	add_child(body)
+	var keys := []
 	for ri in rules.size():
 		var rule: Dictionary = rules[ri]
 		if rule.get("kind", "foliage") != "tree":
 			continue
 		var per_alias := _place(rule, ri, c, TREE_CELL)
 		for alias in per_alias:
-			for xf in per_alias[alias]:
-				var s: float = (xf as Transform3D).basis.get_scale().x
+			for i in per_alias[alias].size():
+				var xf: Transform3D = per_alias[alias][i]
+				var key := tree_key(rule, alias, c, i)
+				var s: float = xf.basis.get_scale().x
 				var shape := CylinderShape3D.new()
 				shape.radius = 0.32 * s
 				shape.height = 4.0 * s
 				var cs := CollisionShape3D.new()
 				cs.shape = shape
 				cs.position = xf.origin + Vector3(0, 2.0 * s, 0)
+				cs.disabled = Lumbering.is_felled(key)
 				body.add_child(cs)
+				trunk_shapes[key] = cs
+				keys.append(key)
+	body.set_meta("keys", keys)
 	return body
 
 
@@ -352,3 +378,155 @@ func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
 		mesh.surface_set_material(i, mat)
 	prepared[key] = mesh
 	return mesh
+
+
+# --- chopping (lumbering.gd, tree_chopper.gd) ---------------------------------------------------------------
+
+## A tree's id for chopping: the same on every load (same rule, mesh, cell and index in the cell).
+static func tree_key(rule: Dictionary, alias: String, c: Vector2i, i: int) -> String:
+	return "%s|%s|%d|%d|%d" % [rule["id"], alias, c.x, c.y, i]
+
+
+static func _hidden(xf: Transform3D) -> Transform3D:
+	return Transform3D(Basis.from_scale(Vector3.ONE * 0.0001), xf.origin)
+
+
+## The nearest standing tree that can be chopped, whose bark is within `reach` metres of `pos`, or {}.
+## {key, tree, rule, alias, mmi, index, xform, scale, trunk (bark radius in metres)}
+func find_tree(pos: Vector3, reach: float) -> Dictionary:
+	var best := {}
+	var best_d := reach
+	var pc := Vector2i(floori(pos.x / TREE_CELL), floori(pos.z / TREE_CELL))
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var cell_node: Node3D = tree_cells.get(pc + Vector2i(dx, dz))
+			if cell_node == null:
+				continue
+			for mmi in cell_node.get_children():
+				if not mmi.has_meta("rule"):
+					continue
+				var rule: Dictionary = rules[int(mmi.get_meta("rule"))]
+				var alias: String = mmi.get_meta("alias")
+				var tree := Lumbering.tree_for(rule["id"], alias)
+				if tree == "" or not Lumbering.MESHES.has(alias):
+					continue
+				var xforms: Array = mmi.get_meta("xforms")
+				for i in xforms.size():
+					var xf: Transform3D = xforms[i]
+					var s := xf.basis.get_scale().x
+					var trunk: float = Lumbering.MESHES[alias].trunk * Lumbering.UNITS * s
+					var d := Vector2(xf.origin.x - pos.x, xf.origin.z - pos.z).length() - trunk
+					if d >= best_d or absf(xf.origin.y - pos.y) > 2.5:
+						continue
+					var key := tree_key(rule, alias, mmi.get_meta("cell"), i)
+					if Lumbering.is_felled(key):
+						continue
+					best_d = d
+					best = {key = key, tree = tree, rule = rule, alias = alias, mmi = mmi, index = i, xform = xf,
+						scale = s, trunk = trunk}
+	return best
+
+
+## Swaps the tree's MultiMesh instance for a node of its own, so it can shake and fall. Returns the node.
+func lift_tree(t: Dictionary) -> Node3D:
+	var mi := MeshInstance3D.new()
+	mi.name = "tree_" + String(t.key).replace("|", "_")
+	mi.mesh = _prepared_mesh(t.rule, t.alias)
+	add_child(mi)
+	mi.global_transform = t.xform
+	(t.mmi as MultiMeshInstance3D).multimesh.set_instance_transform(t.index, _hidden(t.xform))
+	return mi
+
+
+## Puts a lifted tree back in its MultiMesh (the player stopped chopping).
+func drop_tree(t: Dictionary, node: Node3D) -> void:
+	if is_instance_valid(t.mmi):
+		(t.mmi as MultiMeshInstance3D).multimesh.set_instance_transform(t.index, t.xform)
+	if is_instance_valid(node):
+		node.queue_free()
+
+
+## The tree is chopped down: its stump appears and its trunk stops blocking until it grows back.
+## The caller animates the lifted tree node falling.
+func fell(t: Dictionary) -> void:
+	Lumbering.fell(t.key)
+	if trunk_shapes.has(t.key) and is_instance_valid(trunk_shapes[t.key]):
+		trunk_shapes[t.key].set_deferred("disabled", true)
+	_add_stump(t.key, t.rule, t.alias, t.xform)
+
+
+func _add_stump(key: String, rule: Dictionary, alias: String, xf: Transform3D) -> void:
+	if stumps.has(key):
+		return
+	var tree := Lumbering.tree_for(rule["id"], alias)
+	var stump_name: String = Lumbering.OWN_STUMP.get(tree, Lumbering.MESHES.get(alias, {}).get("stump", "oak"))
+	if not stump_scenes.has(stump_name):
+		stump_scenes[stump_name] = load(Lumbering.STUMP_PATH % stump_name)
+	var stump: Node3D = (stump_scenes[stump_name] as PackedScene).instantiate()
+	stump.name = "stump_" + key.replace("|", "_")
+	add_child(stump)
+	stump.global_transform = xf
+	# placeholder trees (a recoloured oak, pine or maple) get their trunk colour on the stump too
+	var tint := Color.WHITE
+	if rule.has("trunk_tint") and not Lumbering.OWN_STUMP.has(tree):
+		tint = Color(rule["trunk_tint"])
+	for mi: MeshInstance3D in stump.find_children("*", "MeshInstance3D", true, false):
+		if tint == Color.WHITE:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var src := mi.mesh.surface_get_material(si) as BaseMaterial3D
+			if src:
+				var mat := src.duplicate() as BaseMaterial3D
+				mat.albedo_color = tint
+				mi.set_surface_override_material(si, mat)
+	# the stump still blocks the way, low down
+	var s := xf.basis.get_scale().x
+	var body := StaticBody3D.new()
+	body.collision_layer = 4
+	body.collision_mask = 0
+	var shape := CylinderShape3D.new()
+	shape.radius = float(Lumbering.MESHES.get(alias, {}).get("trunk", 5.0)) * Lumbering.UNITS * s
+	shape.height = 0.6 * s
+	var cs := CollisionShape3D.new()
+	cs.shape = shape
+	cs.position.y = shape.height * 0.5
+	body.add_child(cs)
+	stump.add_child(body)
+	stump.set_meta("rule", rule)
+	stump.set_meta("alias", alias)
+	stump.set_meta("xform", xf)
+	stumps[key] = stump
+
+
+## Stumps whose time is up: the tree grows back out of the ground where the stump was.
+func _regrow_due() -> void:
+	for key in stumps.keys():
+		if Lumbering.is_felled(key):
+			continue
+		var stump: Node3D = stumps[key]
+		stumps.erase(key)
+		var rule: Dictionary = stump.get_meta("rule")
+		var alias: String = stump.get_meta("alias")
+		var xf: Transform3D = stump.get_meta("xform")
+		stump.queue_free()
+		if trunk_shapes.has(key) and is_instance_valid(trunk_shapes[key]):
+			trunk_shapes[key].disabled = false
+		var parts: PackedStringArray = String(key).split("|")
+		var cell_node: Node3D = tree_cells.get(Vector2i(int(parts[2]), int(parts[3])))
+		var mmi: MultiMeshInstance3D = null
+		if cell_node:
+			mmi = cell_node.get_node_or_null("%s_%s" % [rule["id"], alias])
+		if mmi == null:
+			continue  # its cell isn't built yet: it will be built standing
+		var index := int(parts[4])
+		var grow := MeshInstance3D.new()
+		grow.mesh = _prepared_mesh(rule, alias)
+		add_child(grow)
+		grow.global_transform = _hidden(xf)
+		var tw := grow.create_tween()
+		tw.tween_method(func(f: float): grow.global_transform = Transform3D(xf.basis.scaled_local(Vector3.ONE * maxf(f, 0.001)), xf.origin),
+			0.05, 1.0, 1.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(func():
+			if is_instance_valid(mmi):
+				mmi.multimesh.set_instance_transform(index, xf)
+			grow.queue_free())

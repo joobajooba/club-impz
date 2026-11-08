@@ -110,6 +110,9 @@ var _action := ""
 var _action_t := 0.0
 var _trail: Node3D
 
+## The tool's head struck at `pos` (the "hit" key of a use animation). tree_chopper.gd shakes the tree on it.
+signal struck(kind: String, pos: Vector3)
+
 
 func _ready() -> void:
 	body_root = Node3D.new()
@@ -330,6 +333,7 @@ func _run_action(delta: float) -> void:
 
 ## Chips at the moment of impact.
 func _impact(pos: Vector3) -> void:
+	struck.emit(_action, pos)
 	var host := get_tree().current_scene
 	match _action:
 		"pickaxe":
