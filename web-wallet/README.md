@@ -14,7 +14,7 @@ npm start          # build the bundle, export the game (release), serve on http:
 
 Or step by step: `npm run build`, `npm run export` (`-- --debug` for a debug build with the TEST trait switch), `npm run serve`. Set `GODOT` if the Godot editor exe isn't at `C:/Users/lucas/Downloads/Godot_v4.7.2-stable_win64.exe/godot.exe.exe`.
 
-`scripts/serve.mjs` forwards `/api/imps` to `https://www.impz.club/api/imps`. impz.club sends no CORS header, so in web builds the game (`autoload/look.gd`) asks its own site instead.
+`npm run serve` runs the beta server, `game-server/server.mjs`, on port 8060. It's the same server as the live beta. It serves the build, runs the multiplayer room on `/ws`, and forwards `/api/imps` and `/api/profile` to impz.club. impz.club sends no CORS header, so in web builds the game asks its own site instead. Open the page in two tabs (or two browsers) to see two Imps.
 
 ## Notes
 

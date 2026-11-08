@@ -5,6 +5,10 @@ extends Node
 ## Command line (after `--`), used by the screenshot tool and for quick testing:
 ##   --world=hub|resource|test   start world          --biome=forest|mountain|frost|plains|swamp   jump to a biome
 ##   --shot=res://path.png       save a screenshot     --shot_delay=6   seconds before the screenshot   --yaw=0.5 --pitch=-0.3 --zoom=10
+##   --bot=40                    walk in a circle in front of the spawn for 40 s, then quit (a second player
+##                               for testing multiplayer: run one with --headless next to a normal game)
+##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
+##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
 
 const WORLDS := {
 	"hub": "res://scenes/hub/hub_world.tscn",
@@ -56,6 +60,12 @@ func _ready() -> void:
 		_perf_probe(float(args["perf"]))
 	if args.has("portal_test"):
 		_portal_test()
+	if args.has("bot"):
+		_bot(float(args["bot"]))
+	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account
+		ProfileUI.account.set_wallet(args["wallet"])
+		if args.has("profile_open"):
+			ProfileUI.open_menu()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -131,7 +141,8 @@ func biome_name_at(pos: Vector3) -> String:
 
 func _take_screenshot(path: String, delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
-	await RenderingServer.frame_post_draw
+	for i in 3:                                   # frame_post_draw never fires while the window is hidden
+		await get_tree().process_frame
 	var img := get_viewport().get_texture().get_image()
 	var abs_path := ProjectSettings.globalize_path(path) if path.begins_with("res://") else path
 	DirAccess.make_dir_recursive_absolute(abs_path.get_base_dir())
@@ -179,4 +190,21 @@ func _portal_test() -> void:
 		player.place_at(Transform3D(Basis(), portal.global_position))
 		await get_tree().create_timer(3.0).timeout
 		print("PORTAL_TEST now in ", current_world_name)
+	get_tree().quit()
+
+
+func _bot(seconds: float) -> void:
+	player.frozen = true
+	await get_tree().create_timer(2.0).timeout
+	var centre: Vector3 = player.global_position + (-player.visual.global_transform.basis.z) * 4.0
+	var t := 0.0
+	while t < seconds:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		var d: Vector3 = centre + Vector3(cos(t * 0.8), 0, sin(t * 0.8)) * 1.5 - player.global_position
+		d.y = 0.0
+		player.velocity = Vector3(d.x * 4.0, player.velocity.y - 9.8 * get_physics_process_delta_time(), d.z * 4.0)
+		player.move_and_slide()
+		player.visual.rotation.y = atan2(-d.x, -d.z)
+	print("bot: net ", Net.state, " as ", Net.my_name, ", ", Net.online, " online")
 	get_tree().quit()

@@ -1,0 +1,9 @@
+# The beta server image (game-server/Dockerfile) needs only these. Everything else stays out.
+*
+!game-server/package.json
+!game-server/package-lock.json
+!game-server/server.mjs
+!godot-game/data/impz/manifest.json
+!godot-game/export/web/**
+godot-game/export/web/**/*.import
+godot-game/export/web/**/*.gz

@@ -1,43 +1,57 @@
 extends VBoxContainer
 ## The account part of the Profile menu: the player's impz.club account, the same one the website uses.
 ## An account is a row in the site's Supabase `profiles` table, keyed by wallet, so connecting a wallet
-## with Glyph finds it. Username, email and wallet address are shown here; usernames are unique.
+## with Glyph finds it. It holds:
+## - the username: picked here (or on the website), unique across all accounts, any case;
+## - the wallet address;
+## - when the account was made (`account_age`), set once when the account is first saved;
+## - the Imp Coin balance (`imp_coins`): the coins the wallet already has on impz.club. A wallet that
+##   earned coins through Chapter 1 Staking and hasn't claimed them yet gets a Claim button, the same
+##   claim as the website's Coin Claim page, which adds them to the account.
+## The HUD's player card (ui/hud.gd) shows the same account: it listens to `changed`.
 ##
 ## Everything goes through the site's own server, https://www.impz.club/api/profile (impz-club repo,
 ## api/profile.js), never straight to Supabase: the server holds the secret key and checks the rules.
-## - Reading the username is public. The email is private: it comes from `?me=1` with a session.
+## - Reading an account is public. Changing the username needs a session.
 ## - A session comes from signing a free message with the wallet (the site's own sign-in, 7 days),
 ##   and is kept in user://impz_sessions.cfg (the browser's storage in the web build).
 ## - Saving makes the account if the wallet has none yet, so a new player's account lands in the
 ##   database at once and shows on the website too.
-## - Live: while the menu is open the account is read again every few seconds, so a change made on the
-##   website (or a name someone else took) shows up here without reloading.
+## - Live: the account is read again every 10 seconds while the menu is open, and every 30 while it's
+##   shut (for the HUD), so a change made on the website shows up here without reloading.
+
+signal changed               # the wallet, the account, the sign-in or the coins changed
 
 const WalletBridge := preload("res://ui/profile/wallet_bridge.gd")
 const SITE := "https://www.impz.club"
 const SESSIONS := "user://impz_sessions.cfg"
 const REFRESH := 10.0                       # seconds between reads while the menu is open
+const REFRESH_SHUT := 30.0                  # … and while it's shut
 const GOOD := Color(0.55, 0.85, 0.5)
 const BAD := Color(0.95, 0.5, 0.45)
+const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 var ui: Node                 # the ProfileUI that owns this panel, for its _button, _label and wallet
 var wallet := ""             # the connected wallet, lower case ("" = none)
 var session := ""
 var profile = null           # the profiles row, or null when the wallet has no account yet
-var email_text := ""         # the email as saved
+var unclaimed := 0.0         # staking coins this wallet can still claim (0 once claimed)
 
 var status: Label
 var fields: GridContainer
 var username: LineEdit
 var name_note: Label
-var email: LineEdit
 var wallet_label: Label
+var joined_label: Label
+var coins_label: Label
+var claim: Button
 var sign_in: Button
 var save: Button
 var _name_timer: Timer
-var _refresh_timer: Timer
 var _busy := false
+var _reading := false
 var _note_gap: Control
+var _since_read := 0.0
 
 
 func _init(owner_ui: Node) -> void:
@@ -55,26 +69,35 @@ func _ready() -> void:
 	fields.add_theme_constant_override("h_separation", 10)
 	fields.add_theme_constant_override("v_separation", 6)
 	add_child(fields)
-	username = _field("Username", "3 to 24 letters or numbers")
+	fields.add_child(_cell("Username"))
+	username = LineEdit.new()
+	username.placeholder_text = "3 to 24 letters or numbers"
+	username.custom_minimum_size = Vector2(190, 32)
+	username.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	username.max_length = 24
 	username.text_changed.connect(func(_t): _name_timer.start())
+	username.text_submitted.connect(func(_t): _on_save())
+	fields.add_child(username)
 	_note_gap = Control.new()
 	fields.add_child(_note_gap)
 	name_note = ui._label("", ui.MUTED, 12)
 	name_note.custom_minimum_size.x = 190     # wraps inside the field's column
 	fields.add_child(name_note)
-	email = _field("Email", "you@example.com")
-	email.max_length = 254
-	fields.add_child(_cell("Wallet"))
-	wallet_label = _cell("", Color.WHITE)
+	wallet_label = _row("Wallet")
 	wallet_label.mouse_filter = Control.MOUSE_FILTER_PASS   # shows the full address on hover
-	fields.add_child(wallet_label)
+	joined_label = _row("Joined")
+	coins_label = _row("Imp Coins")
+	coins_label.add_theme_color_override("font_color", UIKit.RARE)
 
+	claim = ui._button("Claim Imp Coins")
+	claim.tooltip_text = "Adds the Imp Coins this wallet earned through Chapter 1 Staking to your account."
+	claim.pressed.connect(_on_claim)
+	add_child(claim)
 	sign_in = ui._button("Sign in with your wallet")
 	sign_in.tooltip_text = "Sign a free message in Glyph. It sends nothing and costs nothing."
 	sign_in.pressed.connect(_on_sign_in)
 	add_child(sign_in)
-	save = ui._button("Save")
+	save = ui._button("Save username")
 	save.pressed.connect(_on_save)
 	add_child(save)
 
@@ -83,13 +106,15 @@ func _ready() -> void:
 	_name_timer.wait_time = 0.4
 	_name_timer.timeout.connect(_check_name)
 	add_child(_name_timer)
-	_refresh_timer = Timer.new()
-	_refresh_timer.wait_time = REFRESH
-	_refresh_timer.timeout.connect(_on_refresh_tick)
-	add_child(_refresh_timer)
-	_refresh_timer.start()
 	_note("")
 	_show()
+
+
+func _process(delta: float) -> void:
+	_since_read += delta
+	if wallet != "" and not _busy and not _edited() \
+			and _since_read >= (REFRESH if is_visible_in_tree() else REFRESH_SHUT):
+		refresh()
 
 
 ## A one-line label for the grid (ui._label wraps, which squeezes a grid column to nothing).
@@ -100,14 +125,57 @@ func _cell(text: String, color: Color = Color(0.75, 0.74, 0.68)) -> Label:
 	return l
 
 
-func _field(label: String, hint: String) -> LineEdit:
-	fields.add_child(_cell(label))
-	var e := LineEdit.new()
-	e.placeholder_text = hint
-	e.custom_minimum_size = Vector2(190, 32)
-	e.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fields.add_child(e)
-	return e
+## A name and a value in the grid; returns the value's label.
+func _row(name_text: String) -> Label:
+	fields.add_child(_cell(name_text))
+	var value := _cell("", Color.WHITE)
+	value.custom_minimum_size.y = 24
+	fields.add_child(value)
+	return value
+
+
+# --- what the HUD reads ---------------------------------------------------------------
+
+## The account's username, "" without one.
+func saved_name() -> String:
+	if profile is Dictionary and profile.get("username") != null:
+		return str(profile.username).strip_edges()
+	return ""
+
+
+## The Imp Coin balance on the account (0 without an account).
+func coin_balance() -> float:
+	if profile is Dictionary and profile.get("imp_coins") != null:
+		return str(profile.imp_coins).to_float()
+	return 0.0
+
+
+## "7 Nov 2026", or "" when the account has no date yet.
+func joined() -> String:
+	if not profile is Dictionary or profile.get("account_age") == null:
+		return ""
+	var when := str(profile.account_age)
+	if when.length() < 10:
+		return ""
+	var d := Time.get_datetime_dict_from_datetime_string(when.substr(0, 19), false)
+	if int(d.get("year", 0)) < 2000:
+		return ""
+	return "%d %s %d" % [d.day, MONTHS[clampi(int(d.month) - 1, 0, 11)], d.year]
+
+
+## 12,345 or 12,345.5
+static func format_coins(value: float) -> String:
+	var whole := int(floor(absf(value)))
+	var digits := str(whole)
+	var out := ""
+	while digits.length() > 3:
+		out = "," + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	out = ("-" if value < 0.0 else "") + digits + out
+	var frac := absf(value) - float(whole)
+	if frac >= 0.005:
+		out += ("%.2f" % frac).substr(1).trim_suffix("0")
+	return out
 
 
 # --- state ------------------------------------------------------------------------
@@ -120,60 +188,49 @@ func set_wallet(address: String) -> void:
 	wallet = address
 	session = _stored_session(wallet)
 	profile = null
-	email_text = ""
+	unclaimed = 0.0
 	username.text = ""
-	email.text = ""
 	_note("")
 	_show("Loading your impz.club account…" if wallet != "" else "")
+	changed.emit()
 	if wallet != "":
 		refresh()
 
 
-## Reads the account again: with the email when signed in, otherwise the public part.
-## ProfileUI also calls this when the menu opens.
+## Reads the account again, and what the wallet can still claim. ProfileUI also calls this when
+## the menu opens.
 func refresh() -> void:
-	if wallet == "" or _busy:
+	if wallet == "" or _busy or _reading:
 		return
+	_reading = true
+	_since_read = 0.0
 	var asked := wallet
-	var r: Dictionary
-	if session != "":
-		r = await _request(HTTPClient.METHOD_GET, "?me=1&wallet=" + wallet)
-		if asked != wallet:
-			return
-		if r.code == 401:                     # the session ran out: back to the public part
-			_forget_session()
-		elif r.ok and r.data is Dictionary and r.data.has("profile"):
-			_take(r.data.profile, str(r.data.get("email", "")))
-			return
-	r = await _request(HTTPClient.METHOD_GET, "?wallet=" + wallet)
+	var r := await _request(HTTPClient.METHOD_GET, "?wallet=" + wallet)
+	var c := await _request(HTTPClient.METHOD_GET, "?coins=1&wallet=" + wallet)
+	_reading = false
 	if asked != wallet:
 		return
+	if c.ok and c.data is Dictionary:
+		unclaimed = 0.0 if bool(c.data.get("imp_coin_claimed", false)) else float(c.data.get("portable_imp_coin", 0))
 	if r.ok:
-		_take(r.data if r.data is Dictionary else null, email_text)
+		_take(r.data if r.data is Dictionary else null)
 	else:
 		_show("Couldn't reach impz.club: %s" % r.error, BAD)
 
 
-func _take(row, private_email: String) -> void:
-	var typed_name := username.text.strip_edges() != _saved_name()
-	var typed_email := email.text.strip_edges().to_lower() != email_text
+func _take(row) -> void:
+	var typed := _edited()
 	profile = row
-	if not username.has_focus() and not typed_name:     # never overwrite what the player is typing
-		username.text = _saved_name()
-	if not email.has_focus() and not typed_email:
-		email.text = private_email
-	email_text = private_email
-	var nick := _saved_name()
+	if not username.has_focus() and not typed:          # never overwrite what the player is typing
+		username.text = saved_name()
+	var nick := saved_name()
 	ui.profile_button.tooltip_text = "Profile: " + (nick if nick != "" else WalletBridge.short_address(wallet))
 	_show()
+	changed.emit()
 
 
 func _edited() -> bool:
-	return username.text.strip_edges() != _saved_name() or email.text.strip_edges().to_lower() != email_text
-
-
-func _saved_name() -> String:
-	return str(profile.get("username", "")) if profile is Dictionary and profile.get("username") != null else ""
+	return username != null and username.text.strip_edges() != saved_name()
 
 
 func _show(message := "", color: Color = Color(0.75, 0.74, 0.68)) -> void:
@@ -181,23 +238,26 @@ func _show(message := "", color: Color = Color(0.75, 0.74, 0.68)) -> void:
 	fields.visible = linked
 	sign_in.visible = linked and session == ""
 	save.visible = linked and session != ""
+	claim.visible = linked and unclaimed > 0.0
+	claim.text = "Claim %s Imp Coins" % format_coins(unclaimed)
 	username.editable = session != ""
-	email.editable = session != ""
-	email.placeholder_text = "you@example.com" if session != "" else "Sign in to see it"
 	username.placeholder_text = "3 to 24 letters or numbers" if session != "" else "No username yet"
 	wallet_label.text = WalletBridge.short_address(wallet)
 	wallet_label.tooltip_text = wallet
-	for b in [sign_in, save]:
+	var date := joined()
+	joined_label.text = date if date != "" else ("Not yet: save a username" if profile == null else "—")
+	coins_label.text = format_coins(coin_balance())
+	for b in [sign_in, save, claim]:
 		b.disabled = _busy
 	status.add_theme_color_override("font_color", color)
 	if message != "":
 		status.text = message
 	elif not linked:
-		status.text = "Connect with Glyph to use your impz.club account, with the same username as on the website."
+		status.text = "Connect with Glyph to use your impz.club account, with the same username and Imp Coins as on the website."
 	elif profile == null:
 		status.text = "This wallet has no impz.club account yet. Sign in and pick a username to make one."
 	elif session == "":
-		status.text = "Your impz.club account. Sign in to change your username or email."
+		status.text = "Your impz.club account. Sign in to change your username."
 	else:
 		status.text = "Signed in to your impz.club account."
 
@@ -233,7 +293,8 @@ func _on_sign_in() -> void:
 		return
 	session = str(r.data.session)
 	_store_session(wallet, session)
-	_show("Signed in.", GOOD)
+	_show("Signed in. Pick a username and save it." if saved_name() == "" else "Signed in.", GOOD)
+	changed.emit()
 	refresh()
 
 
@@ -241,15 +302,12 @@ func _on_save() -> void:
 	if wallet == "" or session == "" or _busy:
 		return
 	var nick := username.text.strip_edges()
-	var mail := email.text.strip_edges().to_lower()
 	if nick.length() < 3:
 		_show("Pick a username of at least 3 characters.", BAD)
 		return
 	var body := {wallet = wallet, username = nick}
-	if mail != email_text:
-		body.email = mail
-	if profile == null:
-		body.account_age = Time.get_datetime_string_from_system(true) + "Z"   # a new account starts today
+	if profile == null or profile.get("account_age") == null:
+		body.account_age = Time.get_datetime_string_from_system(true) + "Z"   # the account starts today
 	_busy = true
 	_show("Saving…")
 	var r := await _request(HTTPClient.METHOD_POST, "", body)
@@ -260,21 +318,42 @@ func _on_save() -> void:
 		return
 	if not r.ok:
 		_show(r.error, BAD)
+		if r.code == 409:
+			_note("Taken: someone already has this name.", BAD)
 		return
 	if r.data is Dictionary:
 		profile = r.data
-	if body.has("email"):
-		email_text = mail
-	username.text = _saved_name()
+	username.text = saved_name()
 	_note("")
 	_show("Saved to your impz.club account.", GOOD)
+	changed.emit()
+	refresh()
+
+
+## Claims the wallet's staking coins onto the account (the website's Coin Claim, same rules).
+func _on_claim() -> void:
+	if wallet == "" or _busy or unclaimed <= 0.0:
+		return
+	_busy = true
+	_show("Claiming your Imp Coins…")
+	var r := await _request(HTTPClient.METHOD_POST, "", {wallet = wallet, action = "claim-imp-coins"})
+	_busy = false
+	if r.ok and r.data is Dictionary:
+		unclaimed = 0.0
+		profile = r.data
+		_show("Imp Coins claimed: they're on your account.", GOOD)
+		changed.emit()
+	else:
+		if r.code == 409 or r.code == 404:
+			unclaimed = 0.0
+		_show(r.error, BAD)
 	refresh()
 
 
 ## Says whether the typed username is free, as the player types.
 func _check_name() -> void:
 	var nick := username.text.strip_edges()
-	if session == "" or nick == "" or nick.to_lower() == _saved_name().to_lower():
+	if session == "" or nick == "" or nick.to_lower() == saved_name().to_lower():
 		_note("")
 		return
 	var r := await _request(HTTPClient.METHOD_GET, "?username_free=%s&wallet=%s" % [nick.uri_encode(), wallet])
@@ -294,11 +373,6 @@ func _note(text: String, color := GOOD) -> void:
 	name_note.add_theme_color_override("font_color", color)
 	name_note.visible = text != ""
 	_note_gap.visible = name_note.visible
-
-
-func _on_refresh_tick() -> void:
-	if is_visible_in_tree() and not _busy and not _edited():
-		refresh()
 
 
 # --- sessions ------------------------------------------------------------------------
@@ -324,6 +398,7 @@ func _store_session(address: String, token: String) -> void:
 func _forget_session() -> void:
 	session = ""
 	_store_session(wallet, "")
+	changed.emit()
 
 
 ## The session token is "<base64url JSON {w, exp}>.<signature>"; exp is in milliseconds.
@@ -340,7 +415,7 @@ static func _expires(token: String) -> float:
 # --- the site's server -----------------------------------------------------------------
 
 ## Desktop builds ask impz.club. Web builds ask their own site's /api/profile, because impz.club sends no
-## CORS header (web-wallet/scripts/serve.mjs forwards it when testing on localhost).
+## CORS header (the beta server, game-server/server.mjs, forwards it).
 static func _api() -> String:
 	if OS.has_feature("web"):
 		return str(JavaScriptBridge.eval("window.location.origin")) + "/api/profile"
