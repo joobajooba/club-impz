@@ -18,6 +18,24 @@ const PER_ORE_OF := {"coal": 4}
 const RING := 3                  # obsidian round the volcanic cave, dreadstone round the toxic pit
 
 const ORE_VEIN := preload("res://scripts/world/ore_vein.gd")
+const MOB := preload("res://scripts/world/mob.gd")
+## Mobs (game_worlds.md section 4.8 mob ideas): [kind, biome, groups, per group]. Herds of cows and pigs in the
+## forest and plains, wolf packs at the forest edges, in the mountains and in the snow, ogres in the mountains and
+## the swamp. The big ones live by a landmark of their own (MOB_LAIRS). No combat or hunting yet.
+const MOBS := [
+	["cow", "forest", 4, 3], ["pig", "forest", 3, 3], ["wolf", "forest", 2, 2],
+	["highland_cow", "mountain", 3, 3], ["wolf", "mountain", 2, 3], ["ogre", "mountain", 3, 1],
+	["wolf", "frost", 3, 2],
+	["cow", "plains", 4, 4], ["highland_cow", "plains", 2, 3],
+	["ogre", "swamp", 4, 1],
+]
+## Herds grazing beside the path just ahead of the arrival point (you arrive facing along it), so there are
+## animals in sight as soon as you arrive: [kind, count, metres along the path, metres to the side].
+const MOBS_AT_ARRIVAL := [["cow", 3, 26.0, 9.0], ["pig", 2, 40.0, -10.0]]
+## [kind, landmark, metres away]: the ember dragon by the volcanic obsidian cave, the stone golem under the
+## highest peak, the pale dragon by the ice spire, the dark dragon by the dreadstone pit.
+const MOB_LAIRS := [["ember_dragon", "obsidian_cave", 34.0], ["stone_golem", "highest_peak", 24.0],
+	["pale_dragon", "ice_spire", 30.0], ["dragon", "dreadstone_pit", 32.0]]
 ## Voidstone and stellarite veins are world events (autoload/ore_events.gd): they appear on one of these
 ## spots, the same list on every client (fixed seed, any biome), which the server picks by index.
 const EVENT_SPOTS := 48
@@ -56,6 +74,7 @@ func populate(w: GameWorld) -> void:
 	_log_bridge()
 	_giant_titanwood(lm["giant_titanwood"])
 	_place_ores()
+	_place_mobs()
 
 
 func _landmark(key: String, lm: Dictionary, yaw: float, sink := 0.0) -> void:
@@ -227,3 +246,99 @@ func _ore(root: Node3D, ore: String, x: float, z: float, rng: RandomNumberGenera
 	n.global_position = Vector3(x, data.height(x, z) - 0.15, z)
 	n.rotation.y = rng.randf() * TAU
 	n.scale = Vector3.ONE * rng.randf_range(0.9, 1.15)   # the models are already to scale (16 units = 1 m)
+
+
+
+func _place_mobs() -> void:
+	var root := Node3D.new()
+	root.name = "mobs"
+	add_child(root)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9090
+	var names := ["forest", "mountain", "frost", "plains", "swamp"]
+	var homes: Array[Vector2] = []
+	var n := 0
+	for spec in MOBS:
+		var bi := names.find(spec[1])
+		for g in int(spec[2]):
+			var home := Vector2.ZERO
+			for tries in 3000:
+				var x := rng.randf_range(bi * 256.0 + 20.0, bi * 256.0 + 236.0)
+				var z := rng.randf_range(-180.0, 180.0)
+				if tries < 2000:                       # most herds live 20 to 60 m off the main path, in view of it
+					var pz := _path_z(x)
+					z = pz + rng.randf_range(20.0, 60.0) * (1.0 if rng.randf() < 0.5 else -1.0)
+				if _ore_spot_ok(spec[1], x, z, true, homes) and _clear_of_landmarks(x, z):
+					home = Vector2(x, z)
+					break
+			if home == Vector2.ZERO:
+				continue
+			homes.append(home)
+			for i in int(spec[3]):                    # a herd shares a home area, each with its own wander
+				n += 1
+				var off := Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
+				_mob(root, spec[0], home + off, 1000 + n)
+	var sp: Array = data.layout.get("spawn_point", [0, 0])
+	for spec in MOBS_AT_ARRIVAL:                      # herds in sight of the arrival point, beside the path ahead
+		for tries in 24:
+			var x: float = sp[0] + float(spec[2]) + tries * 2.0
+			var side: float = float(spec[3]) * (1.0 + 0.1 * tries) * (1.0 if tries % 2 == 0 else -1.0)
+			var c := Vector2(x, _path_z(x) + side)
+			if _ore_spot_ok("forest", c.x, c.y, true, homes):
+				homes.append(c)
+				for i in int(spec[1]):
+					n += 1
+					_mob(root, spec[0], c + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0)), 1000 + n)
+				break
+	var lm: Dictionary = data.layout["landmarks"]
+	for lair in MOB_LAIRS:
+		if not lm.has(lair[1]):
+			continue
+		var c := Vector2(lm[lair[1]][0], lm[lair[1]][1])
+		for i in 24:                                  # walk round the landmark until the ground is good
+			var a := i * TAU / 24.0 + 0.3
+			var p := c + Vector2(cos(a), sin(a)) * float(lair[2])
+			if data.in_bounds(p.x, p.y, 20.0) and data.height(p.x, p.y) > data.water_level(p.x, p.y) + 0.3 \
+					and data.normal(p.x, p.y).y > 0.8:
+				n += 1
+				_mob(root, lair[0], p, 1000 + n)
+				break
+
+
+## z of the main path where it crosses x (the nearest point of the baked path).
+func _path_z(x: float) -> float:
+	var best := 0.0
+	var bd := 1e9
+	for pt in data.layout.get("main_path", []):
+		if absf(pt[0] - x) < bd:
+			bd = absf(pt[0] - x)
+			best = pt[1]
+	return best
+
+
+func _clear_of_landmarks(x: float, z: float) -> bool:
+	for key in data.layout["landmarks"]:
+		var p: Array = data.layout["landmarks"][key]
+		if Vector2(x, z).distance_to(Vector2(p[0], p[1])) < 24.0:
+			return false
+	return true
+
+
+func _mob(root: Node3D, kind: String, p: Vector2, mob_seed: int) -> void:
+	var m: Node3D = MOB.new()
+	m.set("kind", kind)
+	m.set("home", Vector3(p.x, data.height(p.x, p.y), p.y))
+	m.set("mob_seed", mob_seed)
+	m.set("data", data)
+	m.set("view", world.player)
+	m.name = "%s_%d" % [kind, mob_seed - 1000]
+	root.add_child(m)
+
+
+
+## GameWorld.set_player: the mobs measure "far away" from the player.
+func set_player(p: Node3D) -> void:
+	var root := get_node_or_null("mobs")
+	if root:
+		for m in root.get_children():
+			m.set("view", p)
