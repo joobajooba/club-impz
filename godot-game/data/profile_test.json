@@ -1,5 +1,5 @@
 {
-  "_doc": "TEST values for the player profile menu (ui/profile/profile_menu.gd), debug builds only. Nothing here is designed: player level and prestige, skill XP, skill trees (skill_trees.md is only planned), challenges and trophies (challenges.md is only planned), titles, emblems and prestige badges. Every name and id says TEST. Delete this file once the real systems exist; release builds never read it and show 'Not built yet' instead.",
+  "_doc": "TEST values for the player profile menu (ui/profile/profile_menu.gd), debug builds only. Nothing here is designed: player level and prestige, skill XP, skill trees (skill_trees.md is only planned; a node every 5 levels up to 50, J00BA 2026-11-08), challenges and trophies (challenges.md is only planned), titles, emblems and prestige badges. Every name and id says TEST. Delete this file once the real systems exist; release builds never read it and show 'Not built yet' instead.",
   "player": {
     "level": 1,
     "prestige": 0
@@ -36,25 +36,61 @@
       {
         "id": "test_mining_node_1",
         "name": "TEST Steady Swing",
-        "buff": "TEST: +5% mining speed",
+        "buff": "TEST: +5% speed",
         "level": 5
       },
       {
         "id": "test_mining_node_2",
         "name": "TEST Keen Eye",
-        "buff": "TEST: +1% gem chance",
+        "buff": "TEST: +1% rare chance",
         "level": 10
       },
       {
         "id": "test_mining_node_3",
-        "name": "TEST Deep Vein",
-        "buff": "TEST: +10% ore per swing",
-        "level": 25
+        "name": "TEST Strong Arms",
+        "buff": "TEST: +5% speed",
+        "level": 15
       },
       {
         "id": "test_mining_node_4",
+        "name": "TEST Deep Vein",
+        "buff": "TEST: +1 per gather",
+        "level": 20
+      },
+      {
+        "id": "test_mining_node_5",
+        "name": "TEST Rock Sense",
+        "buff": "TEST: +2% rare chance",
+        "level": 25
+      },
+      {
+        "id": "test_mining_node_6",
+        "name": "TEST Gem Finder",
+        "buff": "TEST: -5% energy",
+        "level": 30
+      },
+      {
+        "id": "test_mining_node_7",
+        "name": "TEST Iron Grip",
+        "buff": "TEST: +10% speed",
+        "level": 35
+      },
+      {
+        "id": "test_mining_node_8",
+        "name": "TEST Ore Magnet",
+        "buff": "TEST: +1 per gather",
+        "level": 40
+      },
+      {
+        "id": "test_mining_node_9",
         "name": "TEST Stone Heart",
-        "buff": "TEST: -10% energy per swing",
+        "buff": "TEST: +5% rare chance",
+        "level": 45
+      },
+      {
+        "id": "test_mining_node_10",
+        "name": "TEST Master Miner",
+        "buff": "TEST: -10% energy",
         "level": 50
       }
     ],
@@ -62,25 +98,61 @@
       {
         "id": "test_lumbering_node_1",
         "name": "TEST Sharp Edge",
-        "buff": "TEST: +5% chopping speed",
+        "buff": "TEST: +5% speed",
         "level": 5
       },
       {
         "id": "test_lumbering_node_2",
         "name": "TEST Clean Cut",
-        "buff": "TEST: +1 log per tree",
+        "buff": "TEST: +1% rare chance",
         "level": 10
       },
       {
         "id": "test_lumbering_node_3",
-        "name": "TEST Timber",
-        "buff": "TEST: +10% chopping speed",
-        "level": 25
+        "name": "TEST Quick Chop",
+        "buff": "TEST: +5% speed",
+        "level": 15
       },
       {
         "id": "test_lumbering_node_4",
+        "name": "TEST Timber",
+        "buff": "TEST: +1 per gather",
+        "level": 20
+      },
+      {
+        "id": "test_lumbering_node_5",
+        "name": "TEST Bark Reader",
+        "buff": "TEST: +2% rare chance",
+        "level": 25
+      },
+      {
+        "id": "test_lumbering_node_6",
+        "name": "TEST Heavy Swing",
+        "buff": "TEST: -5% energy",
+        "level": 30
+      },
+      {
+        "id": "test_lumbering_node_7",
+        "name": "TEST Root Sense",
+        "buff": "TEST: +10% speed",
+        "level": 35
+      },
+      {
+        "id": "test_lumbering_node_8",
+        "name": "TEST Log Stack",
+        "buff": "TEST: +1 per gather",
+        "level": 40
+      },
+      {
+        "id": "test_lumbering_node_9",
         "name": "TEST Old Growth",
-        "buff": "TEST: rare logs twice as often",
+        "buff": "TEST: +5% rare chance",
+        "level": 45
+      },
+      {
+        "id": "test_lumbering_node_10",
+        "name": "TEST Master Lumberjack",
+        "buff": "TEST: -10% energy",
         "level": 50
       }
     ],
@@ -88,25 +160,61 @@
       {
         "id": "test_fishing_node_1",
         "name": "TEST Patient Hands",
-        "buff": "TEST: +5% bite chance",
+        "buff": "TEST: +5% speed",
         "level": 5
       },
       {
         "id": "test_fishing_node_2",
         "name": "TEST Strong Line",
-        "buff": "TEST: fewer fish get away",
+        "buff": "TEST: +1% rare chance",
         "level": 10
       },
       {
         "id": "test_fishing_node_3",
-        "name": "TEST Lucky Lure",
-        "buff": "TEST: +5% rare fish",
-        "level": 25
+        "name": "TEST Quick Reel",
+        "buff": "TEST: +5% speed",
+        "level": 15
       },
       {
         "id": "test_fishing_node_4",
+        "name": "TEST Lucky Lure",
+        "buff": "TEST: +1 per gather",
+        "level": 20
+      },
+      {
+        "id": "test_fishing_node_5",
+        "name": "TEST Calm Water",
+        "buff": "TEST: +2% rare chance",
+        "level": 25
+      },
+      {
+        "id": "test_fishing_node_6",
+        "name": "TEST Deep Cast",
+        "buff": "TEST: -5% energy",
+        "level": 30
+      },
+      {
+        "id": "test_fishing_node_7",
+        "name": "TEST Fish Sense",
+        "buff": "TEST: +10% speed",
+        "level": 35
+      },
+      {
+        "id": "test_fishing_node_8",
+        "name": "TEST Big Haul",
+        "buff": "TEST: +1 per gather",
+        "level": 40
+      },
+      {
+        "id": "test_fishing_node_9",
+        "name": "TEST Sea Legs",
+        "buff": "TEST: +5% rare chance",
+        "level": 45
+      },
+      {
+        "id": "test_fishing_node_10",
         "name": "TEST Master Angler",
-        "buff": "TEST: +1 fish per catch",
+        "buff": "TEST: -10% energy",
         "level": 50
       }
     ],
@@ -114,25 +222,61 @@
       {
         "id": "test_foraging_node_1",
         "name": "TEST Quick Pick",
-        "buff": "TEST: +5% picking speed",
+        "buff": "TEST: +5% speed",
         "level": 5
       },
       {
         "id": "test_foraging_node_2",
         "name": "TEST Green Thumb",
-        "buff": "TEST: +1 plant per pick",
+        "buff": "TEST: +1% rare chance",
         "level": 10
       },
       {
         "id": "test_foraging_node_3",
-        "name": "TEST Herbalist",
-        "buff": "TEST: +5% rare plants",
-        "level": 25
+        "name": "TEST Sharp Eye",
+        "buff": "TEST: +5% speed",
+        "level": 15
       },
       {
         "id": "test_foraging_node_4",
+        "name": "TEST Herbalist",
+        "buff": "TEST: +1 per gather",
+        "level": 20
+      },
+      {
+        "id": "test_foraging_node_5",
+        "name": "TEST Light Step",
+        "buff": "TEST: +2% rare chance",
+        "level": 25
+      },
+      {
+        "id": "test_foraging_node_6",
+        "name": "TEST Full Basket",
+        "buff": "TEST: -5% energy",
+        "level": 30
+      },
+      {
+        "id": "test_foraging_node_7",
+        "name": "TEST Bloom Sense",
+        "buff": "TEST: +10% speed",
+        "level": 35
+      },
+      {
+        "id": "test_foraging_node_8",
+        "name": "TEST Wild Harvest",
+        "buff": "TEST: +1 per gather",
+        "level": 40
+      },
+      {
+        "id": "test_foraging_node_9",
         "name": "TEST Wild Bounty",
-        "buff": "TEST: plants regrow faster",
+        "buff": "TEST: +5% rare chance",
+        "level": 45
+      },
+      {
+        "id": "test_foraging_node_10",
+        "name": "TEST Master Forager",
+        "buff": "TEST: -10% energy",
         "level": 50
       }
     ],
@@ -140,25 +284,61 @@
       {
         "id": "test_hunting_node_1",
         "name": "TEST Light Step",
-        "buff": "TEST: mobs notice you later",
+        "buff": "TEST: +5% speed",
         "level": 5
       },
       {
         "id": "test_hunting_node_2",
         "name": "TEST Steady Aim",
-        "buff": "TEST: +5% hit chance",
+        "buff": "TEST: +1% rare chance",
         "level": 10
       },
       {
         "id": "test_hunting_node_3",
-        "name": "TEST Skinner",
-        "buff": "TEST: +1 hide per hunt",
-        "level": 25
+        "name": "TEST Quiet Feet",
+        "buff": "TEST: +5% speed",
+        "level": 15
       },
       {
         "id": "test_hunting_node_4",
+        "name": "TEST Skinner",
+        "buff": "TEST: +1 per gather",
+        "level": 20
+      },
+      {
+        "id": "test_hunting_node_5",
+        "name": "TEST Tracker",
+        "buff": "TEST: +2% rare chance",
+        "level": 25
+      },
+      {
+        "id": "test_hunting_node_6",
+        "name": "TEST Sharp Shot",
+        "buff": "TEST: -5% energy",
+        "level": 30
+      },
+      {
+        "id": "test_hunting_node_7",
+        "name": "TEST Beast Sense",
+        "buff": "TEST: +10% speed",
+        "level": 35
+      },
+      {
+        "id": "test_hunting_node_8",
+        "name": "TEST Trophy Hunter",
+        "buff": "TEST: +1 per gather",
+        "level": 40
+      },
+      {
+        "id": "test_hunting_node_9",
         "name": "TEST Apex",
-        "buff": "TEST: +10% rare drops",
+        "buff": "TEST: +5% rare chance",
+        "level": 45
+      },
+      {
+        "id": "test_hunting_node_10",
+        "name": "TEST Master Hunter",
+        "buff": "TEST: -10% energy",
         "level": 50
       }
     ]

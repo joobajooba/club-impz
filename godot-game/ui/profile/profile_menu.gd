@@ -39,6 +39,9 @@ const LOCAL_PICTURES := "res://assets/sprites/implingz_generations/%d.png"
 const LOADERS := 4
 const IMP_PICTURE := 128                # the 640 px NFT picture at 1/5: each of its pixels stays whole
 const LOCK := ["..kkkk..", ".k....k.", ".k....k.", "kkkkkkkk", "kYyyyyok", "kyyooyok", "kyyyyyok", "kkkkkkkk"]
+const TREE_ROW := 5                     # skill tree nodes per row
+const TREE_NODE := 48                   # skill tree node size (px)
+const ARROW_SMALL := ["k....", "kk...", "kYk..", "kyyk.", "kok..", "kk...", "k...."]
 const ARROW := ["....k...", "....kk..", "kkkkkYk.", "kYYYYYyk", "kyyyyyok", "kkkkkok.", "....kk..", "....k..."]
 
 var tab := "stats"                      # remembered between openings
@@ -57,6 +60,8 @@ var _level_box: HBoxContainer
 var _emblem_button: Button
 var _title_button: Button
 var _customize_button: Button
+var _rotate_button: Button
+var _stopped_label: Label
 var _tab_buttons := {}
 var _tabs_row: HBoxContainer
 var _well: PanelContainer
@@ -173,6 +178,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if k and k.pressed and not k.echo and not visible and k.is_action("profile") and _can_open():
 		open()
 		get_viewport().set_input_as_handled()
+
+
+func _toggle_spin() -> void:
+	spin = not spin
+	_stopped_label.visible = not spin
 
 
 func _process(delta: float) -> void:
@@ -316,7 +326,7 @@ func _refresh_left() -> void:
 		var tex := load("res://sprites/items/prestige_%d.png" % clampi(prestige, 0, 5)) as Texture2D
 		if tex:
 			_level_box.add_child(UIKit.icon(tex, 24))          # half size (J00BA, 2026-11-08)
-		_level_box.add_child(UIKit.label(str(level), UIKit.RARE, 22))
+		_level_box.add_child(UIKit.label(str(level), UIKit.RARE, 18))
 		_level_box.tooltip_text = "Player level %d · prestige %d" % [level, prestige]
 	for c in _level_box.get_children():
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -388,22 +398,25 @@ func _render_stats() -> void:
 	if nodes.is_empty():
 		right.add_child(UIKit.label(NOT_BUILT, UIKit.MUTED, 14))
 		return
-	var scroll := ScrollContainer.new()
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size.y = 76
-	right.add_child(scroll)
-	var chain := HBoxContainer.new()
-	chain.add_theme_constant_override("separation", 6)
-	scroll.add_child(chain)
+	# a node every 5 levels up to 50 (J00BA): two rows of five, read left to right like text, so the whole
+	# tree fits without scrolling
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 10)
+	right.add_child(rows)
+	var chain: HBoxContainer
 	var level := int(skills.get(skill, {}).get("level", 0))
 	for i in nodes.size():
 		var n: Dictionary = nodes[i]
-		if i > 0:
-			chain.add_child(UIKit.pixel_icon(ARROW, Color.WHITE))
+		if i % TREE_ROW == 0:
+			chain = HBoxContainer.new()
+			chain.add_theme_constant_override("separation", 6)
+			rows.add_child(chain)
+		else:
+			chain.add_child(UIKit.pixel_icon(ARROW_SMALL, Color.WHITE))
 		var open := level >= int(n.level)
 		var tip := "%s\n%s\n%s" % [n.name, n.buff, "Unlocked" if open else "Unlocks at %s %d" % [GameData.SKILLS[skill].label, int(n.level)]]
-		chain.add_child(_slot_button(str(i + 1), not open, "Lv %d" % int(n.level), tip,
-			func(): _detail["stats"] = tip.replace("\n", "  ·  "); _refresh(), Vector2(56, 56)))
+		chain.add_child(_slot_button(str(int(n.level)), not open, "Lv %d" % int(n.level), tip,
+			func(): _detail["stats"] = tip.replace("\n", "  ·  "); _refresh(), Vector2(TREE_NODE, TREE_NODE)))
 	right.add_child(_vspace())
 	right.add_child(UIKit.divider())
 	var info := UIKit.label(_detail.get("stats", "Click a node to see its buff."), UIKit.MUTED if not _detail.has("stats") else Color.WHITE, 14)
@@ -932,7 +945,7 @@ func _build() -> void:
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_box.add_child(_name_label)
 	var level_panel := PanelContainer.new()
-	level_panel.custom_minimum_size = Vector2(110, 60)
+	level_panel.custom_minimum_size = Vector2(56, 60)        # half the first width (J00BA): the name gets the room
 	level_panel.add_theme_stylebox_override("panel", UIKit.slot(UIKit.SLOT, UIKit.OUTLINE, 1, 4.0))
 	top.add_child(level_panel)
 	_level_box = HBoxContainer.new()
@@ -982,10 +995,25 @@ func _build() -> void:
 
 	var under := HBoxContainer.new()
 	left.add_child(under)
-	var hint := UIKit.label("Drag to turn · wheel to zoom", UIKit.MUTED, 12)
-	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	under.add_child(hint)
-	under.add_child(UIKit.spacer())
+	under.add_theme_constant_override("separation", 6)
+	_rotate_button = _plain_button(_toggle_spin)       # turns the Imp; click to stop, "(Stopped)" in red (J00BA)
+	_rotate_button.custom_minimum_size = Vector2(0, MIN_TAP)
+	_rotate_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rotate_button.tooltip_text = "Click to stop or start the turning. Drag the Imp to turn it, wheel to zoom."
+	var rot_row := HBoxContainer.new()
+	rot_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rot_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	rot_row.add_theme_constant_override("separation", 5)
+	rot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rotate_button.add_child(rot_row)
+	var rot_label := UIKit.label("Rotate model", Color.WHITE, 14)
+	rot_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rot_row.add_child(rot_label)
+	_stopped_label = UIKit.label("(Stopped)", UIKit.SHORT, 14)
+	_stopped_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stopped_label.visible = not spin
+	rot_row.add_child(_stopped_label)
+	under.add_child(_rotate_button)
 	_customize_button = _key_button("C", "Customize", _open_customizer)
 	under.add_child(_customize_button)
 

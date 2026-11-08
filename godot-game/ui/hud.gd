@@ -350,7 +350,7 @@ func _on_held(_id: String) -> void:
 		s.icon.texture = GameData.tool_icon(id)
 		s.icon.modulate = Color.WHITE if lit else Color(1, 1, 1, 0.7)
 		s.box.add_theme_stylebox_override("panel", UIKit.slot(Color("#3a3526") if lit else UIKit.SLOT,
-				UIKit.RARE if lit else UIKit.OUTLINE, 2 if lit else 1, 5.0))
+				UIKit.RARE if lit else UIKit.OUTLINE, 1, 5.0))   # same rim as the rest: highlighted, not shrunk
 		s.key.add_theme_color_override("font_color", UIKit.RARE if lit else UIKit.MUTED)
 		s.box.tooltip_text = "%s  (key %s)" % [GameData.tools[id].label, s.key.text]
 	_tool_name.text = GameData.tools[Inventory.held[Inventory.in_hand]].label
