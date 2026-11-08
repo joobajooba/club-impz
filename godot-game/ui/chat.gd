@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## The chat box on the right of the screen (autoload "Chat"). Two channels, switched with the tabs at the top:
 ##   Global        everyone online, in every world: "username | message", the name in red and the text in white.
-##                 Enter starts typing (the Imp stands still meanwhile), Enter sends, Esc stops. At most 100
+##                 Enter starts typing (the Imp stands still meanwhile), Enter sends, Esc stops. At most 200
 ##                 characters; ChatFilter refuses slurs and abuse and stars out swearing (the server checks again).
 ##   World events  the comms: ore events starting and running out (OreEvents), and anything sent to event().
 ## The × button closes the box; the Chat button on the right edge opens it again and counts what came in meanwhile.
@@ -292,7 +292,7 @@ func _build() -> void:
 	_input_row.add_theme_constant_override("separation", 4)
 	box.add_child(_input_row)
 	_entry = LineEdit.new()
-	_entry.max_length = ChatFilter.MAX * 3   # over 100 is allowed in the box, but not sent
+	_entry.max_length = ChatFilter.MAX * 3   # over the limit is allowed in the box, but not sent
 	_entry.placeholder_text = "Press Enter to chat"
 	_entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_entry.add_theme_font_size_override("font_size", 14)

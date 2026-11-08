@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const MAX_CHAT = 100;
+export const MAX_CHAT = 200;
 const here = dirname(fileURLToPath(import.meta.url));
 const FILE = process.env.CHAT_FILTER || join(here, "../godot-game/data/chat_filter.json");
 const LISTS = JSON.parse(readFileSync(FILE, "utf8"));

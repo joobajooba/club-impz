@@ -5,7 +5,7 @@ class_name ChatFilter
 ##   clean(text) -> control / zero width characters removed, spaces collapsed, at most MAX characters
 ##   check(text) -> {ok = false} to refuse the message, or {ok = true, text = ...} with swearing starred out
 
-const MAX := 100
+const MAX := 200
 const LEET := {"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i", "|": "i"}
 
 static var _lists := {}

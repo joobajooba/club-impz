@@ -35,7 +35,7 @@ Testing: `EVENT_SCALE=600` speeds the clock up (a 15-minute event lasts 1.5 s), 
 ## Global chat
 
 `{t: "chat", text}` from a player goes to everyone online, in every world, as `{t: "chat", id, name, guest, text}`.
-The server cleans the text (control and zero width characters removed, at most 100 characters) and runs it through
+The server cleans the text (control and zero width characters removed, at most 200 characters) and runs it through
 `chat_filter.mjs`, which uses the word lists in `godot-game/data/chat_filter.json` (the game checks with the same lists
 first). Slurs, hate, sexist and self-harm abuse are refused with `{t: "chat_blocked", why: "filter"}`, and swearing is
 starred out. More than 3 messages in 5 s (or two within 0.7 s) gets `{why: "slow"}`. The last 30 messages go to new

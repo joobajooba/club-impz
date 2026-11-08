@@ -1,4 +1,4 @@
-// Global chat: messages reach everyone with the sender's name, are cut to 100 characters, slurs and abuse
+// Global chat: messages reach everyone with the sender's name, are cut to 200 characters, slurs and abuse
 // are refused, swearing is starred out, spam is slowed down and a late joiner gets the recent history.
 import { spawn } from "node:child_process";
 import { WebSocket } from "ws";
@@ -33,7 +33,7 @@ for (const t of ["n i g g e r", "N1GG3R", "niiigger", "nig ger", "you f4g", "kil
   "women belong in the kitchen", "make me a sandwich", "heil hitler", "1488", "you whore", "you are retarded"])
   check(!checkChat(cleanChat(t)).ok, "refused (test phrase " + t.length + " chars)");
 check(checkChat("what the fuck").text === "what the ****", "swearing is starred out");
-check(cleanChat("x".repeat(150)).length === 100, "cut to 100 characters");
+check(cleanChat("x".repeat(250)).length === 200, "cut to 200 characters");
 
 // over the network
 const a = join("hub");
@@ -46,9 +46,9 @@ const seen = chats(b).find((m) => m.text === "hello everyone");
 check(seen && seen.name === nameA, "a message reaches a player in another world, with the sender's name");
 check(chats(a).some((m) => m.text === "hello everyone"), "...and comes back to the sender");
 await wait(800);
-a.say("y".repeat(140));
+a.say("y".repeat(240));
 await wait(300);
-check(chats(b).some((m) => m.text === "y".repeat(100)), "a long message is cut to 100 characters");
+check(chats(b).some((m) => m.text === "y".repeat(200)), "a long message is cut to 200 characters");
 await wait(800);
 a.say("you are a n1gger");
 await wait(300);
