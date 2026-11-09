@@ -38,7 +38,7 @@
   "rules": [
     {"id": "hub_grass", "spacing": 1.06, "biomes": ["hub"], "density": "carpet", "meshes": [["carpet", 3], ["tuft_s", 2], ["tuft_m", 2]], "scale": [0.9, 1.15], "avoid": ["path", "special"], "path_max": 0.08, "exclude": {"castle": 0, "town_square": 0, "market": 0, "crafting_area": 0, "spawn_point": 0, "portal": 4, "garden_east": 0, "garden_west": 0}},
     {"id": "hub_bush", "spacing": 4.24, "biomes": ["hub"], "density": "scattered", "meshes": [["bush_s", 2], ["bush_l", 1]], "scale": [0.9, 1.2], "avoid": ["path", "special", "steep"], "outside_rect": [-77, -77, 77, 77]},
-    {"id": "hub_rose", "biomes": ["hub"], "spacing": 3.58, "meshes": [["rose", 1]], "scale": [0.9, 1.1], "avoid": ["path", "special"], "exclude": {"castle": 0, "garden_east": 0, "garden_west": 0, "town_square": 0}},
+    {"id": "hub_rose", "biomes": ["hub"], "spacing": 3.58, "meshes": [["rose", 1]], "scale": [0.9, 1.1], "avoid": ["path", "special"], "outside_rect": [-77, -77, 77, 77]},
     {"id": "hub_tree", "kind": "tree", "biomes": ["hub"], "spacing": 7.0, "meshes": [["oak", 2], ["birch", 1], ["pine", 1]], "scale": [0.9, 1.2], "avoid": ["path", "special", "steep"], "outside_rect": [-79, -79, 79, 79], "clear": 0.0},
 
     {"id": "forest_grass", "spacing": 1.06, "biomes": ["forest"], "density": "carpet", "meshes": [["carpet", 3], ["tuft_s", 2], ["tuft_m", 2]], "scale": [0.9, 1.15], "avoid": ["path", "wet", "steep"]},

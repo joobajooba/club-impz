@@ -47,6 +47,7 @@ for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
 
+MODELS["rose"] = ("res://assets/models/foliage/rose_flower.glb", "assets/models/foliage/rose_flower.bbmodel", 1.0)
 MODELS["wizard_tower"] = ("res://assets/models/buildings/wizard_tower.glb", "assets/models/buildings/wizard_tower.bbmodel", 1.5)
 for n in ("arcane_circle", "crystal_cluster", "crystal_cluster_small", "spellbook_lectern", "arcane_lamp"):
     MODELS[n] = (f"res://assets/models/props/arcane/{n}.glb", f"assets/models/props/arcane/{n}.bbmodel", 1.0)
@@ -60,7 +61,7 @@ def metrics(bb_rel):
     d = json.load(open(os.path.join(GAME, bb_rel), encoding="utf8"))
     E = [e for e in d["elements"] if e.get("export", True)]
     solid = [e for e in E if all(e["to"][i] - e["from"][i] > 0.01 for i in range(3)) and not e.get("rotation")]
-    ground = [e for e in solid if e["from"][1] <= 1.01] or solid
+    ground = [e for e in solid if e["from"][1] <= 1.01] or solid or E   # all-card models (the rose): every cube
     fp = [min(e["from"][0] for e in ground) * U, min(e["from"][2] for e in ground) * U,
           max(e["to"][0] for e in ground) * U, max(e["to"][2] for e in ground) * U]
     full = [min(e["from"][0] for e in E) * U, min(e["from"][2] for e in E) * U, max(e["to"][0] for e in E) * U, max(e["to"][2] for e in E) * U]
@@ -141,6 +142,35 @@ def street(x1, z1, x2, z2):
     cobble.append([x1, z1, x2, z2])
 
 
+# ---- hedges and roses in order (J00BA, 2026-11-09: "make the bushes more symmetrical and have order ... make them
+# connect up where possible"). Hedges are laid as unbroken straight runs of whole segments, gaps only where a walk
+# goes through (centred on it), corners meeting flush; roses stand in even rows along the hedges.
+HEDGE_S = 1.5
+HEDGE_LEN = 3.0                                                   # one hedge_segment at 1.5x (2 m model)
+HEDGE_HALF = 0.6                                                  # half its thickness, for flush corners
+
+
+def hedge_run(a, b):
+    """Hedge segments end to end from a to b (a straight line along x or z, a whole number of segments)."""
+    L = math.hypot(b[0] - a[0], b[1] - a[1]); n = round(L / HEDGE_LEN)
+    assert abs(n * HEDGE_LEN - L) < 0.01 and n > 0, f"hedge run {a} -> {b}: {L} m is not whole segments"
+    along_x = abs(b[1] - a[1]) < 1e-6
+    for k in range(n):
+        t = (k + 0.5) / n
+        place("hedge_segment", a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 0 if along_x else 90, s=HEDGE_S)
+
+
+def rose_row(a, b, step=1.5, skip=()):
+    """Rose bushes evenly along a line (half a step in from each end), leaving out any within 0.9 m of a skip point."""
+    L = math.hypot(b[0] - a[0], b[1] - a[1]); n = max(1, round(L / step))
+    for k in range(n):
+        t = (k + 0.5) / n
+        x, z = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+        if any(math.hypot(x - q[0], z - q[1]) < 0.9 for q in skip):
+            continue
+        place("rose", x, z, (k * 47) % 360, collide=False)
+
+
 def earth(x1, z1, x2, z2):
     """A packed-earth floor (mask R, the dirt path layer) for a rectangle."""
     dirt_rects.append([x1, z1, x2, z2])
@@ -185,9 +215,6 @@ for sx in (-1, 1):
     place("topiary_tiered_planter", sx * 6.5, -48.5, "S", s=1.4)
     place("plaza_lamp", sx * 14.5, -38.5, "S")
     place("urn_planter", sx * 14.5, -48.5, "S", s=1.3)
-    for k in range(4):                                  # low hedges framing the forecourt (gap for the garden walk)
-        if k == 1: continue
-        place("hedge_segment", sx * 18.2, -48.0 + k * 3.0, 90 if sx < 0 else -90, s=1.5)
     place("planter_trough_flowers", sx * 10.0, -51.8, "S")
 
 # ================================================================ 3. grand avenue and town square (centre)
@@ -244,13 +271,11 @@ def square(sx, north, south, kind):
         place("planter_trough_flowers", sx * xm, ROW_S + 0.6, 0)
     for (x, z) in ((33.5, -28.5), (62.5, -28.5), (33.5, -3.5), (62.5, -3.5)):
         place("street_lamp", sx * x, z, "N")
-    for k in range(9):                                        # back hedges
-        hx = sx * (35.5 + k * 3.0)
-        if abs(abs(hx) - 44.0) > 3.6:                         # gaps for the garden walk and the lane connector
-            place("hedge_segment", hx, -30.6, 0, s=1.5)
-            place("hedge_segment", hx, -1.4, 0, s=1.5)
-    for x in (34.0, 61.5):
-        place("topiary_ball_planter", sx * x, -31.6 + 0.0, "S")
+    for hz in (-30.6, -1.4):                                  # back hedges: gap centred on the garden walk / connector
+        hedge_run((sx * 32.5, hz), (sx * 41.5, hz))
+        hedge_run((sx * 46.5, hz), (sx * 64.5, hz))
+    for x in (31.4, 65.6):                                    # topiary balls finishing the north hedge's ends
+        place("topiary_ball_planter", sx * x, -30.6, "S")
     place("blossom_tree_planter", sx * 69.5, -16.0, 0, s=1.6)   # Market Street ends at a blossom tree by the wall
     for z in (-22.0, -10.0):
         place("urn_planter", sx * 66.5, z, "W" if sx > 0 else "E", s=1.2)
@@ -461,15 +486,18 @@ def garden_common(sx, gx1, gx2, gz1, gz2, cx, cz):
     for k in range(-5, 6):                                        # path lanterns along the long walk
         if k == 0 or abs(k) == 1: continue
         place("path_lantern", cx + k * 4.0, cz - 2.4 if k % 2 else cz + 2.4, 0)
-    # hedge border along the garden's town side, gaps where the walks come through
-    for k in range(16):
-        hx = gx1 + 1.5 + k * 3.0
-        if abs(hx - cx) < 3.5: continue
-        place("hedge_segment", hx, gz2 + 1.0, 0, s=1.5)
-    for k in range(9):
-        hz = gz1 + 2.0 + k * 3.0
-        if abs(hz - cz) < 3.0 or abs(hz + 45.0) < 2.6: continue     # gaps: the cross walk and the forecourt walk
-        place("hedge_segment", gx1 if sx > 0 else gx2, hz, 90, s=1.5)
+    # the garden's border: an L of hedge. Along the forecourt (x = +-20) with a gap for the forecourt walk, and along
+    # the town side (z = -39) with a gap for the walk down to the market / yard; the two meet flush at the corner.
+    hz = gz2 + 1.0                                                # -39
+    xi = sx * 20.0                                                # the forecourt side
+    hedge_run((xi, -51.0), (xi, -48.0))
+    hedge_run((xi, hz - 3.0 + HEDGE_HALF), (xi, hz + HEDGE_HALF))
+    x0 = xi + sx * HEDGE_HALF                                     # town side: from the corner, gap centred on the walk
+    hedge_run((x0, hz), (x0 + sx * 21.0, hz))
+    hedge_run((2 * cx - x0 - sx * 21.0, hz), (2 * cx - x0, hz))   # the first run mirrored about the walk (x = cx)
+    for a_, b_ in (((x0, hz - 1.2), (x0 + sx * 21.0, hz - 1.2)),
+                   ((2 * cx - x0 - sx * 21.0, hz - 1.2), (2 * cx - x0, hz - 1.2))):
+        rose_row(a_, b_)                                          # roses along the hedge, on the garden side
 
 
 for sx in (-1, 1):
@@ -571,8 +599,8 @@ for z in (4.0, 14.0, 32.0):
     for sx in (-1, 1):
         place("street_lamp", sx * 6.0, z, "W" if sx > 0 else "E")
 for sx in (-1, 1):
-    for z in (7.0, 10.0, 13.0, 16.0):
-        place("hedge_segment", sx * 7.6, z, 90, s=1.5)
+    hedge_run((sx * 7.6, 5.5), (sx * 7.6, 17.5))
+    rose_row((sx * 6.5, 5.5), (sx * 6.5, 17.5), skip=[(sx * 6.0, 14.0)])
     for z in (29.5, 35.5):
         place("planter_square_flowers", sx * 7.0, z, 0)
 
@@ -591,8 +619,8 @@ for sx in (-1, 1):
     yaw = 90 if sx > 0 else -90
     vx, vz = local_to_world(sx * 13.0, 63.5, yaw, fx2 + 0.55, fz1 + 0.55)
     npc(f"vendor_traveller_{'east' if sx > 0 else 'west'}", vx, vz, yaw, "provisions for travellers at the portal")
-    for k in range(5):
-        place("hedge_segment", sx * 18.0, 54.0 + k * 3.6, 90, s=1.5)
+    hedge_run((sx * 18.0, 53.5), (sx * 18.0, 71.5))
+    rose_row((sx * 16.9, 53.5), (sx * 16.9, 71.5))
 
 # ================================================================ output
 for k, v in list(landmarks.items()):
