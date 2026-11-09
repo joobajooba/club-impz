@@ -5,7 +5,8 @@ shelter, a fence, a trade sign and the props of its trade.
   workshop_shelter_timber   lean-to: walnut posts, plank back wall with battens, wooden shake roof, hanging lantern
   workshop_shelter_forge    lean-to: rubble stone back wall with quoins, slate roof, iron lantern
   workshop_shelter_apothecary  lean-to: plaster back wall with timber framing, teal scale roof, lantern
-  fence_rail, fence_post    post-and-rail fence 2 m long (post on its west end) and a lone end post
+  fence_rail, fence_rail_short, fence_post   post-and-rail fence 2 m and 1.1875 m long (post on the west end,
+                            exact post-to-end pitch) and a lone end post
   log_pile                  stacked logs between stakes, chopping block with an axe, chips
   lumber_stack              sawn planks in layers on bearers with stickers
   coal_ore_bins             two plank bins of coal and ore, a shovel, a lump or two on the ground
@@ -245,17 +246,27 @@ def workshop_shelter_apothecary(): return _shelter("workshop_shelter_apothecary"
 
 
 # ==================================================================== fence
-def fence_rail():
-    H = new("fence_rail", 9201)
+def _fence_rail(name, seed, L):
+    """A rail length with its one post on the west end. The post is centred at -L/2 and the rails run from there to
+    +L/2, so post-to-end is exactly L units: rails laid end to end put every post on an exact pitch (2 m for the
+    32 unit rail). fence_rail used to centre its post at -15 with rails to +16 (1.9375 m), which left every rail
+    end 1/16 m short of the next post."""
+    H = new(name, seed)
     g = H.group("fence", [0, 0, 0])
-    H.box("post", g, [-16, 0, -1], [-14, 15, 1], "post", ("down",), "fpost")
-    H.box("post_cap", g, [-16.5, 15, -1.5], [-13.5, 16, 1.5], "beam", (), "fcap")
+    h = L / 2
+    H.box("post", g, [-h - 1, 0, -1], [-h + 1, 15, 1], "post", ("down",), "fpost")
+    H.box("post_cap", g, [-h - 1.5, 15, -1.5], [-h + 1.5, 16, 1.5], "beam", (), "fcap")
     for i, (y, rz) in enumerate(((5, 1.5), (10.5, -1.0))):
-        H.box(f"rail_{i + 1}", g, [-15, y, -0.75], [16, y + 1.5, 0.75], "wood", (), f"frail{i}", rot=(0, 0, rz), origin=[0, y + 0.75, 0])
-    for i, x in enumerate((-6.5, 4.0)):                                   # a few nails / straps
-        H.box(f"strap_{i + 1}", g, [x - 0.5, 4.5, -1.5], [x + 0.5, 12.5, -1], "iron", ("down",), "strap") if i == 0 else None
-    H.tufts("tuft", g, [(-15, -1.6, 3, 3), (-14, 1.8, 2, 3), (6, -1.4, 2, 3)])
+        H.box(f"rail_{i + 1}", g, [-h, y, -0.75], [h, y + 1.5, 0.75], "wood", (), f"frail{i}", rot=(0, 0, rz), origin=[0, y + 0.75, 0])
+    sx = -h + 9.5                                                     # an iron strap on the rails near the post
+    H.box("strap_1", g, [sx - 0.5, 4.5, -1.5], [sx + 0.5, 12.5, -1], "iron", ("down",), "strap")
+    H.tufts("tuft", g, [(-h + 1, -1.6, 3, 3), (-h + 2, 1.8, 2, 3), (h - 10, -1.4, 2, 3)])
     return fin(H)
+
+
+def fence_rail(): return _fence_rail("fence_rail", 9201, 32)          # 2 m
+def fence_rail_short(): return _fence_rail("fence_rail_short", 9203, 19)   # 19 units = 1.1875 m: the short rail that
+                                                                        # takes a side fence from 8 m to the front line
 
 
 def fence_post():
@@ -517,7 +528,7 @@ def _sign(trade, icon, seed, wood="walnut"):
 
 SIGNS = {"smelter": "flame", "blacksmith": "anvil", "carpenter": "saw", "sawyer": "logs", "tanner": "hide", "herbalist": "leaf",
          "brewer": "potion"}
-BUILDERS = {f.__name__: f for f in (workshop_shelter_timber, workshop_shelter_forge, workshop_shelter_apothecary, fence_rail, fence_post,
+BUILDERS = {f.__name__: f for f in (workshop_shelter_timber, workshop_shelter_forge, workshop_shelter_apothecary, fence_rail, fence_rail_short, fence_post,
                                      log_pile, lumber_stack, coal_ore_bins, tool_rack, quench_trough, crate_stack, tannery_vats,
                                      potion_shelf, herb_bed)}
 for i, (trade, icon) in enumerate(SIGNS.items()):
