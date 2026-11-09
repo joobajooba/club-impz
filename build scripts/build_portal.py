@@ -6,7 +6,7 @@ Inside: an opaque glowing backdrop shaped to the arch, then hard alpha swirl car
 groups, spun by a looping `idle` animation (90 degree keys so glTF slerp keeps the direction), a pulsing core and
 rising embers. Glow parts end in _glow. Front = north (-z).
 Usage: py build_portal.py"""
-import os, sys, math, uuid
+import os, sys, math, uuid, zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 from station_lib import Station, StationPainter, station_mats, R, C, F, px, h2, LO, grid
@@ -181,7 +181,7 @@ def portal():
     for s, sg in (("left", -1), ("right", 1)):
         for j, y in enumerate((9, 18, 27)):
             for side, z in (("front", -6.05), ("back", 6.05)):
-                k = H.rect(f"rune_{s}_{j}", 8, 12, lambda W, Hh, sd=hash((s, j)) % 1000: H.P.rune(W, Hh, sd))
+                k = H.rect(f"rune_{s}_{j}", 8, 12, lambda W, Hh, sd=zlib.crc32(f"{s}{j}".encode()) % 1000: H.P.rune(W, Hh, sd))
                 x = sg * 30.5
                 H.card(f"rune_{s}_{j + 1}_{side}_glow", g["runes"], [x - 2, y, z], [x + 2, y + 6, z], k,
                        faces=("north", "south") if side == "front" else ("south", "north"))
