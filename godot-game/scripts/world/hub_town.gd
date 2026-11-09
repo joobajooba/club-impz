@@ -22,6 +22,17 @@ var world: GameWorld
 var glow_mats: Array[StandardMaterial3D] = []
 var lamp_lights: Array[OmniLight3D] = []
 var _night := -1.0
+var birds: Array[Node3D] = []
+var _rects: Array = []          # placement footprints (plan "no_scatter"): birds don't land on them
+var _walls := 75.0
+
+## Birds round the spawn (scripts/world/bird.gd, clock driven so every player sees the same flock):
+## [kind, home x, home z, how many, range scale]. Soarers circle over the portal plaza and the avenue; pigeons
+## potter about the plaza, crows along the avenue, robins by the plaza hedges.
+const BIRDS := [
+	["eagle", 0.0, 40.0, 1, 0.8], ["seagull", 0.0, 60.0, 2, 0.6], ["seagull", 10.0, 48.0, 1, 0.7],
+	["pigeon", 0.0, 62.0, 6, 0.5], ["crow", 0.0, 42.0, 2, 0.6], ["robin", -12.0, 60.0, 1, 0.5], ["robin", 12.0, 60.0, 1, 0.5],
+]
 
 
 func populate(w: GameWorld) -> void:
@@ -55,6 +66,9 @@ func populate(w: GameWorld) -> void:
 	_make_lights(plan["lights"])
 	_make_npc_spots(plan["npc_spots"])
 	_place_portal(plan["landmarks"]["portal"])
+	_rects = plan["no_scatter"]
+	_walls = float(plan["walls"])
+	_place_birds()
 	print("hub town: %d placements, %d types, %d colliders, %d lights in %d ms" % [plan["placements"].size(), by_alias.size(),
 		plan["colliders"].size(), lamp_lights.size(), Time.get_ticks_msec() - t0])
 
@@ -201,6 +215,44 @@ func _place_portal(xz: Array) -> void:
 	var x: float = xz[0]
 	var z: float = xz[1]
 	portal.global_position = Vector3(x, world.ground_height(x, z), z)
+
+
+func _place_birds() -> void:
+	var root := Node3D.new()
+	root.name = "birds"
+	add_child(root)
+	var n := 0
+	for spec in BIRDS:
+		for i in int(spec[3]):
+			n += 1
+			var b: Node3D = load("res://scripts/world/bird.gd").new()
+			var x: float = spec[1] + (i % 3 - 1) * 1.5
+			var z: float = spec[2] + (i / 3) * 1.5
+			b.set("kind", spec[0])
+			b.set("home", Vector3(x, world.ground_height(x, z), z))
+			b.set("bird_seed", 7000 + n)
+			b.set("data", world.data())
+			b.set("view", world.player)
+			b.set("range_scale", spec[4])
+			b.set("spot_ok", _bird_spot_ok)
+			b.name = "%s_%d" % [spec[0], n]
+			root.add_child(b)
+			birds.append(b)
+
+
+## Open ground inside the walls, not on a building, stall, hedge or planter.
+func _bird_spot_ok(x: float, z: float) -> bool:
+	if absf(x) > _walls - 3.0 or absf(z) > _walls - 3.0:
+		return false
+	for r in _rects:
+		if x > r[0] - 0.5 and x < r[2] + 0.5 and z > r[1] - 0.5 and z < r[3] + 0.5:
+			return false
+	return true
+
+
+func set_player(p: Node3D) -> void:
+	for b in birds:
+		b.set("view", p)
 
 
 func _process(_delta: float) -> void:

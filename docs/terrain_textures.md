@@ -42,7 +42,7 @@ The hub isn't in `game_worlds.md` section 4.8, so its set is new. It is a tidy v
 | --- | --- | --- | --- | --- | --- |
 | 0 | `hub_grass` | Base ground, the "grass floor" | `#284a14` → `#86c444` | Dense short blades (2 to 4 px), clumps | White daisies with yellow centres |
 | 1 | `hub_dirt_path` | Paths between landmarks | `#3a2a1e` → `#b89066` | Packed earth with lighter worn streaks | Gravel, flat warm stones, stray grass blades |
-| 2 | `hub_cobblestone` | Village square, castle approach, crafting area | `#2a2828` → `#c0b8ac` | Rounded cobbles with a bevelled edge, dark mortar | Moss and grass in the gaps |
+| 2 | `hub_cobblestone` | Village square, castle approach, crafting area | `#2a2828` → `#c0b8ac` | 256 px (64 px per metre, made by `tools/generate_hub_cobblestone.py`): about 240 domed cobbles in grey, warm limestone and slate, with grain, worn tops, cracks and chips; dark soil joints | Sand, pebbles, moss and grass in the joints |
 
 ### 2.2 Forest (depth 1)
 
