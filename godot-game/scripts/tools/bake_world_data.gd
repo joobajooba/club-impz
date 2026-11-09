@@ -361,6 +361,12 @@ func _bake_hub() -> void:
 		for q in w["points"]:
 			pts.append(Vector2(q[0], q[1]))
 		_stamp_path(mask, pts, float(w["radius"]), Vector2(HW / 2.0, HW / 2.0))
+	for r in town["ground"].get("dirt_rects", []):  # packed-earth floors (the crafters' yard workshops)
+		for mz in range(maxi(0, int(r[1] + HW / 2.0)), mini(int(HW), int(r[3] + HW / 2.0))):
+			for mx in range(maxi(0, int(r[0] + HW / 2.0)), mini(int(HW), int(r[2] + HW / 2.0))):
+				var c := mask.get_pixel(mx, mz)
+				c.r = 1.0
+				mask.set_pixel(mx, mz, c)
 	for r in town["ground"]["cobble"]:
 		# 1 px soft edge so the cobbles meet the grass with a dithered border, not a ruler line
 		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 1), mini(int(HW), int(r[3] + HW / 2.0) + 2)):

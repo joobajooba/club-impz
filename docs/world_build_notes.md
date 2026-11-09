@@ -235,7 +235,11 @@ J00BA, 2026-11-09: the hub is flat (no edge hills) and walled. A 150 m square of
   - north: the castle with a cobbled forecourt, and formal gardens either side (hedges, topiary, blossom trees, path lanterns)
   - centre: the town square on the grand avenue
   - east: the market (eight stalls facing Market Street)
-  - west: the crafters' yard (all seven stations and a potion stall)
+  - west: the crafters' yard, where each station is its own fenced workshop plot on Market Street (smelter, blacksmith, carpenter, sawyer, tanner, herbalist, brewer with its potion stall). Each plot has:
+    - a lean-to shelter: forge (stone wall, slate roof), timber (plank wall, shake roof) or apothecary (plaster wall, teal roof)
+    - a hanging trade sign
+    - trade props from `assets/models/props/workshop/` (`build scripts/build_workshop_props.py`)
+    - an open passage plot leading to Rose Lane
   - south: Rose Lane and Orchard Lane with 32 houses, the orchard, and the portal plaza by the south wall, where players arrive
 - **Routes:** portal → avenue → square → castle runs straight north. Market Street runs straight from the yard through the square to the market. The connectors at x ±44 link the squares to the lanes and the gardens.
 - **`scripts/world/hub_town.gd`** builds the plan:

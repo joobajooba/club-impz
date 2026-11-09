@@ -42,6 +42,11 @@ for n in ("planter_square_flowers", "planter_trough_flowers", "urn_planter", "to
           "hedge_segment", "blossom_tree_planter"):
     MODELS[n] = (f"res://assets/models/foliage/town/{n}.glb", f"assets/models/foliage/town/{n}.bbmodel", 1.0)
 
+for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter_apothecary", "fence_rail", "fence_post", "log_pile",
+          "lumber_stack", "coal_ore_bins", "tool_rack", "quench_trough", "crate_stack", "tannery_vats", "potion_shelf", "herb_bed",
+          "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
+    MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
+
 HOUSES = ["brick_rose_cottage", "wood_timber_house", "brick_bluebell_house", "wood_oak_lodge", "brick_honey_townhouse", "wood_cherry_manor"]
 FACE = {"N": 0.0, "W": 90.0, "S": 180.0, "E": -90.0}
 
@@ -59,7 +64,10 @@ def metrics(bb_rel):
     lights = [[round(g["origin"][0] * U, 3), round(g["origin"][1] * U, 3), round(g["origin"][2] * U, 3)]
               for g in d["groups"] if g["name"].startswith("light_")]
     glow = any(e["name"].endswith("_glow") for e in E)
-    return {"footprint": [round(v, 3) for v in fp], "extent": [round(v, 3) for v in full], "height": round(h, 3), "lights": lights, "glow": glow}
+    parts = [[round(e["from"][0] * U, 3), round(e["from"][2] * U, 3), round(e["to"][0] * U, 3), round(e["to"][2] * U, 3),
+              round(e["to"][1] * U, 3)] for e in ground if (e["to"][1] - e["from"][1]) * U >= 0.5]
+    return {"footprint": [round(v, 3) for v in fp], "extent": [round(v, 3) for v in full], "height": round(h, 3), "lights": lights,
+            "glow": glow, "parts": parts}
 
 
 INFO = {}
@@ -69,7 +77,7 @@ for a, (res, bb, s) in MODELS.items():
 
 # ---------------------------------------------------------------- plan state
 placements, colliders, no_scatter, npc_spots, lights = [], [], [], [], []
-cobble, dirt, landmarks = [], [], {}
+cobble, dirt, dirt_rects, landmarks = [], [], [], {}
 
 
 def rot(lx, lz, yaw):
@@ -92,11 +100,21 @@ def place(alias, x, z, yaw=0.0, s=None, collide=True, y=0.0, light=True, max_h=6
     placements.append([alias, round(x, 3), round(y, 3), round(z, 3), round(yaw, 2), s])
     if y == 0.0:
         no_scatter.append(world_rect(alias, x, z, yaw, s, "extent" if alias.startswith(("stall_", "hedge")) else "footprint", 0.3))
-    if collide:
-        x1, z1, x2, z2 = INFO[alias]["footprint"]
+    # collide: True = one box round the ground footprint; "parts" = a box per solid ground cube (open shelters: the
+    # posts and back wall block, the space under the roof doesn't); "extent" = the whole model's plan (fences)
+    if collide == "parts":
+        boxes = [(p[0], p[1], p[2], p[3], min(p[4], max_h)) for p in INFO[alias]["parts"]]
+    elif collide == "extent":
+        x1, z1, x2, z2 = INFO[alias]["extent"]; boxes = [(x1, z1, x2, z2, min(INFO[alias]["height"], max_h))]
+    elif collide:
+        x1, z1, x2, z2 = INFO[alias]["footprint"]; boxes = [(x1, z1, x2, z2, min(INFO[alias]["height"], max_h))]
+    else:
+        boxes = []
+    for x1, z1, x2, z2, hh in boxes:
         cx, cz = rot((x1 + x2) / 2 * s, (z1 + z2) / 2 * s, yaw)
-        h = min(INFO[alias]["height"] * s, max_h)
-        colliders.append([round(x + cx, 3), round(y + h / 2, 3), round(z + cz, 3), round((x2 - x1) * s, 3), round(h, 3), round((z2 - z1) * s, 3), round(yaw, 2)])
+        h = min(hh * s, max_h)
+        colliders.append([round(x + cx, 3), round(y + h / 2, 3), round(z + cz, 3), round(max(0.2, (x2 - x1) * s), 3), round(h, 3),
+                          round(max(0.2, (z2 - z1) * s), 3), round(yaw, 2)])
     if light and INFO[alias]["lights"] and alias != "path_lantern":       # path lanterns only glow
         L = INFO[alias]["lights"]
         # one light per lamp at the mean of its lanterns (multi-lantern lamps get one brighter light)
@@ -117,6 +135,11 @@ def local_to_world(x, z, yaw, lx, lz):
 
 def street(x1, z1, x2, z2):
     cobble.append([x1, z1, x2, z2])
+
+
+def earth(x1, z1, x2, z2):
+    """A packed-earth floor (mask R, the dirt path layer) for a rectangle."""
+    dirt_rects.append([x1, z1, x2, z2])
 
 
 def walk(pts, r=1.3):
@@ -231,12 +254,78 @@ def square(sx, north, south, kind):
         place("blossom_tree_planter", sx * x, 7.0, 0, s=1.2)
 
 
+# ---- the crafters' yard: eight small workshops along Market Street, each its own plot (J00BA, 2026-11-09)
+# Plot: 7.75 m along the street, 9.5 m deep. A lean-to shelter at the back (its lantern lights at night), the
+# station under its front edge facing the street, the trade's props round it, fences between the plots and a
+# short front fence each side of a 3.75 m gateway with the trade sign. Forge plots are cobbled, the rest earth.
+# Local plot coordinates: lx along the street (east), d = metres from the back of the plot toward the street.
+YARD_X = (-59.625, -51.875, -44.125, -36.375)
+PLOT_W, PLOT_D = 7.75, 9.5
+YARD_PLOTS = {
+    "north": [  # backs at z -29.5, fronts on Market Street (z -20)
+        ("smelter", "furnace", -1.0, 3.4, "forge", True, [("coal_ore_bins", 1.4, 6.6, 0), ("crate_stack", 2.0, 1.3, 0)]),
+        ("blacksmith", "anvil", -0.9, 3.6, "forge", True, [("tool_rack", 1.7, 0.9, 0), ("quench_trough", 0.9, 6.7, 0)]),
+        ("carpenter", "workbench", -0.9, 3.3, "timber", False, [("lumber_stack", 0.8, 6.7, 0), ("crate_stack", 2.2, 1.3, 0)]),
+        ("sawyer", "sawbench", -1.1, 3.4, "timber", False, [("log_pile", 0.4, 6.8, 0)]),
+    ],
+    "south": [  # backs at z -2.5, fronts on Market Street (z -12)
+        ("tanner", "tanning_rack", -0.6, 3.3, "timber", False, [("tannery_vats", 0.6, 6.7, 0)]),
+        ("herbalist", "drying_rack", -0.6, 3.4, "apothecary", False, [("herb_bed", 0.4, 6.8, 0)]),
+        ("passage", None, 0.0, 0.0, None, True, []),      # open: Market Street -> the lane connector to Rose Lane
+        ("brewer", "cauldron", -1.6, 3.5, "apothecary", True, [("potion_shelf", 1.8, 0.9, 0), ("stall_potion", 1.7, 7.0, 0)]),
+    ],
+}
+
+
+def yard():
+    sx = -1
+    landmarks["crafting_area"] = [-48.0, -16.0]
+    x_edges = [YARD_X[0] - PLOT_W / 2] + [x + PLOT_W / 2 for x in YARD_X]
+    for row, back_z, face in (("north", -29.5, 180.0), ("south", -2.5, 0.0)):
+        dz = 1 if row == "north" else -1                       # direction from the back toward the street
+
+        def at(cx, lx, d):
+            return (cx + lx if row == "north" else cx - lx), back_z + dz * d
+
+        for (trade, station, slx, sd, shelter, cob, props), cx in zip(YARD_PLOTS[row], YARD_X):
+            x1, x2 = cx - PLOT_W / 2, cx + PLOT_W / 2
+            z1, z2 = sorted((back_z, back_z + dz * PLOT_D))
+            (street if cob else earth)(x1, z1, x2, z2)
+            if trade == "passage":
+                continue
+            if shelter:
+                hx, hz = at(cx, 0.0, 2.2)
+                place(f"workshop_shelter_{shelter}", hx, hz, face, collide="parts")
+            if station:
+                wx, wz = at(cx, slx, sd)
+                place(station, wx, wz, face)
+                vendor_spot(station, wx, wz, face, f"crafter_{trade}", f"crafting station ({trade})", extent=False)
+                gx, gz = at(cx, -PLOT_W / 2 + 0.75, PLOT_D - 0.6)
+                place(f"sign_{trade}", gx, gz, face + 180.0, collide=False)   # arm points into the gateway
+            for a, lx, d, yl in props:
+                px_, pz_ = at(cx, lx, d)
+                place(a, px_, pz_, face + yl)
+                if a.startswith("stall_"):                     # the brewer sells what they brew
+                    vendor_spot(a, px_, pz_, face + yl, "vendor_potion_brewer", "potion seller at the brewery")
+            # short front fences either side of the gateway
+            for lx in (-PLOT_W / 2 + 1.0, PLOT_W / 2 - 1.0):
+                fx, fz = at(cx, lx, PLOT_D - 0.3)
+                place("fence_rail", fx, fz, 0.0, collide="extent")
+        # fences between the plots and at the yard ends, back to front (four 2 m rails and an end post)
+        for xe in x_edges:
+            for k in range(4):
+                fz = back_z + dz * (1.0 + k * 2.0)
+                place("fence_rail", xe, fz, 90.0, collide="extent")
+            place("fence_post", xe, back_z + dz * 8.0, 0.0, collide=False)
+    place("blossom_tree_planter", -69.5, -16.0, 0, s=1.6)
+    for z in (-22.0, -10.0):
+        place("urn_planter", -66.5, z, "E", s=1.2)
+
+
 landmarks["market"] = [47.5, -16]
-landmarks["crafting_area"] = [-47.5, -16]
 square(1, [("stall_fruit", "fruit"), ("stall_bakery", "baker"), ("stall_cloth", "tailor"), ("stall_potion", "apothecary")],
        [("stall_cloth", "weaver"), ("stall_potion", "alchemist"), ("stall_fruit", "greengrocer"), ("stall_bakery", "pie seller")], "market")
-square(-1, [("sawbench", "sawyer"), ("workbench", "carpenter"), ("anvil", "blacksmith"), ("furnace", "smelter")],
-       [("stall_potion", "potion_brewer"), ("cauldron", "brewer"), ("drying_rack", "herbalist"), ("tanning_rack", "tanner")], "yard")
+yard()
 
 # ================================================================ 7. castle gardens (north-west and north-east)
 for sx in (-1, 1):
@@ -247,7 +336,10 @@ for sx in (-1, 1):
     # walks: a cross through the middle, a ring round the lawn, and a link down to the market / yard
     walk([[gx1 + 2, cz], [gx2 - 2, cz]], 1.4)
     walk([[cx, gz1 + 2], [cx, gz2 + 4]], 1.4)
-    walk([[cx, gz2 + 4], [cx, -29.5]], 1.6)
+    if sx > 0:
+        walk([[cx, gz2 + 4], [cx, -29.5]], 1.6)                   # into the market through its hedge gap
+    else:                                                        # behind the workshops, down to Market Street
+        walk([[cx, gz2 + 4], [cx, -33.0], [-29.0, -33.0], [-29.0, -20.0]], 1.6)
     walk([[sx * 17.0, -45.0], [sx * 21.0, -45.0], [gx1 + 2 if sx > 0 else gx2 - 2, cz]], 1.4)   # from the forecourt
     place("blossom_tree_planter", cx, cz, 0, s=1.8)
     for ox in (-1, 1):
@@ -362,7 +454,7 @@ plan = {
     "models": {a: {k: INFO[a][k] for k in ("path", "glow", "height")} for a in INFO},
     "placements": placements, "colliders": colliders, "lights": lights, "npc_spots": npc_spots,
     "landmarks": landmarks, "spawn_point": landmarks["spawn_point"],
-    "ground": {"cobble": cobble, "dirt": dirt}, "no_scatter": no_scatter,
+    "ground": {"cobble": cobble, "dirt": dirt, "dirt_rects": dirt_rects}, "no_scatter": no_scatter,
 }
 out = os.path.join(GAME, "data", "hub_town.json")
 with open(out, "w") as f:
