@@ -43,7 +43,7 @@ godot-game/
   scripts/  main.gd, debug_overlay.gd
             player/   imp_player.gd (controller + camera), imp_visual.gd (placeholder imp)
             terrain/  world_data.gd (loads the baked data), terrain_world.gd (chunks, colliders, far mesh, material)
-            world/    game_world.gd, scatter.gd, hub_props.gd, hub_castle.gd, resource_landmarks.gd, portal.gd,
+            world/    game_world.gd, scatter.gd, hub_town.gd, hub_castle.gd, resource_landmarks.gd, portal.gd,
                       prop_placeholder.gd, ore_vein_placeholder.gd
             environment/ biome_environment.gd
             tools/    bake_world_data.gd, model_lineup.gd
@@ -67,7 +67,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | `resource_terrain.png` | 641 × 257 (2 m per pixel) | **RG** = height, 16 bit: `height = (R × 256 + G) / 200 − 20` m. **BA** = warped depth `s`, 16 bit: `s = (B × 256 + A) / 50` m |
 | `resource_mask.png` | 1280 × 512 (1 m per pixel) | **R** path, **G** wet / low ground (riverbanks, frozen lake, dry riverbeds), **B** special patch (plains green grass at the watering hole, swamp slime at the dreadstone pit, rock on the forest waterfall cliff), **A** forest leaf litter / tree clusters |
 | `resource_layout.json` | | Main path and branch polylines, landmark positions, water planes, waterfall, spawn point |
-| `hub_terrain.png`, `hub_mask.png`, `hub_layout.json` | 101 × 101 / 200 × 200 | Same for the 200 × 200 m hub. Mask **R** dirt paths, **B** cobblestone |
+| `hub_terrain.png`, `hub_mask.png`, `hub_layout.json` | 101 × 101 / 200 × 200 | The flat 200 × 200 m hub, baked from `hub_town.json` (section "The hub town"). Mask **R** dirt walks, **B** cobblestone |
 
 **Repainting:** the masks can be painted by hand (keep the channel meanings). The height map is 16 bit split over two channels, so edit it through the bake script rather than by hand. If you hand paint a mask, stop re-baking or the bake will overwrite it.
 
@@ -166,7 +166,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 1. **Godot 4.7.2** (the installed stable). GDScript warning "inference on Variant" is set to a warning instead of an error.
 2. **glTF UVs are not flipped.** glTF's UV origin is the top-left of the image, the same as Blockbench's pixel UVs, so flipping V (as the build prompt suggested) would turn the textures upside down.
 3. **Converter output:** one mesh per model. Materials are split by texture and kind (solid, double-sided card, `_glow` emissive), with nearest sampling and alpha MASK where the texture has transparency. Group rotations are baked in; animations are skipped.
-4. **The hub castle** uses J00BA's `hub_castle` Blockbench model (not a block-out), with box and cylinder colliders from its own block sizes. It is shown at **2.5×** model scale (about 40 m wide) so the centrepiece reads across the village; `CASTLE_SCALE` in `hub_props.gd` sets it.
+4. **The hub castle** uses J00BA's `hub_castle` Blockbench model (not a block-out), with box and cylinder colliders from its own block sizes. It is shown at **2.5×** model scale (about 40 m wide) so the centrepiece reads across the town; its scale is the castle placement's scale in `build_hub_town.py`.
 5. **Terrain textures import as Image resources** (not textures), so building the texture array never reads back from the GPU. That readback hung the game now and then on this machine.
 6. **Gravity** is 12 m/s² for a snappier jump. The imp walks slopes up to 46°.
 7. **Biome switching** uses the band boxes (x ranges). The shader and the scatter use the exact warped border.
@@ -225,3 +225,23 @@ Measured with `--perf=4` (desktop, 1280 × 720, standing at each biome centre, c
 - **Water kept through the smoothing.** Cells that were under water before the blur get their carved height back afterwards. Each water bed is a smooth bowl: at most 0.3 m per 2 m cell, and 1.4 m deep. The river covers 12% of its rect (11% before smoothing). The swamp covers 10% (26% before), because tiny puddles now get proper shores and merge into the land. Dry land only has to stay above a water level inside that water's rect, or within 4 m of the water. Further out the bank blends back into the land.
 - **Waterfall cliff line.** The river (3 m) meets the upper pool (10 m) along x = 211. The pool pours through a 10 m notch at the waterfall landmark: a channel (bed 9.4), a rounded crest (9.7, 0.3 m of water), a 4 m face down to a plunge pool (at most 1.6, 1.4 m under the river). Everywhere else a bank of at least 10.5 m runs along x 209..216 and falls west to the river at 37° (`rugged`, a 23 × 60 m band). Only the notch (x 200..218, 12 m wide) is fully exempt, and rect sides shared with other water are open only there. The steep cliff is baked into mask B, so it shows forest's special layer (mountain_rock, `special_on_steep`). `waterfall_rocks` boulders hide the corners, bank plants (`waterfall_bank_plants`, a 4..14 m ring) cover the seams, and nothing is scattered on the falling water.
 - **BAKE CHECK** after smoothing: 0 leaks, 0 cells over 30° outside the waterfall or rugged ground, path grade 16.7° (target 18°), shore step 0.30 m (target 0.3).
+
+## The hub town
+
+J00BA, 2026-11-09: the hub is flat (no edge hills) and walled. A 150 m square of the castle wall kit (`hub_wall_segment` and `hub_wall_pillar` at 2.5×, 4 m tall) encloses a small town. Outside the walls there is a ring of flat grass with trees, as a backdrop.
+
+- **The plan** is `godot-game/data/hub_town.json`, written by `build scripts/build_hub_town.py` (run it with `--preview plan.png` for a top-down map). After changing the plan, re-bake the hub: `godot --headless --path godot-game --script res://scripts/tools/bake_world_data.gd -- --hub_only`.
+- **Districts:**
+  - north: the castle with a cobbled forecourt, and formal gardens either side (hedges, topiary, blossom trees, path lanterns)
+  - centre: the town square on the grand avenue
+  - east: the market (eight stalls facing Market Street)
+  - west: the crafters' yard (all seven stations and a potion stall)
+  - south: Rose Lane and Orchard Lane with 32 houses, the orchard, and the portal plaza by the south wall, where players arrive
+- **Routes:** portal → avenue → square → castle runs straight north. Market Street runs straight from the yard through the square to the market. The connectors at x ±44 link the squares to the lanes and the gardens.
+- **`scripts/world/hub_town.gd`** builds the plan:
+  - one MultiMesh per model type, merged from the Blockbench glb; `*_glow` cubes go on an emissive surface
+  - box colliders from each model's ground footprint
+  - OmniLights on the lamps (40), which fade in with `BiomeEnvironment.night` and fade out beyond 38 m
+  - the portal
+- **NPC spots:** `Marker3D` nodes under `hub_town/npc_spots/`, 19 of them. Each has a `role` meta, and its rotation is the way the NPC should face. Vendors stand beside the right end of each stall counter, facing the customers. Crafters stand in front of their station, facing it. There is also a herald at the castle steps.
+- **Scatter:** `no_scatter` footprints in `hub_layout.json` stop grass and flowers growing through buildings and decorations. The `outside_rect` rule key keeps hub trees and bushes outside the walls.

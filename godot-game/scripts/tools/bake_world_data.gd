@@ -6,7 +6,8 @@ extends SceneTree
 ##   data/resource_terrain.png  641 x 257, 2 m per pixel. RG = height (16 bit), BA = warped depth "s" (16 bit)
 ##   data/resource_mask.png     1280 x 512, 1 m per pixel. R path, G wet / low ground, B special patch, A leaf litter / tree clusters
 ##   data/resource_layout.json  path lines, landmarks, water planes, river, ore spots
-##   data/hub_terrain.png, data/hub_mask.png, data/hub_layout.json   same for the 200 x 200 m hub
+##   data/hub_terrain.png, data/hub_mask.png, data/hub_layout.json   the flat 200 x 200 m hub, from data/hub_town.json
+## Hub only:   godot --headless --path . --script res://scripts/tools/bake_world_data.gd -- --hub_only
 
 const STEP := 2.0
 const H_OFFSET := 20.0      # height encoding: value = (h + 20) * 200
@@ -41,6 +42,11 @@ var path_dist := PackedFloat32Array()  # coarse distance to the main path at 2 m
 
 
 func _init() -> void:
+	if "--hub_only" in OS.get_cmdline_user_args():  # the hub alone (the resource world bake is slow)
+		_bake_hub()
+		print("bake done (hub)")
+		quit()
+		return
 	_setup_noise()
 	_build_resource_layout()
 	_bake_resource()
@@ -335,55 +341,43 @@ func _v2dict(d: Dictionary) -> Dictionary:
 
 
 # ---------------------------------------------------------------- hub (200 x 200 m, centred on 0, 0)
+## The hub is a flat walled town (J00BA, 2026-11-09). Its plan comes from data/hub_town.json, made by
+## `build scripts/build_hub_town.py`: cobbled streets and squares go in mask B (the hub's cobblestone layer),
+## garden and orchard walks in mask R (dirt path). The ground is level everywhere, outside the walls too.
 const HW := 200.0
 
 func _bake_hub() -> void:
-	var lm := {
-		"spawn_point": Vector2(0, 46), "village_square": Vector2(0, 8), "castle": Vector2(0, -52),
-		"market": Vector2(40, 12), "crafting_area": Vector2(-40, 12), "portal": Vector2(58, 58),
-	}
-	var paths := [
-		[lm["spawn_point"], lm["village_square"]], [lm["village_square"], lm["castle"]],
-		[lm["village_square"], lm["market"]], [lm["village_square"], lm["crafting_area"]],
-		[lm["spawn_point"], Vector2(30, 52), lm["portal"]], [lm["market"], Vector2(52, 36), lm["portal"]],
-	]
+	var town: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/hub_town.json"))
+	var ground_h: float = town.get("ground_height", 2.0)
 	var nx := int(HW / STEP) + 1
 	var img := Image.create(nx, nx, false, Image.FORMAT_RGBA8)
-	for gz in nx:
-		for gx in nx:
-			var x := gx * STEP - HW / 2.0
-			var z := gz * STEP - HW / 2.0
-			var h := 2.0 + n_hill.get_noise_2d(x * 2.0, z * 2.0) * 1.6
-			for key in ["village_square", "market", "crafting_area", "spawn_point", "portal"]:
-				h = lerp(2.0, h, smoothstep(14.0, 26.0, Vector2(x, z).distance_to(lm[key])))
-			h = lerp(2.5, h, smoothstep(30.0, 44.0, Vector2(x, z).distance_to(lm["castle"])))
-			var e := minf(minf(x + HW / 2.0, HW / 2.0 - x), minf(z + HW / 2.0, HW / 2.0 - z))
-			h += (1.0 - smoothstep(2.0, 36.0, e)) * (14.0 + n_hill.get_noise_2d(x * 0.5, z * 0.5) * 4.0)  # green hills round the edge
-			var hv := clampi(int(round((h + H_OFFSET) * H_SCALE)), 0, 65535)
-			img.set_pixel(gx, gz, Color8(hv >> 8, hv & 255, 0, 0))
+	var hv := clampi(int(round((ground_h + H_OFFSET) * H_SCALE)), 0, 65535)
+	img.fill(Color8(hv >> 8, hv & 255, 0, 0))
 	img.save_png(ProjectSettings.globalize_path("res://data/hub_terrain.png"))
 	var mask := Image.create(int(HW), int(HW), false, Image.FORMAT_RGBA8)
 	mask.fill(Color(0, 0, 0, 0))
-	for p in paths:
-		var pts := PackedVector2Array(p)
-		_stamp_path(mask, pts, 2.2, Vector2(HW / 2.0, HW / 2.0))
-	# cobblestone: village square, castle approach, crafting area
-	for mz in int(HW):
-		for mx in int(HW):
-			var x := mx + 0.5 - HW / 2.0
-			var z := mz + 0.5 - HW / 2.0
-			var cob := 1.0 - smoothstep(15.0, 16.5, Vector2(x, z).distance_to(lm["village_square"]))
-			if absf(x) < 7.0 and z < -4.0 and z > -36.0:
-				cob = 1.0
-			cob = maxf(cob, 1.0 - smoothstep(9.0, 10.5, Vector2(x, z).distance_to(lm["crafting_area"])))
-			if cob > 0.0:
+	for w in town["ground"]["dirt"]:
+		var pts := PackedVector2Array()
+		for q in w["points"]:
+			pts.append(Vector2(q[0], q[1]))
+		_stamp_path(mask, pts, float(w["radius"]), Vector2(HW / 2.0, HW / 2.0))
+	for r in town["ground"]["cobble"]:
+		# 1 px soft edge so the cobbles meet the grass with a dithered border, not a ruler line
+		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 1), mini(int(HW), int(r[3] + HW / 2.0) + 2)):
+			for mx in range(maxi(0, int(r[0] + HW / 2.0) - 1), mini(int(HW), int(r[2] + HW / 2.0) + 2)):
+				var x := mx + 0.5 - HW / 2.0
+				var z := mz + 0.5 - HW / 2.0
+				var d := maxf(maxf(r[0] - x, x - r[2]), maxf(r[1] - z, z - r[3]))
+				var cob := 1.0 - smoothstep(-0.5, 0.7, d)
 				var c := mask.get_pixel(mx, mz)
-				c.b = cob
-				mask.set_pixel(mx, mz, c)
+				if cob > c.b:
+					c.b = cob
+					c.r = minf(c.r, 1.0 - cob)
+					mask.set_pixel(mx, mz, c)
 	mask.save_png(ProjectSettings.globalize_path("res://data/hub_mask.png"))
 	var layout := {"size": [HW, HW], "origin": [-HW / 2.0, -HW / 2.0], "step": STEP, "h_offset": H_OFFSET, "h_scale": H_SCALE,
-		"landmarks": _v2dict(lm), "paths": paths.map(func(p): return _pts(PackedVector2Array(p))),
-		"water": [], "spawn_point": [lm["spawn_point"].x, lm["spawn_point"].y]}
+		"landmarks": town["landmarks"], "walls": town["walls"], "no_scatter": town["no_scatter"],
+		"water": [], "spawn_point": town["spawn_point"]}
 	var f := FileAccess.open("res://data/hub_layout.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(layout, "  "))
 	f.close()

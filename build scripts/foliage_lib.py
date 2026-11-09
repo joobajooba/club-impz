@@ -109,6 +109,7 @@ class Model:
 
     # ---- outliner
     def group(self, name, origin, parent=None):
+        assert name not in self.groups, f"duplicate group {name}"
         self.groups[name] = {"name": name, "uuid": self.uid(), "origin": [round(v, 3) for v in origin], "children": []}
         if parent is not None:
             self.groups[parent]["children"].append(("g", name))
@@ -193,7 +194,8 @@ def showcase(models_offsets, name, out_dir, tex=256, seed=1):
 
         def copy_group(gname, parent):
             g = m.groups[gname]
-            new = S.group(g["name"], [g["origin"][0] + ox, g["origin"][1], g["origin"][2] + oz], parent)
+            nm = g["name"] if g["name"] not in S.groups else f"{m.name}_{g['name']}"
+            new = S.group(nm, [g["origin"][0] + ox, g["origin"][1], g["origin"][2] + oz], parent)
             for kind, ref in g["children"]:
                 if kind == "g":
                     copy_group(ref, new)
@@ -208,8 +210,8 @@ def showcase(models_offsets, name, out_dir, tex=256, seed=1):
                     S.elements.append(e); S.groups[new]["children"].append(("e", e["uuid"]))
         copy_group(m.name, name)
     # hidden imp scale dummy (18.5 units) so sizes can be checked against the player
-    S.group("scale_dummy", [0, 0, 0], name); S.groups["scale_dummy"]["visible"] = False
-    e = S.cube("scale_dummy_imp", "scale_dummy", [-2, 0, -10], [2, 18.5, -6], {})
+    S.group("showcase_scale_dummy", [0, 0, 0], name); S.groups["showcase_scale_dummy"]["visible"] = False
+    e = S.cube("scale_dummy_imp", "showcase_scale_dummy", [-2, 0, -10], [2, 18.5, -6], {})
     e["export"] = False; e["visibility"] = False
     S.save(out_dir)
     return S

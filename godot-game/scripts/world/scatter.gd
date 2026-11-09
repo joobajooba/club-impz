@@ -45,12 +45,18 @@ var stump_scenes := {}         # stump name -> PackedScene
 
 ## z of the waterfall ribbon's centre line (game_world.gd _make_waterfall); no scatter inside its footprint.
 var fall_z := 1e9
+## The hub town's building and decoration footprints (layout "no_scatter", from build_hub_town.py), rasterised to
+## a 1 m grid once so every candidate point is one lookup: nothing grows through floors, stalls or planters.
+var _ns_grid := PackedByteArray()
+var _ns_w := 0
+var _ns_h := 0
 
 
 func setup(w: Node, d: WorldData) -> void:
 	fall_z = float(d.layout.get("waterfall", {}).get("z", 1e9))
 	world = w
 	data = d
+	_build_no_scatter(d)
 	add_to_group("scatter")
 	var js: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/scatter.json"))
 	mesh_paths = js["meshes"]
@@ -75,6 +81,27 @@ func setup(w: Node, d: WorldData) -> void:
 	if persistent:
 		_queue_all(TREE_CELL, true)
 		_queue_all(FOLIAGE_CELL, false)
+
+
+func _build_no_scatter(d: WorldData) -> void:
+	var rects: Array = d.layout.get("no_scatter", [])
+	if rects.is_empty():
+		return
+	_ns_w = int(d.size.x)
+	_ns_h = int(d.size.y)
+	_ns_grid.resize(_ns_w * _ns_h)
+	for r in rects:
+		for gz in range(maxi(0, int(floor(r[1] - d.origin.y))), mini(_ns_h, int(ceil(r[3] - d.origin.y)))):
+			for gx in range(maxi(0, int(floor(r[0] - d.origin.x))), mini(_ns_w, int(ceil(r[2] - d.origin.x)))):
+				_ns_grid[gz * _ns_w + gx] = 1
+
+
+func _no_scatter_at(x: float, z: float) -> bool:
+	if _ns_w == 0:
+		return false
+	var gx := int(x - data.origin.x)
+	var gz := int(z - data.origin.y)
+	return gx >= 0 and gz >= 0 and gx < _ns_w and gz < _ns_h and _ns_grid[gz * _ns_w + gx] == 1
 
 
 func _queue_all(cell: float, trees: bool) -> void:
@@ -285,6 +312,7 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 		near_r = float(rule["near"][1])
 		near_min = float(rule["near"][2]) if rule["near"].size() > 2 else -1.0   # a ring: [landmark, max, min]
 	var waters := _cell_waters(c, cell)
+	var outside: Array = rule.get("outside_rect", [])   # [x1, z1, x2, z2]: only place outside it (hub: outside the walls)
 	var clears := [] if rule.has("near") else _cell_exclusions(c, cell, float(rule.get("clear", 0.0)), trees, rule.get("exclude", {}))
 	for gz in n:
 		for gx in n:
@@ -297,6 +325,10 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 			if x >= x_end or z >= z_end:
 				continue
 			if not data.in_bounds(x, z, 2.0):
+				continue
+			if _no_scatter_at(x, z):
+				continue
+			if not outside.is_empty() and x > outside[0] and x < outside[2] and z > outside[1] and z < outside[3]:
 				continue
 			if not biomes.has(WorldData.BIOMES[data.biome_pick(x, z, roll)]):
 				continue
