@@ -154,6 +154,6 @@ Each biome uses its own set. Inside a biome, the shader picks layers by these ru
 | Swamp | `swamp_mud` | `swamp_grass` and `swamp_moss` on raised islands, `swamp_slime` around dreadstone | `swamp_mud` | `swamp_grass` | `swamp_mud` | `swamp_boardwalk` |
 
 - **Biome borders** blend over 30 to 60 metres (`game_worlds.md` section 4.7). Inside the border, the two biomes' layers mix.
-- **Blend in pixel steps**, not smooth fades: use a dithered or height based blend snapped to the 32 px per metre grid, so transitions keep the pixel look (grass blades poke over the dirt instead of a soft gradient).
+- **Blend in pixel steps**, not smooth fades: use a dithered or height based blend snapped to the 32 px per metre grid, so transitions keep the pixel look (grass blades poke over the dirt instead of a soft gradient). One exception, at J00BA's request for gradual fades: in the middle of a transition the two textures' colours may also be mixed (at most 35%, zero at both ends of the band). Both are nearest sampled on the same texel grid, so every pixel stays crisp.
 - **Paths** come from a path mask (1 pixel per metre) painted along the path lines.
 - **Ground cover matches the ground:** grass tufts in each biome use that biome's grass ramp (`game_worlds.md` section 4.10).
