@@ -262,15 +262,17 @@ func _bake_resource() -> void:
 			var b: int = biome_blend(s)[0]
 			var wet := 0.0
 			var special := 0.0
+			# wide falloffs, broken with noise so no edge is a clean circle or line
+			var nd := n_detail.get_noise_2d(x * 2.0, z * 2.0) * 3.0
 			if x < 262.0:
-				wet = 1.0 - smoothstep(6.0, 10.0, absf(z - river_z(x)))
+				wet = 1.0 - smoothstep(5.0, 12.0, absf(z - river_z(x)) + nd)
 			var dl := Vector2(x, z).distance_to(landmarks["frozen_lake"])
-			wet = maxf(wet, 1.0 - smoothstep(48.0, 54.0, dl))
-			wet = maxf(wet, 1.0 - smoothstep(10.0, 13.0, Vector2(x, z).distance_to(Vector2(706, -40))))
+			wet = maxf(wet, 1.0 - smoothstep(47.0, 56.0, dl + nd))
+			wet = maxf(wet, 1.0 - smoothstep(8.0, 16.0, Vector2(x, z).distance_to(Vector2(706, -40)) + nd))
 			if x > 760.0 and x < 1030.0:
-				wet = maxf(wet, 1.0 - smoothstep(4.0, 7.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0)))))
-				special = 1.0 - smoothstep(18.0, 30.0, Vector2(x, z).distance_to(Vector2(900, 60)))
-			special = maxf(special, 1.0 - smoothstep(24.0, 38.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"])))
+				wet = maxf(wet, 1.0 - smoothstep(3.0, 9.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0))) + nd))
+				special = 1.0 - smoothstep(16.0, 34.0, Vector2(x, z).distance_to(Vector2(900, 60)) + nd)
+			special = maxf(special, 1.0 - smoothstep(22.0, 42.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"]) + nd))
 			# the waterfall cliff reads as rock (forest special = mountain_rock): its steep cells, grown by 1.5 m
 			# and broken up with noise so the edge is ragged; the flat top and gentle slopes stay grass
 			if b == 0 and _in_fall_cliff(x, z):
@@ -278,7 +280,7 @@ func _bake_resource() -> void:
 				for o in [Vector2(1.5, 0), Vector2(-1.5, 0), Vector2(0, 1.5), Vector2(0, -1.5)]:
 					sl = maxf(sl, _slope_at(hs, nx, nz, x + o.x, z + o.y))
 				special = maxf(special, smoothstep(0.3, 0.4, sl + n_detail.get_noise_2d(x * 3.0, z * 3.0) * 0.08))
-			var litter := clampf(n_litter.get_noise_2d(x, z) * 1.6 + 0.1, 0.0, 1.0) if b == 0 else 0.0
+			var litter := smoothstep(-0.15, 0.45, n_litter.get_noise_2d(x, z) + n_detail.get_noise_2d(x * 2.0, z * 2.0) * 0.15) if b == 0 else 0.0
 			mask.set_pixel(mx, mz, Color(0.0, wet, special, litter))
 	# paths stamped along the main line and the branches
 	_stamp_path(mask, main_path, 2.6, Vector2(0, RD / 2.0))
@@ -306,14 +308,16 @@ func _stamp_path(mask: Image, pts: PackedVector2Array, radius: float, offset: Ve
 		var n := int(a.distance_to(b)) + 1
 		for k in n + 1:
 			var p := a.lerp(b, float(k) / n) + offset
-			for dz in range(-int(radius) - 2, int(radius) + 3):
-				for dx in range(-int(radius) - 2, int(radius) + 3):
+			for dz in range(-int(radius) - 4, int(radius) + 5):
+				for dx in range(-int(radius) - 4, int(radius) + 5):
 					var px := int(p.x) + dx
 					var pz := int(p.y) + dz
 					if px < 0 or pz < 0 or px >= mask.get_width() or pz >= mask.get_height():
 						continue
 					var d := Vector2(px + 0.5, pz + 0.5).distance_to(p)
-					var v := 1.0 - smoothstep(radius - 0.8, radius + 0.8, d)
+					# ragged edge that fades over about 3 m
+					var noise := n_detail.get_noise_2d(px * 1.7, pz * 1.7)
+					var v := 1.0 - smoothstep(radius - 1.2, radius + 2.0, d + noise * 0.8)
 					var c := mask.get_pixel(px, pz)
 					if v > c.r:
 						c.r = v
@@ -372,10 +376,13 @@ func _bake_hub() -> void:
 		for mx in int(HW):
 			var x := mx + 0.5 - HW / 2.0
 			var z := mz + 0.5 - HW / 2.0
-			var cob := 1.0 - smoothstep(15.0, 16.5, Vector2(x, z).distance_to(lm["village_square"]))
-			if absf(x) < 7.0 and z < -4.0 and z > -36.0:
-				cob = 1.0
-			cob = maxf(cob, 1.0 - smoothstep(9.0, 10.5, Vector2(x, z).distance_to(lm["crafting_area"])))
+			var nd := n_detail.get_noise_2d(x * 2.0, z * 2.0) * 3.0
+			var cob := 1.0 - smoothstep(14.0, 17.5, Vector2(x, z).distance_to(lm["village_square"]) + nd)
+			# castle approach: a soft rounded box |x| < 7, -36 < z < -4 with 1.5 m corners
+			var q := Vector2(absf(x), absf(z + 20.0)) - Vector2(7.0 - 1.5, 16.0 - 1.5)
+			var sd := Vector2(maxf(q.x, 0.0), maxf(q.y, 0.0)).length() + minf(maxf(q.x, q.y), 0.0) - 1.5
+			cob = maxf(cob, 1.0 - smoothstep(-0.5, 1.5, sd + nd))
+			cob = maxf(cob, 1.0 - smoothstep(8.0, 11.5, Vector2(x, z).distance_to(lm["crafting_area"]) + nd))
 			if cob > 0.0:
 				var c := mask.get_pixel(mx, mz)
 				c.b = cob
