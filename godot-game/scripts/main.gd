@@ -136,6 +136,10 @@ func _ready() -> void:
 		var ax := float(xz[0])
 		var az := float(xz[1])
 		player.place_at(Transform3D(Basis(), Vector3(ax, current_world.ground_height(ax, az) + 0.5, az)))
+	if args.has("cam"):                                    # testing: --cam=x,y,z,tx,ty,tz a free camera looking at a point
+		var v: PackedFloat64Array = str(args["cam"]).split_floats(",")
+		set_camera_mode(true)
+		free_cam.global_transform = Transform3D(Basis(), Vector3(v[0], v[1], v[2])).looking_at(Vector3(v[3], v[4], v[5]), Vector3.UP)
 	if args.has("yaw"): player.cam_yaw = float(args["yaw"])
 	if args.has("pitch"): player.cam_pitch = float(args["pitch"])
 	if args.has("zoom"): player.target_zoom = float(args["zoom"])
