@@ -1,8 +1,8 @@
 {
   "_doc": "Seeded scatter rules (docs/world_build_notes.md). density = word from game_worlds.md 4.10 (spacing in biomes.json) or spacing = metres. meshes = [alias, weight]. avoid: path / wet / water / steep. recolor = [dark, light] gradient map on leaf cards. petal = colour for red petals (placeholder flowers). trunk_tint / tint multiply. patch = noise mask {freq, threshold}. require: mask channel minimum (wet, special, litter). height = [min, max] metres. near = [landmark, radius, min radius (optional)]. exclude = {landmark: radius} overrides exclusion_radius for this rule. kind tree gets a trunk collider and the tree view distance.",
   "exclusion_radius": {"castle": 42, "village_square": 17, "market": 16, "crafting_area": 13, "portal": 8, "spawn_point": 5,
-    "portal_clearing": 16, "stone_ruin": 12, "waterfall": 4, "standing_stones": 14, "obsidian_cave": 16, "frozen_waterfall": 14,
-    "ice_spire": 14, "stone_arch": 22, "pillar_ring": 20, "giant_titanwood": 14, "hollow_tree": 20, "dreadstone_pit": 18, "sunken_ruins": 16},
+    "portal_clearing": 16, "stone_ruin": 12, "waterfall": 4, "standing_stones": 19, "obsidian_cave": 16, "frozen_waterfall": 14,
+    "ice_spire": 14, "stone_arch": 22, "pillar_ring": 19, "giant_titanwood": 14, "hollow_tree": 20, "dreadstone_pit": 18, "sunken_ruins": 16},
   "meshes": {
     "carpet": "res://assets/models/foliage/forest_grass_carpet.glb",
     "tuft_s": "res://assets/models/foliage/forest_grass_tuft_small.glb",

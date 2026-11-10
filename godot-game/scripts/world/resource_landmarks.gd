@@ -79,11 +79,11 @@ func populate(w: GameWorld) -> void:
 	portal.set("target_spawn", "spawn_point")
 	# landmarks (placeholders; each one is a scene so a real model can replace it)
 	_landmark("stone_ruin", lm, 0.4)
-	_landmark("standing_stones", lm, 0.0)
+	_ruins("standing_stones", lm, 0.5)      # stone circle ruins (J00BA's model) on both ring sites
 	_landmark("frozen_waterfall", lm, 0.0, -2.0)
 	_landmark("ice_spire", lm, 0.3)
 	_landmark("stone_arch", lm, 0.2)
-	_landmark("pillar_ring", lm, 0.0)
+	_ruins("pillar_ring", lm, 2.4)
 	_landmark("hollow_tree", lm, 0.6)
 	_landmark("dreadstone_pit", lm, 0.0)
 	_landmark("sunken_ruins", lm, 0.3, -0.6)
@@ -103,6 +103,11 @@ func _landmark(key: String, lm: Dictionary, yaw: float, sink := 0.0) -> void:
 	var p: Array = lm[key]
 	var n := _place("res://scenes/resource/%s_placeholder.tscn" % key, p[0], p[1], yaw, sink)
 	n.name = key
+
+
+func _ruins(key: String, lm: Dictionary, yaw: float) -> void:
+	var p: Array = lm[key]
+	_place("res://scenes/resource/stone_circle_ruins.tscn", p[0], p[1], yaw).name = key
 
 
 func _place(path: String, x: float, z: float, yaw: float, sink := 0.0) -> Node3D:
