@@ -8,7 +8,7 @@ extends Node3D
 ## - The ~450 cubes are merged into one mesh with one pixel-crisp material (hard alpha for the grass and heather).
 
 const MODEL := preload("res://assets/models/buildings/stone_circle_ruins.glb")
-const SCALE := 1.6                    # 1.6x the Blockbench size: sarsens about 5 m tall, the ring about 17 m across
+const SCALE := 2.0                    # 2x the Blockbench size: sarsens about 6 m tall, the ring about 21 m across
 const NO_COLLIDE := ["grass_tuft", "heather", "pebble", "rubble"]
 const FOOT := 0.6                     # metres round a stone's base sampled for the lowest ground
 

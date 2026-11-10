@@ -251,7 +251,7 @@ PROTOS = {
     "tri_a": upright("tri_a", 31, 12, 8, 64, "flat", 4),
     "tri_b": upright("tri_b", 32, 12, 8, 64, "flat", 4),
     "tri_great": upright("tri_great", 33, 13, 9, 74, "flat", 4, tenon=True),
-    "tri_lintel": lintel("tri_lintel", 34, 32, 8, 8),
+    "tri_lintel": lintel("tri_lintel", 34, 36, 8, 8),
     "tri_lintel_fallen": lying("tri_lintel_fallen", 35, 30, 8, 7, 1, broken=False),
     "tri_great_fallen": lying("tri_great_fallen", 36, 56, 13, 8, 3),
     # bluestones: thin pointed Scottish slabs
@@ -497,7 +497,7 @@ G_GROUND = group("ground_cover", ROOT)
 R_OUT = 84.0
 OUTER = {0: "sarsen_a", 1: "sarsen_b", 2: "sarsen_c", 3: "sarsen_a", 4: "sarsen_b", 5: ("sarsen_rough", 9),
          6: "sarsen_stump", 8: "fallen", 9: "sarsen_rough_2", 10: "sarsen_c", 11: "sarsen_a", 12: "sarsen_stump_2",
-         14: ("sarsen_rough", -7), 15: "sarsen_b", 16: "sarsen_stump", 17: "sarsen_c", 18: "sarsen_a", 19: "sarsen_stump_2"}
+         14: ("sarsen_rough", 7), 15: "sarsen_b", 16: "sarsen_stump", 17: "sarsen_c", 18: "sarsen_a", 19: "sarsen_stump_2"}
 for k in range(20):
     if k not in OUTER: continue
     th = k * 18.0
@@ -514,17 +514,17 @@ for k0, pn in ((0, "lintel"), (1, "lintel_2"), (2, "lintel"), (3, "lintel_2"), (
     th = (k0 + 0.5) * 18.0
     x, z = polar(R_OUT * math.cos(math.radians(9)), th)
     place(pn, G_LIN, f"lintel_{k0}_{k0 + 1}", [x, 50, z], yaw_radial(th), foot=0)
-for k0, dth, dr in ((6, 2.0, -9.0), (13, -3.0, 10.0)):        # lintels that fell with their stones
+for k0, dth, dr in ((6, 2.0, 16.0), (13, -3.0, 16.0)):        # lintels that fell with their stones
     x, z = polar(R_OUT + dr, k0 * 18.0 + 9 + dth)
     place("lintel_fallen", G_FALL, f"lintel_fallen_{k0}", [x, 0, z], yaw_radial(k0 * 18.0) + rng.uniform(-25, 25), roll=4, foot=13)
 
 # ---- trilithon horseshoe, open to the north east
 TRI = [  # theta, radius, upright proto(s), state
-    (225, 30, "tri_great", "great"),
-    (175, 40, ("tri_a", "tri_b"), "whole"),
-    (275, 40, ("tri_b", "tri_a"), "whole"),
-    (125, 46, ("tri_a", "tri_b"), "leaning"),
-    (325, 46, ("tri_b", "tri_a"), "whole"),
+    (225, 32, "tri_great", "great"),
+    (171, 44, ("tri_a", "tri_b"), "whole"),
+    (281, 44, ("tri_b", "tri_a"), "whole"),
+    (121, 52, ("tri_a", "tri_b"), "leaning"),
+    (331, 54, ("tri_b", "tri_a"), "whole"),
 ]
 for n_, (th, r_, pn, state) in enumerate(TRI):
     cx, cz = polar(r_, th)
@@ -534,42 +534,43 @@ for n_, (th, r_, pn, state) in enumerate(TRI):
         # one tall upright still standing with its tenon bare; its partner and the lintel lie broken in front
         x, z = local_to_world(cx, cz, yw, -9.0, 0)
         place("tri_great", tg, f"trilithon_{n_ + 1}_upright_left", [h2(x), 0, h2(z)], yw, lean=-3, foot=9)
-        x, z = local_to_world(cx, cz, yw, 10.0, -22.0)
-        place("tri_great_fallen", tg, f"trilithon_{n_ + 1}_upright_fallen", [h2(x), 0, h2(z)], yw + 68, roll=-2, foot=28)
-        x, z = local_to_world(cx, cz, yw, -20.0, -14.0)
-        place("tri_lintel_fallen", tg, f"trilithon_{n_ + 1}_lintel_fallen", [h2(x), 0, h2(z)], yw - 32, roll=5, foot=16)
+        # the fallen partner lies broken across the altar stone (as at Stonehenge), so the two make one obstacle
+        ax, az = polar(2.0, 225)
+        place("tri_great_fallen", tg, f"trilithon_{n_ + 1}_upright_fallen", [ax, 3.0, az], yaw_radial(225) + 96 + 64, roll=-2, foot=28)
+        x, z = polar(50.0, 228)
+        place("tri_lintel_fallen", tg, f"trilithon_{n_ + 1}_lintel_fallen", [x, 0, z], yaw_radial(228) + 6, roll=5, foot=16)
         continue
     hgt = 64.0
-    for side, sx, p_ in (("left", -8.5, pn[0]), ("right", 8.5, pn[1])):
+    for side, sx, p_ in (("left", -10.5, pn[0]), ("right", 10.5, pn[1])):
         x, z = local_to_world(cx, cz, yw, sx, 0)
-        lean = 12.0 if (state == "leaning" and side == "right") else 0.0
+        lean = -12.0 if (state == "leaning" and side == "right") else 0.0
         place(p_, tg, f"trilithon_{n_ + 1}_upright_{side}", [h2(x), 0, h2(z)], yw, lean=lean, foot=8)
     if state == "whole":
         place("tri_lintel", tg, f"trilithon_{n_ + 1}_lintel", [cx, hgt, cz], yw, foot=0)
     else:
-        x, z = local_to_world(cx, cz, yw, 4.0, 15.0)
-        place("tri_lintel_fallen", tg, f"trilithon_{n_ + 1}_lintel_fallen", [h2(x), 0, h2(z)], yw + 18, roll=-4, foot=16)
+        x, z = polar(101.0, 128)            # dragged away: it lies outside the outer ring
+        place("tri_lintel_fallen", tg, f"trilithon_{n_ + 1}_lintel_fallen", [x, 0, z], yaw_radial(128) + 8, roll=-4, foot=16)
 
 # ---- bluestones: an outer ring of thin pointed slabs and an inner horseshoe
-BLUE_RING = ["blue_a", "blue_c", "blue_b", None, "blue_a", "blue_stump", "fallen", "blue_c", "blue_b", None,
-             "blue_a", "blue_c", "blue_stump", None, "blue_b", "blue_a"]
+BLUE_RING = ["blue_a", "blue_c", "blue_b", None, "blue_a", None, "fallen", "blue_c", "blue_b", None,
+             "blue_a", "blue_c", "blue_stump", None, "blue_b", None]
 for k, pn in enumerate(BLUE_RING):
     if pn is None: continue
     th = k * 22.5 + 11.25
-    x, z = polar(64.0, th)
+    x, z = polar(68.0, th)
     if pn == "fallen":
-        place("blue_fallen", G_FALL, f"bluestone_fallen_{k}", [x, 0, z], yaw_along(th) + 35, roll=6, foot=10)
+        place("blue_fallen", G_FALL, f"bluestone_fallen_{k}", [x, 0, z], yaw_along(th) + 80, roll=6, foot=10)
         continue
     lean = rng.choice([0, 0, 0, 6, -8])
     place(pn, G_BLUE, f"bluestone_{k}", [x, 0, z], yaw_radial(th) + rng.uniform(-12, 12), lean=lean, foot=5)
-for k, th in enumerate(range(115, 345, 30)):
-    pn = ["blue_b", "blue_a", "blue_b", "blue_c", "blue_stump", "blue_b", "blue_a", "blue_b"][k]
-    x, z = polar(19.0, th)
+for k, th in enumerate((96, 134, 174, 284, 320, 358)):
+    pn = ["blue_b", "blue_a", "blue_c", "blue_stump", "blue_b", "blue_a"][k]
+    x, z = polar(26.0 if th in (284, 320) else 24.0, th)
     place(pn, G_BLUE, f"inner_bluestone_{k + 1}", [x, 0, z], yaw_radial(th) + rng.uniform(-10, 10),
           lean=rng.choice([0, 0, 5, -5]), foot=5)
 
 # ---- single stones on the north east axis
-x, z = polar(12.0, 225)
+x, z = polar(2.0, 225)
 place("altar", G_SINGLE, "altar_stone", [x, 0, z], yaw_radial(225) + 90 + 6, foot=16)
 x, z = polar(108.0, 45)
 place("slaughter", G_SINGLE, "slaughter_stone", [x, 0, z], yaw_along(45) + 70, roll=2, foot=14)
