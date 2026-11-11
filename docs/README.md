@@ -33,6 +33,7 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | The top-level direction: pitch, players, core loop | [game_direction.md](game_direction.md) |
 | The hub world and the resource world | [game_worlds.md](game_worlds.md) |
 | How every resource is gathered: tools, tiers, XP | [resource_gathering.md](resource_gathering.md) |
+| How XP, skill levels, the player level and prestige work (draft) | [xp_system.md](xp_system.md) |
 | How a short request becomes a Blockbench build spec | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) |
 
 How to run the game, and the GitHub workflow, stay at the repo root: [README.md](../README.md) and [CLAUDE.md](../CLAUDE.md).
