@@ -10,15 +10,19 @@ extends Node
 ## - The server decides names and looks: a signed-in impz.club account (Profile menu) shows its
 ##   username and the traits its wallet holds; everyone else is "Guest 1234" in the base Imp.
 ## If the server can't be reached the game carries on alone and tries again every few seconds.
+## - One game per player: the hello carries this browser's device id (and the wallet when signed in). A
+##   newer game with the same id or wallet replaces this one, which then stops (state "replaced") and
+##   doesn't reconnect until the page is reloaded, so two tabs never fight over the account.
 
 signal status_changed            # connecting / online / offline, or the player count changed
 
 const CONFIG := "res://config/server.cfg"
+const DEVICE_FILE := "user://device_id"   # the browser's storage on the web: shared by its tabs
 const SEND_EVERY := 0.1
 const RemoteImp := preload("res://scripts/player/remote_imp.gd")
 
 var url := ""
-var state := "offline"           # offline | connecting | online | full
+var state := "offline"           # offline | connecting | joining | online | full | replaced
 var my_id := 0
 var my_name := ""
 var online := 0
@@ -35,10 +39,13 @@ var _info := {}                  # id -> {name, guest, look, world, s}
 var _holder: Node3D
 var _shown_world := ""           # the world _refresh_visible last placed Imps for
 var _hud: Label
+var _notice: Label                 # the big "playing in another window" line
+var _device := ""
 
 
 func _ready() -> void:
 	url = _pick_url()
+	_device = _device_id()
 	_make_hud()
 	Look.changed.connect(func(): _send({t = "look", look = Look.worn}))
 	_show()                               # _process connects once the first world has loaded
@@ -55,6 +62,21 @@ func _pick_url() -> String:
 	return str(cfg.get_value("server", "url", "")).strip_edges() if cfg.load(CONFIG) == OK else ""
 
 
+## A random id kept in user://, the same for every tab of this browser.
+func _device_id() -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--bot"):           # a test player beside a normal game on this computer
+			return Crypto.new().generate_random_bytes(16).hex_encode()
+	var id := FileAccess.get_file_as_string(DEVICE_FILE).strip_edges() if FileAccess.file_exists(DEVICE_FILE) else ""
+	if id.length() != 32:
+		var c := Crypto.new()
+		id = c.generate_random_bytes(16).hex_encode()
+		var f := FileAccess.open(DEVICE_FILE, FileAccess.WRITE)
+		if f:
+			f.store_string(id)
+	return id
+
+
 # --- connection ---------------------------------------------------------------------------
 
 func _connect() -> void:
@@ -68,9 +90,10 @@ func _connect() -> void:
 
 func _lost() -> void:
 	var was_full := state == "full"
+	var replaced := state == "replaced" or (_ws != null and _ws.get_close_code() == 4001)
 	_ws = null
 	my_id = 0
-	state = "full" if was_full else "offline"
+	state = "replaced" if replaced else ("full" if was_full else "offline")
 	_auth = ["", ""]
 	for id in _remotes.keys():
 		_remove(id)
@@ -83,6 +106,8 @@ func _lost() -> void:
 
 func _process(delta: float) -> void:
 	if _ws == null:
+		if state == "replaced":
+			return                        # another window has this player now: stay out until a reload
 		# Join only once a world has loaded, so the hello carries the real spawn spot: the server takes
 		# the hello's position as given and holds every later move to running speed (anti-cheat).
 		if url != "" and not _me().is_empty():
@@ -151,7 +176,7 @@ func _hello() -> void:
 	_world = me[0] if me else "hub"
 	var pos: Vector3 = me[1] if me else Vector3.ZERO
 	_send({t = "hello", v = 1, world = _world, p = [pos.x, pos.y, pos.z], y = me[2] if me else 0.0,
-			m = me[3] if me else 0, look = Look.worn, wallet = acct[0], session = acct[1]})
+			m = me[3] if me else 0, look = Look.worn, wallet = acct[0], session = acct[1], device = _device})
 
 
 func _send_moves() -> void:
@@ -232,6 +257,9 @@ func _on_message(msg: Dictionary) -> void:
 		"full":
 			state = "full"
 			_show()
+		"replaced":                                    # the same player joined from another window
+			state = "replaced"
+			_show()
 		"ore_event":                                   # a voidstone / stellarite vein appeared (OreEvents)
 			OreEvents.on_server_event(msg.get("ev", {}))
 		"ore_event_end":
@@ -304,6 +332,20 @@ func _make_hud() -> void:
 	_hud.add_theme_constant_override("outline_size", 5)
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_hud)
+	_notice = Label.new()
+	_notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_notice.offset_top = 90
+	_notice.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_notice.add_theme_font_size_override("font_size", 22)
+	_notice.add_theme_color_override("font_color", Color(1.0, 0.86, 0.4))
+	_notice.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_notice.add_theme_constant_override("outline_size", 8)
+	_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_notice.text = "You're playing in another window.
+Reload this page to play here instead."
+	_notice.visible = false
+	layer.add_child(_notice)
 
 
 func _show() -> void:
@@ -314,6 +356,9 @@ func _show() -> void:
 			_hud.text = "Beta · connecting…"
 		"full":
 			_hud.text = "Beta · the server is full, trying again soon"
+		"replaced":
+			_hud.text = "Beta · playing in another window"
 		_:
 			_hud.text = "Beta · offline, playing alone" if url != "" else ""
+	_notice.visible = state == "replaced"
 	status_changed.emit()

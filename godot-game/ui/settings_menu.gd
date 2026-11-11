@@ -1,7 +1,8 @@
 extends CanvasLayer
 ## Settings (game_menus.md section 3.4), as the Settings autoload: the gear button left of Profile in
 ## the top-right corner, and a window with three tabs:
-## - Options: fullscreen, shadows, camera field of view, mouse sensitivity, invert camera up/down,
+## - Options: fullscreen, shadows, camera field of view, text style (pixel or Arial), mouse sensitivity,
+##   invert camera up/down,
 ## - Sound: a volume slider per audio bus (Master, Music, Effects, Ambient, Interface) and Mute all,
 ## - Controls: help listing every key, read from the Input Map so it always matches the real bindings.
 ## Esc opens it when no other menu is open, and closes it. Values save to user://settings.cfg (this device).
@@ -12,6 +13,10 @@ extends CanvasLayer
 signal changed
 
 const FILE := "user://settings.cfg"
+## Text style: the game's pixel font, or Arimo (free, made to match Arial's letter sizes; Arial itself
+## can't be shipped in the game).
+const FONTS := {"pixel": "res://ui/fonts/PixelifySans.ttf", "arial": "res://ui/fonts/Arimo.ttf"}
+const FONT_NAMES := {"pixel": "Pixel", "arial": "Arial"}
 const BUSES := ["Master", "Music", "Effects", "Ambient", "Interface"]
 const BUS_HELP := {
 	"Master": "Everything", "Music": "Songs", "Effects": "Mining, crafting, footsteps",
@@ -37,6 +42,8 @@ const TEST_KEYS := [
 
 var fullscreen := false
 var shadows := true
+var text_font := "pixel"         # a key of FONTS
+var _font_shown := ""
 var fov := 62.0
 var mouse_sensitivity := 1.0      # times the controller's own orbit_sensitivity
 var invert_y := false
@@ -83,7 +90,24 @@ func _apply() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
 	for sun in get_tree().root.find_children("*", "DirectionalLight3D", true, false):
 		_apply_shadows(sun)
+	_apply_font()
 	changed.emit()          # the player's camera reads fov, mouse_sensitivity and invert_y (imp_player.gd)
+
+
+## The font all text uses (menus, HUD, name tags): Text style in Options.
+func font() -> Font:
+	return load(FONTS.get(text_font, FONTS.pixel)) as Font
+
+
+## Swaps the default font every menu and label falls back to, then tells every Control to look again.
+func _apply_font() -> void:
+	if text_font == _font_shown:
+		return
+	_font_shown = text_font
+	var f := font()
+	ThemeDB.get_default_theme().default_font = f
+	ThemeDB.fallback_font = f
+	get_tree().root.propagate_notification(Control.NOTIFICATION_THEME_CHANGED)
 
 
 func _on_node_added(node: Node) -> void:
@@ -114,6 +138,7 @@ func set_volume(bus: String, value: float) -> void:
 func reset() -> void:
 	fullscreen = false
 	shadows = true
+	text_font = "pixel"
 	fov = 62.0
 	mouse_sensitivity = 1.0
 	invert_y = false
@@ -131,6 +156,9 @@ func _load() -> void:
 		return
 	fullscreen = bool(cfg.get_value("options", "fullscreen", fullscreen))
 	shadows = bool(cfg.get_value("options", "shadows", shadows))
+	text_font = str(cfg.get_value("options", "text_font", text_font))
+	if not FONTS.has(text_font):
+		text_font = "pixel"
 	fov = clampf(float(cfg.get_value("options", "fov", fov)), 45.0, 90.0)
 	mouse_sensitivity = clampf(float(cfg.get_value("options", "mouse_sensitivity", mouse_sensitivity)), 0.25, 3.0)
 	invert_y = bool(cfg.get_value("options", "invert_y", invert_y))
@@ -141,7 +169,7 @@ func _load() -> void:
 
 func _save() -> void:
 	var cfg := ConfigFile.new()
-	for key in ["fullscreen", "shadows", "fov", "mouse_sensitivity", "invert_y"]:
+	for key in ["fullscreen", "shadows", "text_font", "fov", "mouse_sensitivity", "invert_y"]:
 		cfg.set_value("options", key, get(key))
 	cfg.set_value("sound", "muted", muted)
 	for bus in BUSES:
@@ -211,6 +239,7 @@ func _render_options() -> void:
 	_heading("Display")
 	_toggle_row("Fullscreen", "fullscreen")
 	_toggle_row("Shadows", "shadows", "Turn off for more speed on slow computers.")
+	_choice_row("Text style", "text_font", FONT_NAMES, "Pixel is the game's own font; Arial is plainer and easier to read.")
 	_slider_row("Field of view", fov, 45.0, 90.0, 1.0, func(v): set_value("fov", v), func(v): return "%d°" % int(v))
 	_heading("Camera")
 	_slider_row("Mouse sensitivity", mouse_sensitivity, 0.25, 3.0, 0.05, func(v): set_value("mouse_sensitivity", v),
@@ -305,6 +334,17 @@ func _toggle_row(text: String, key: String, help := "") -> void:
 	if on:
 		b.add_theme_color_override("font_color", UIKit.GOOD)
 		b.add_theme_color_override("font_hover_color", UIKit.GOOD)
+	r.add_child(b)
+
+
+## A button that steps through `names` ({value: shown name}).
+func _choice_row(text: String, key: String, names: Dictionary, help := "") -> void:
+	var r := UIKit.row(_list)
+	r.add_child(_name_box(text, help))
+	var keys := names.keys()
+	var at := maxi(keys.find(get(key)), 0)
+	var b := UIKit.button(str(names[keys[at]]), true, func(): set_value(key, keys[(at + 1) % keys.size()]); _refresh())
+	b.custom_minimum_size.x = 80
 	r.add_child(b)
 
 

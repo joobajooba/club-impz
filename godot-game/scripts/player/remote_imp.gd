@@ -26,9 +26,10 @@ func _init(player_id: int, look: Dictionary, player_name: String) -> void:
 	visual.set_look(look)
 	add_child(visual)
 	label = Label3D.new()
-	label.position = Vector3(0, 1.55, 0)
+	label.position = Vector3(0, 1.3, 0)  # moved to just over the head once the Imp is built (_fit_label)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	# world sized (about 14 cm tall), so it is small but readable beside the Imp and shrinks with distance
+	# world sized (about 14 cm tall), so it is small but readable beside the Imp and gets smaller on screen
+	# as the camera zooms out, never bigger
 	label.fixed_size = false
 	label.pixel_size = 0.0045
 	label.font_size = 32
@@ -38,12 +39,39 @@ func _init(player_id: int, look: Dictionary, player_name: String) -> void:
 	set_player_name(player_name, false)
 
 
+func _ready() -> void:
+	label.font = Settings.font()
+	Settings.changed.connect(_on_settings_changed)
+	_fit_label()
+
+
+func _on_settings_changed() -> void:
+	label.font = Settings.font()
+
+
+## Puts the name just over the top of the Imp, whatever it wears (a tall hat or wings lift it).
+func _fit_label() -> void:
+	for i in 2:                             # the look is built over a frame
+		await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var top := 0.0
+	var to_me := global_transform.affine_inverse()
+	for m in visual.find_children("*", "VisualInstance3D", true, false):
+		var box: AABB = (to_me * (m as VisualInstance3D).global_transform) * (m as VisualInstance3D).get_aabb()
+		top = maxf(top, box.end.y)
+	if top > 0.3:
+		label.position.y = top + 0.14
+
+
 func is_on_floor() -> bool:
 	return _moving != 2
 
 
 func set_look(look: Dictionary) -> void:
 	visual.set_look(look)
+	if is_inside_tree():
+		_fit_label()
 
 
 func set_player_name(player_name: String, guest: bool) -> void:

@@ -256,6 +256,19 @@ async function identify(p, wallet, session) {
   p.name = account?.username || guestName(p.id);
 }
 
+// One game per player: a newer game from the same browser (device id) or the same signed-in wallet
+// replaces the older one, which is told and closed with code 4001 and doesn't reconnect by itself.
+function replaceOthers(p) {
+  for (const o of players.values()) {
+    if (o === p) continue;
+    if ((p.device && o.device === p.device) || (p.wallet && o.wallet === p.wallet)) {
+      send(o, { t: "replaced" });
+      o.ws.close(4001, "replaced");
+      console.log(`#${o.id} ${o.name} replaced by #${p.id} (another window)`);
+    }
+  }
+}
+
 async function setLook(p, look) {
   const shown = await allowedLook(look, p.wallet);
   if (players.has(p.id)) p.look = shown;
@@ -268,7 +281,10 @@ async function onMessage(p, msg) {
       p.greeting = true;
       p.world = WORLDS.has(msg.world) ? msg.world : "hub";
       readState(p, msg, true);
+      p.device = /^[0-9a-f]{32}$/.test(String(msg.device || "")) ? String(msg.device) : "";
       await identify(p, msg.wallet, msg.session);
+      if (!players.has(p.id)) return;
+      replaceOthers(p);
       await setLook(p, msg.look);
       if (!players.has(p.id)) return;
       p.ready = true;
@@ -328,6 +344,7 @@ async function onMessage(p, msg) {
       if (!p.ready) return;
       throttled(p, "auth", async () => {
         await identify(p, msg.wallet, msg.session);
+        if (players.has(p.id)) replaceOthers(p);
         await setLook(p, msg.look);
         if (players.has(p.id)) broadcast({ t: "update", id: p.id, name: p.name, guest: p.guest, look: p.look });
       });
