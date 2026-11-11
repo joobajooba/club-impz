@@ -3,8 +3,8 @@ extends Node3D
 ## model can replace it later (docs/world_build_notes.md lists them all). Built from boxes, cylinders and cones,
 ## with simple box colliders for the solid parts.
 
-@export_enum("castle", "market_stall", "smelter", "workbench", "anvil", "standing_stones", "stone_arch", "stone_ruin",
-	"ice_spire", "frozen_waterfall", "pillar_ring", "hollow_tree", "dreadstone_pit", "log_bridge", "obsidian_vent",
+@export_enum("castle", "market_stall", "smelter", "workbench", "anvil", "stone_arch", "stone_ruin",
+	"ice_spire", "frozen_waterfall", "hollow_tree", "dreadstone_pit", "log_bridge", "obsidian_vent",
 	"sunken_ruins", "giant_stone_peak_cairn", "waterfall_rocks") var kind := "castle"
 @export var colour_seed := 0
 
@@ -148,15 +148,6 @@ func _build_anvil() -> void:
 
 
 # ---------------------------------------------------------------- resource world landmarks
-func _build_standing_stones() -> void:
-	for i in 9:
-		var a := i * TAU / 9.0
-		var h := 4.5 + (i % 3) * 1.2
-		var s := box(Vector3(1.4, h, 0.8), Vector3(cos(a) * 9.0, 0, sin(a) * 9.0), Color("#7a7e8a"), true, -a)
-		s.rotation.z = deg_to_rad(((i * 37) % 9) - 4)
-	box(Vector3(3, 1.0, 1.6), Vector3(0, 0, 0), Color("#6a6e7a"))
-
-
 func _build_stone_arch() -> void:
 	var col := Color("#c49a6a")
 	box(Vector3(6, 26, 7), Vector3(-12, 0, 0), col)
@@ -188,16 +179,6 @@ func _build_frozen_waterfall() -> void:
 	for i in 7:
 		box(Vector3(2.4, 22 - (i % 3) * 3, 2.0), Vector3(-7 + i * 2.3, 0, (i % 2) * 0.8), ice.darkened(0.05 * (i % 3)), true)
 	box(Vector3(20, 2, 8), Vector3(0, 0, 3), Color("#d0ecf8"))
-
-
-func _build_pillar_ring() -> void:
-	var col := Color("#d8c098")
-	for i in 10:
-		var a := i * TAU / 10.0
-		var h := 12.0 if i % 3 else 7.0
-		cyl(1.4, 1.2, h, Vector3(cos(a) * 15, 0, sin(a) * 15), col, true, 8)
-		if i % 2 == 0 and h > 10:
-			box(Vector3(4, 1.4, 3), Vector3(cos(a) * 15, h, sin(a) * 15), col.darkened(0.1), false, -a)
 
 
 func _build_hollow_tree() -> void:
