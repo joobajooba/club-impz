@@ -668,7 +668,7 @@ def swamp_boardwalk(t):
 TEXTURES = [
     ("hub", "hub_grass", hub_grass),
     ("hub", "hub_dirt_path", hub_dirt_path),
-    ("hub", "hub_cobblestone", hub_cobblestone),
+    # hub_cobblestone is made at 256 px by tools/generate_hub_cobblestone.py (more detail, 2026-11-09)
     ("forest", "forest_grass", forest_grass),
     ("forest", "forest_grass_dry", forest_grass_dry),
     ("forest", "forest_dirt", forest_dirt),
