@@ -321,6 +321,13 @@ R = {
     "hub_path": ramp("#3a2a1e", "#503826", "#664830", "#7c5a3c", "#926c48", "#a67e56", "#b89066"),
     "cobble": ramp("#2a2828", "#3c3834", "#504a44", "#665e56", "#7c736a", "#928a80", "#aaa298", "#c0b8ac"),
     "mortar": ramp("#1e1814", "#2a2218", "#3a3022", "#4a3e2c"),
+    # smooth cliff stone: many close shades, so broad gradients step softly instead of showing stones
+    "cliff_stone": ramp("#3a3e46", "#40444c", "#464a53", "#4c5059", "#52575f", "#595d66", "#5f646c", "#666a73",
+                        "#6c7179", "#737780"),
+    "cliff_stone_frost": ramp("#4e5868", "#545e6f", "#5b6575", "#616c7c", "#687383", "#6f7a8a", "#768191",
+                              "#7d8898", "#848f9f", "#8b96a6"),
+    "cliff_stone_sand": ramp("#6a5240", "#715845", "#785e4a", "#7f6450", "#866a55", "#8d715b", "#947761",
+                             "#9b7e67", "#a2846d", "#a98b73"),
 }
 
 
@@ -709,6 +716,53 @@ def swamp_boardwalk(t):
     t.fill(R["moss"], 0.2 + 0.5 * fbm(32, 2, t.seed()), moss)
 
 
+def smooth_stone(t, rmp):
+    """Smooth, weathered cliff stone: one solid face with soft tonal drift and gentle horizontal bedding.
+    No stones, pebbles, cracks, lichen or hue blotches. Tone steps between close shades with a 4 x 4 ordered
+    dither, so gradients read smooth instead of as blobs with hard outlines. Rows of the tile run along world
+    height on cliff faces (the side projections use y as v), and the bedding depends on the row (plus a slow
+    wobble), so it lines up across the seams between the x and z projections. The shader adds the large scale
+    light and dark, so the tile itself stays low contrast and doesn't show its repeat."""
+    yy, xx = np.mgrid[0:S, 0:S].astype(float)
+    broad = fbm(2, 2, t.seed())
+    mid = fbm(4, 2, t.seed())
+    wob = 4 * K * (fbm(3, 2, t.seed()) - 0.5)
+    v = (yy + wob) / S
+    bands = 0.6 * np.sin(2 * math.pi * 3 * v + 1.3) + 0.4 * np.sin(2 * math.pi * 5 * v + 0.4)
+    lvl = 0.5 + 0.2 * (broad - 0.5) + 0.1 * (mid - 0.5) + 0.025 * bands
+    bayer = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]], float) / 16.0
+    # one dither cell is K x K texels, so it reads at the same size on the ground at any K
+    dith = np.kron(bayer, np.ones((K, K)))
+    dith = np.tile(dith, (S // dith.shape[0], S // dith.shape[1]))
+    n = len(rmp) - 1
+    idx = np.clip(np.floor(lvl * n + dith), 0, n).astype(int)
+    t.img[:] = rmp[idx]
+    # one faint bedding joint: a darker texel row with a lit lip under it, fading in and out along the face
+    for y0 in (int(S * 0.62),):
+        line_wob = 2 * K * (fbm(3, 2, t.seed())[0] - 0.5)
+        fade = fbm(3, 2, t.seed())[0]
+        for x in range(S):
+            if fade[x] < 0.45:
+                continue
+            k = min(1.0, (fade[x] - 0.45) / 0.2)
+            y = int(round(y0 + line_wob[x])) % S
+            for a in range(K // 2 or 1):
+                t.img[(y + a) % S, x] *= 1 - 0.07 * k
+            t.img[(y + max(1, K // 2)) % S, x] *= 1 + 0.04 * k
+
+
+def cliff_stone(t):
+    smooth_stone(t, R["cliff_stone"])
+
+
+def cliff_stone_frost(t):
+    smooth_stone(t, R["cliff_stone_frost"])
+
+
+def cliff_stone_sand(t):
+    smooth_stone(t, R["cliff_stone_sand"])
+
+
 TEXTURES = [
     ("hub", "hub_grass", hub_grass),
     ("hub", "hub_dirt_path", hub_dirt_path),
@@ -738,6 +792,10 @@ TEXTURES = [
     ("swamp", "swamp_grass", swamp_grass),
     ("swamp", "swamp_slime", swamp_slime),
     ("swamp", "swamp_boardwalk", swamp_boardwalk),
+    # appended (layer indices 28 to 30), so the indices above never move
+    ("cliff", "cliff_stone", cliff_stone),
+    ("cliff", "cliff_stone_frost", cliff_stone_frost),
+    ("cliff", "cliff_stone_sand", cliff_stone_sand),
 ]
 
 

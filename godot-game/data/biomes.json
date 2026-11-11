@@ -28,7 +28,10 @@
     "swamp_moss",
     "swamp_grass",
     "swamp_slime",
-    "swamp_boardwalk"
+    "swamp_boardwalk",
+    "cliff_stone",
+    "cliff_stone_frost",
+    "cliff_stone_sand"
   ],
   "band_depth": 256.0,
   "blend_half_width": 22.5,
@@ -95,7 +98,7 @@
         "special_on_steep": true,
         "path": 7,
         "border_patch": 0.0,
-        "cliff": 9,
+        "cliff": 28,
         "cap": 11,
         "cap_y": 140
       },
@@ -124,7 +127,7 @@
         "patch": -1,
         "patch_threshold": 1.0,
         "litter": -1,
-        "steep": 9,
+        "steep": 28,
         "steep_slope": 0.4,
         "mid": 10,
         "mid_slope": 0.22,
@@ -134,7 +137,7 @@
         "special": -1,
         "path": 12,
         "border_patch": 0.0,
-        "cliff": 9,
+        "cliff": 28,
         "cap": 11,
         "cap_y": 55
       },
@@ -163,7 +166,7 @@
         "patch": 17,
         "patch_threshold": 0.8,
         "litter": -1,
-        "steep": 16,
+        "steep": 29,
         "steep_slope": 0.42,
         "mid": -1,
         "high": 13,
@@ -172,7 +175,7 @@
         "special": -1,
         "path": 15,
         "border_patch": 1.0,
-        "cliff": 16,
+        "cliff": 29,
         "cap": 13,
         "cap_y": 30
       },
@@ -201,7 +204,7 @@
         "patch": 19,
         "patch_threshold": 0.7,
         "litter": -1,
-        "steep": 21,
+        "steep": 30,
         "steep_slope": 0.4,
         "mid": -1,
         "high": 21,
@@ -210,7 +213,7 @@
         "special": 19,
         "path": 22,
         "border_patch": 0.0,
-        "cliff": 21,
+        "cliff": 30,
         "cap": -1,
         "cap_y": 9999
       },
@@ -248,7 +251,7 @@
         "special": 26,
         "path": 5,
         "border_patch": 0.0,
-        "cliff": 9,
+        "cliff": 28,
         "cap": 8,
         "cap_y": 20
       },

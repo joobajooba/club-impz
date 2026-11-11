@@ -6,7 +6,7 @@ extends Node3D
 ## - A HeightMapShape3D collider for the chunks next to the local player.
 ## - A low detail far mesh (8 m spacing) of the whole world, hidden close to the camera, so distant peaks and
 ##   landmarks stay visible (fog hides most of it).
-## - One Texture2DArray with the 28 ground textures (terrain_textures.md section 2) and the terrain shader.
+## - One Texture2DArray with the 31 ground textures (terrain_textures.md section 2) and the terrain shader.
 ## - Worlds with a skirt (the resource world): one ring of detailed chunks outside the border (the cliff face, with
 ##   colliders) and the far mesh stretched over the mountains beyond, so the world ends in cliffs, not a drop.
 ##   Tall invisible walls stand just behind the cliff tops in case anything gets up there.

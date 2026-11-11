@@ -1,6 +1,7 @@
 shader_type spatial;
 // Terrain material (docs/terrain_textures.md section 4). Works in the Compatibility renderer.
-// - All 28 ground textures in one Texture2DArray, layer order from terrain_textures.md section 2.
+// - All 31 ground textures in one Texture2DArray, layer order from terrain_textures.md section 2 (the three
+//   smooth cliff_stone layers appended at 28 to 30).
 // - UV from world position: xz / 4 (one 256 px tile = 4 m = 64 px per metre). Slopes use the dominant axis
 //   projection only (no blending of two projections, which smeared and doubled the pixels); the seams between
 //   projections are broken up on the pixel grid.
@@ -9,7 +10,7 @@ shader_type spatial;
 // - Inside a biome the layer rules from terrain_textures.md section 4.2 pick base, patches, litter, wet,
 //   high ground, scree, special patches, steep rock and paths. Layer edges use the clumped dither too, so they
 //   read as clean, ragged edges instead of salt-and-pepper speckle.
-// - Outside the world's border (the skirt's cliffs and mountains): steep ground is the biome's cliff rock and
+// - Outside the world's border (the skirt's cliffs and mountains): steep ground is the biome's smooth cliff stone and
 //   ground above cap_y its cap layer (snow).
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_disabled;
 
@@ -157,7 +158,10 @@ void fragment() {
 	// cliffs also get faint horizontal strata
 	col *= 0.92 + 0.16 * (vnoise(wpos.xz / 23.0) * 0.6 + vnoise(wpos.xz / 7.0) * 0.4);
 	if (steep) {
-		col *= 0.86 + 0.24 * vnoise(vec2((wpos.x + wpos.z) / 9.0, wpos.y / 2.2));
+		// cliff faces: broad bedding layers a few metres tall and big light and dark sweeps across the face,
+		// in world space, so the smooth stone never shows its 4 m repeat
+		float along = (wpos.x + wpos.z);
+		col *= 0.9 + 0.16 * vnoise(vec2(along / 14.0, wpos.y / 3.5)) + 0.08 * vnoise(vec2(along / 40.0, wpos.y / 16.0));
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
