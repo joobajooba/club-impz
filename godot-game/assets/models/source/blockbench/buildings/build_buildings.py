@@ -11,8 +11,17 @@ slate roofs built from stepped tiers, stepped spires with iron finials, dormers 
 Doors are 16 x 28 next to the 18 unit imp. Backs are finished but simpler. No animation, no glow
 except lit windows on the tavern. 2 px per unit; big wall and roof faces crop shared swatches.
 
-Writes godot-game/assets/models/buildings/<id>.bbmodel (+ textures/buildings/) and
-buildings_lineup.bbmodel.
+Second set (2026-11-08), to the same guide: a guild hall (challenges and trophies) with a crow-stepped
+frontispiece and clock tower, a market hall on an open arcade, a stable with a hay loft, a gatehouse
+over the road, a narrow townhouse with crow-stepped gables, and a windmill. They add gable roofs
+(B.gable_roof), and with B(name, split=True) cut faces bigger than a shared swatch into pieces and
+share the paint of repeated small parts, so each still fits one 512 texture after the 2 px island
+padding of build scripts/fix_texture_bleed.py.
+
+    python build_buildings.py guild_hall market_hall stable gatehouse townhouse windmill
+
+Writes godot-game/assets/models/buildings/<id>.bbmodel (+ textures/buildings/) and, when every
+building is built, buildings_lineup.bbmodel.
 """
 import subprocess
 import sys
@@ -62,7 +71,9 @@ M = dict(
 class B:
     """Building helper: groups (section 3.11.2) and the castle's repeated parts."""
 
-    def __init__(self, name):
+    def __init__(self, name, split=False):
+        """split: cut oversized swatch faces into pieces (see c); used by the second set."""
+        self.split = split
         self.m = Model(name, ppu=PPU, max_texture=512)
         self.root = self.m.group(name)
         self.g = {k: self.m.group(k, (0, 0, 0), self.root) for k in
@@ -73,8 +84,36 @@ class B:
         self.n[base] = self.n.get(base, 0) + 1
         return f"{base}_{self.n[base]}"
 
+    # repeated small parts that share one painted rect per size and face (second set only), so a big
+    # building's atlas still fits 512 once every island gets its 2 px padding
+    SHARED = {"quoin", "corbel", "merlon", "window_frame", "window_sill", "window_lintel", "window_mullion",
+              "window_transom", "window_arch", "window_arch_key", "window_glass", "shutter", "timber_post",
+              "pillar", "pillar_base", "pillar_capital", "arch", "portcullis_bar", "portcullis_spike", "door_bar",
+              "hay_bale", "sail_spar", "sail", "sail_bar", "crate"}
+
     def c(self, group, base, frm, to, mat, **kw):
-        return self.m.cube(self.name(base), frm, to, M[mat] if isinstance(mat, str) else mat, self.g[group], **kw)
+        mat = M[mat] if isinstance(mat, str) else mat
+        if self.split and base in self.SHARED and "share" not in kw:
+            kw["share"] = base
+        sw = mat.opts.get("swatch")
+        if self.split and sw and not kw.get("decal") and not kw.get("rotation"):
+            # a face bigger than the shared swatch would get its own texture area; cut the cube into
+            # pieces that each fit, so every face still crops the swatch (the paint follows world
+            # position and these materials have no edge lines, so the cuts don't show)
+            d = [to[i] - frm[i] for i in range(3)]
+            lim = (sw[0] / PPU, sw[1] / PPU, min(sw) / PPU)
+            n = [max(1, -int(-d[0] // lim[0])), max(1, -int(-d[1] // lim[1])), max(1, -int(-d[2] // lim[2]))]
+            if n != [1, 1, 1]:
+                first = None
+                for i in range(n[0]):
+                    for j in range(n[1]):
+                        for k in range(n[2]):
+                            a = (frm[0] + d[0] * i / n[0], frm[1] + d[1] * j / n[1], frm[2] + d[2] * k / n[2])
+                            b = (frm[0] + d[0] * (i + 1) / n[0], frm[1] + d[1] * (j + 1) / n[1], frm[2] + d[2] * (k + 1) / n[2])
+                            cube = self.m.cube(self.name(base), a, b, mat, self.g[group], **kw)
+                            first = first or cube
+                return first
+        return self.m.cube(self.name(base), frm, to, mat, self.g[group], **kw)
 
     def ring(self, group, base, x0, x1, z0, z1, y0, y1, out, mat, into=0.5):
         """A band round a block as four strips (out past the wall, `into` back into it), so the
@@ -235,6 +274,40 @@ class B:
         self.c("details", "chimney_cap", (x - w / 2 - 0.75, y1, z - w / 2 - 0.75), (x + w / 2 + 0.75, y1 + 1, z + w / 2 + 0.75), "ledge")
         self.c("details", "chimney_pot", (x - 1, y1 + 1, z - 1), (x + 1, y1 + 3, z + 1), "iron")
 
+    def gable_roof(self, x0, x1, z0, z1, y, axis="x", step=2.0, tier_h=2.5, overhang=2.0, core="wall", crow=()):
+        """A gabled slate roof of stepped tiers with its ridge along `axis`. Each tier is two slate strips
+        (the slopes) and a core of `core` between them, so the gable ends read as a stepped wall flush
+        with the wall below. crow: the ends ("start" = x0/z0, "end" = x1/z1) that get crow steps, a stepped
+        gable wall standing proud above the slate with a coping ledge on each step."""
+        U0, U1, V0, V1 = (x0, x1, z0, z1) if axis == "x" else (z0, z1, x0, x1)
+
+        def cube(base, u0, u1, yy0, yy1, v0, v1, mat, group="roofs", **kw):
+            if axis == "x":
+                return self.c(group, base, (u0, yy0, v0), (u1, yy1, v1), mat, **kw)
+            return self.c(group, base, (v0, yy0, u0), (v1, yy1, u1), mat, **kw)
+
+        e0 = 0 if "start" in crow else 1.5
+        e1 = 0 if "end" in crow else 1.5
+        a, b = V0 - overhang, V1 + overhang
+        cube("eave", U0 - e0, U1 + e1, y, y + 1.5, a, V0 + 0.5, "eave")
+        cube("eave", U0 - e0, U1 + e1, y, y + 1.5, V1 - 0.5, b, "eave")
+        y += 1.5
+        while b - a > 2 * step + 1:
+            a, b = a + step, b - step
+            cube("roof_tier", U0 - e0, U1 + e1, y, y + tier_h, a, min(a + step + 0.5, (a + b) / 2), "slate", hide=("down",))
+            cube("roof_tier", U0 - e0, U1 + e1, y, y + tier_h, max(b - step - 0.5, (a + b) / 2), b, "slate", hide=("down",))
+            if b - a > 2 * step + 1:
+                cube("gable", U0, U1, y, y + tier_h, a + step + 0.5, b - step - 0.5, core, hide=("down",))
+            for end in crow:
+                u0, u1 = (U0 - 1, U0 + 1.5) if end == "start" else (U1 - 1.5, U1 + 1)
+                cube("crow_step", u0, u1, y, y + tier_h + 1, a + 0.5, b - 0.5, "wall", group="walls")
+                cube("crow_coping", u0 - 0.5, u1 + 0.5, y + tier_h + 1, y + tier_h + 1.75, a, b, "ledge", group="walls")
+            y += tier_h
+        m = (a + b) / 2
+        cube("ridge", U0 - e0, U1 + e1, y, y + 1.5, m - 1.5, m + 1.5, "slate", hide=("down",))
+        cube("ridge_crest", U0 - e0 + 1, U1 + e1 - 1, y + 1.5, y + 2.25, m - 0.5, m + 0.5, "iron")
+        return y + 2.25
+
     def dormer(self, face, along, y, at):
         """Stone dormer on the roof line: box, stepped little gable, window."""
         out = -1 if face == "n" else 1
@@ -251,8 +324,8 @@ class B:
         self.c("details", "banner", (along - w / 2, y, z0), (along + w / 2, y + h, z1), "cloth")
         self.c("details", "banner_tip", (along - w / 2 + 1.5, y - 2, z0), (along + w / 2 - 1.5, y, z1), "cloth")
 
-    def done(self):
-        self.m.scale_dummy((0, 0, -40))
+    def done(self, dummy=(0, 0, -40)):
+        self.m.scale_dummy(dummy)
         return self.m
 
 
@@ -440,8 +513,300 @@ def watchtower():
     return b.done()
 
 
+# ---------------------------------------------------------------- second set (2026-11-08)
+
+HAY = Mat("hay", ramp("#5a4214", "#7a5a1c", "#9c7826", "#bc9634", "#d6b24a", "#ead070"), "fur", base=3)
+CANVAS = Mat("sail_canvas", ramp("#6e6456", "#8a7f6e", "#a89c88", "#c2b6a0", "#d8ceb8", "#e8e0cc"), "cloth", base=4, fold=4)
+GOLD = Mat("gilt", ramp("#4a3410", "#7a5818", "#a87c24", "#d0a238", "#ecc45a", "#f8e090"), "metal", base=3, bevel=True)
+
+
+def _clock_face(a, f, w, h):
+    if f != "north":
+        return
+    rim, tick, hand = (214, 166, 64), (60, 52, 44), (36, 34, 38)
+    cx, cy, r = (w - 1) / 2, (h - 1) / 2, min(w, h) / 2 - 1.5
+    for y in range(h):
+        for x in range(w):
+            d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+            if abs(d - r) < 0.75:
+                put(a, x, y, rim)
+    for x, y in ((cx, cy - r + 2), (cx, cy + r - 2), (cx - r + 2, cy), (cx + r - 2, cy)):
+        put(a, round(x), round(y), tick)
+    for i in range(int(r) - 2):        # hands at ten past two
+        put(a, round(cx), round(cy - i), hand)
+    for i in range(int(r * 0.6)):
+        put(a, round(cx + i), round(cy - i * 0.5), hand)
+
+
+def guild_hall():
+    """The challenge hall (game_direction.md section 7): challenge givers and trophies. A two storey
+    stone hall with a crow-stepped frontispiece over a grand stair, and a clock tower with a stepped spire."""
+    b = B("guild_hall", split=True)
+    x0, x1, z0, z1 = -44, 44, -22, 22
+    top = 3 + 60
+    sh = b.block(x0, x1, z0, z1, 0, top, 2)
+    for x in (-36, -25, 25, 36):
+        b.window("n", x, 9, 8, 16, at=z0, arched=True)
+        b.window("n", x, 3 + sh + 6, 8, 16, at=z0, arched=True)
+    for x in (-30, -10, 10, 30):
+        b.window("s", x, 9, 8, 16, at=z1, arched=True)
+    for face, at in (("e", x1), ("w", x0)):
+        b.window(face, 0, 9, 8, 16, at=at, arched=True)
+        b.window(face, 0, 3 + sh + 6, 8, 16, at=at, arched=True)
+    # frontispiece: a projecting block over the stair, crow-stepped gable, one tall window
+    fz = z0 - 8
+    b.block(-13, 13, fz, z0 + 1, 0, top + 14, 2, quoins=False)
+    b.door("n", 0, 6, fz, w=18, h=30, steps=4)
+    b.window("n", 0, 3 + sh + 8, 10, 22, at=fz, arched=True)
+    for x in (-9.5, 9.5):
+        b.banner("n", x, 3 + sh + 6, fz - 0.25, w=5, h=18)
+    b.gable_roof(-13, 13, fz, z0 + 1, top + 14, axis="z", step=2.0, tier_h=2.5, crow=("start",))
+    b.hip_roof(x0, x1, z0, z1, top, step=2.5, tier_h=2.0)
+    for x in (-30, 30):
+        b.dormer("n", x, top + 3, z0 + 5)
+    b.chimney(-34, 12, top, top + 22)
+    b.chimney(34, 12, top, top + 22)
+    # clock tower rising through the roof
+    tz0, tz1 = -4, 16
+    tt = top + 30
+    b.block(-10, 10, tz0, tz1, top - 2, tt, 2, base_h=1.5, quoins=False)
+    b.c("details", "clock_face", (-4.5, tt - 11, tz0 - 0.75), (4.5, tt - 2, tz0), GOLD.variant("clock", ramp=LIME, kind="stone", base=6, noise=0.0),
+        decal=lambda a, f, w, h, c, rng: _clock_face(a, f, w, h))
+    b.c("details", "clock_frame", (-5.5, tt - 12, tz0 - 0.5), (5.5, tt - 1, tz0), "frame")
+    b.corbels(-10, 10, tz0, tz1, tt)
+    b.crenels(-10, 10, tz0, tz1, tt + 1.5)
+    b.c("towers", "spire_drum", (-7, tt + 1.5, tz0 + 3), (7, tt + 7, tz1 - 3), "wall")
+    b.c("towers", "spire_drum_ledge", (-8, tt + 7, tz0 + 2), (8, tt + 8, tz1 - 2), "ledge")
+    b.spire(0, (tz0 + tz1) / 2, 16, tt + 8, tiers=9, step=0.85)
+    return b.done(dummy=(0, 0, -50))
+
+
+def market_hall():
+    """A covered market (game_worlds.md section 3.3, market stalls): an open stone arcade on the ground
+    floor with stall counters under it, a jettied plaster storey above and a bell cupola on the ridge."""
+    b = B("market_hall", split=True)
+    x0, x1, z0, z1 = -36, 36, -18, 18
+    fy, cy = 1.5, 28
+    # smaller shared swatches than the default, so this wide, open building fits one 512 texture
+    wall_s = M["wall"].variant("wall_small", swatch=(64, 64))
+    plaster_s = M["plaster"].variant("plaster_small", swatch=(64, 72))
+    b.c("foundation", "paving", (x0 - 2, 0, z0 - 2), (x1 + 2, fy, z1 + 2), "base")
+    b.c("walls", "back_wall", (x0, fy, z1 - 3), (x1, cy, z1), wall_s)
+
+    def pillar(x, z):
+        b.c("walls", "pillar_base", (x - 2.75, fy, z - 2.75), (x + 2.75, fy + 2, z + 2.75), "base")
+        b.c("walls", "pillar", (x - 2, fy + 2, z - 2), (x + 2, cy - 2, z + 2), "quoin")
+        b.c("walls", "pillar_capital", (x - 2.75, cy - 2, z - 2.75), (x + 2.75, cy, z + 2.75), "ledge")
+
+    xs = [-34, -22.5, -11.5, 0, 11.5, 22.5, 34]
+    for x in xs:
+        pillar(x, z0 + 2)
+    for z in (-6, 6):
+        pillar(x0 + 2, z)
+        pillar(x1 - 2, z)
+    # arches: two steps in each corner of every bay, front and sides
+    for xa, xb in zip(xs, xs[1:]):
+        b.c("walls", "arch", (xa + 2, cy - 3, z0 + 0.5), (xa + 4.5, cy, z0 + 3.5), "frame")
+        b.c("walls", "arch", (xb - 4.5, cy - 3, z0 + 0.5), (xb - 2, cy, z0 + 3.5), "frame")
+        b.c("walls", "arch", (xa + 4.5, cy - 1.5, z0 + 0.5), (xa + 6.5, cy, z0 + 3.5), "frame")
+        b.c("walls", "arch", (xb - 6.5, cy - 1.5, z0 + 0.5), (xb - 4.5, cy, z0 + 3.5), "frame")
+    for x in (x0 + 0.5, x1 - 3.5):
+        for za, zb in ((z0 + 2, -6), (-6, 6), (6, z1 - 3)):
+            b.c("walls", "arch", (x, cy - 3, za + 2), (x + 3, cy, za + 4.5), "frame")
+            b.c("walls", "arch", (x, cy - 3, zb - 4.5), (x + 3, cy, zb - 2), "frame")
+    b.c("walls", "ceiling", (x0, cy, z0), (x1, cy + 1.5, z1), "plank", hide=("up",))
+    # upper storey, jettied out by 1, timber framed plaster
+    uy = cy + 1.5
+    top = uy + 26
+    b.block(x0 - 1, x1 + 1, z0 - 1, z1 + 1, uy, top, 1, mat=plaster_s, base_h=2, quoins=False)
+    for x in range(-33, 34, 11):
+        for z, d in ((z0 - 1.5, z0 - 1), (z1 + 1, z1 + 1.5)):
+            b.c("walls", "timber_post", (x - 0.75, uy + 2, z), (x + 0.75, top - 1, d), "timber")
+    for z, d in ((z0 - 1.5, z0 - 1), (z1 + 1, z1 + 1.5)):
+        b.c("walls", "timber_rail", (x0 - 1, uy + 14, z), (x1 + 1, uy + 15, d), "timber")
+    for x in (-27.5, -5.5, 5.5, 27.5):
+        b.window("n", x, uy + 6, 6, 10, at=z0 - 1.5, shutters=True)
+        b.window("s", x, uy + 6, 6, 10, at=z1 + 1.5)
+    for face, at in (("e", x1 + 1), ("w", x0 - 1)):
+        b.window(face, 0, uy + 6, 6, 10, at=at)
+    b.hip_roof(x0 - 1, x1 + 1, z0 - 1, z1 + 1, top, step=2.25)
+    # bell cupola on the ridge
+    ry = top + 1.5 + 2.5 * 8
+    b.c("details", "cupola", (-4, ry - 6, -4), (4, ry + 4, 4), "timber")
+    for x in (-4.5, 3.5):
+        b.c("details", "cupola_post", (x, ry - 6, -4.5), (x + 1, ry + 4, 4.5), "frame")
+    b.c("details", "bell", (-1.75, ry - 2, -4.25), (1.75, ry + 2, -3.75), GOLD)
+    b.spire(0, 0, 10, ry + 4, tiers=5, step=1.0)
+    # stalls under the arcade: counters with goods and crates
+    goods = [Mat("apples", ramp("#4a0c0c", "#7a1614", "#a8241c", "#cc3a26", "#e86244"), "fur", base=3),
+             Mat("cabbages", ramp("#1a3a12", "#2a5a1c", "#3e7a28", "#5a9a3a", "#80b85a"), "fur", base=3),
+             Mat("loaves", ramp("#5a3410", "#7e4c1a", "#a06828", "#c08a3c", "#dcae5c"), "fur", base=3)]
+    for (xa, xb), g in zip(((-30, -16), (-6, 6), (16, 30)), goods):
+        b.c("details", "stall_counter", (xa, fy, z1 - 12), (xb, fy + 8, z1 - 7), "plank")
+        b.c("details", "stall_top", (xa - 0.5, fy + 8, z1 - 12.5), (xb + 0.5, fy + 9, z1 - 6.5), "timber")
+        b.c("details", "stall_goods", (xa + 1, fy + 9, z1 - 11.5), (xb - 1, fy + 11, z1 - 7.5), g)
+        b.c("details", "crate", (xb - 4, fy, z1 - 6.5), (xb, fy + 4, z1 - 3), "plank")
+    return b.done(dummy=(0, 0, -30))
+
+
+def stable():
+    """The stable (D-095, the stable menu): a stone ground floor with wide double doors and half doors,
+    a timber framed hay loft under a gabled roof, a hoist beam on the gable, hay bales and a trough."""
+    b = B("stable", split=True)
+    x0, x1, z0, z1 = -36, 36, -18, 18
+    gt = 3 + 30
+    b.block(x0, x1, z0, z1, 0, gt, 1)
+    top = gt + 16
+    b.block(x0, x1, z0, z1, gt, top, 1, mat="plaster", base_h=1, quoins=False)
+    for x in range(-32, 33, 8):
+        for z, d in ((z0 - 0.5, z0), (z1, z1 + 0.5)):
+            b.c("walls", "timber_post", (x - 0.75, gt + 1, z), (x + 0.75, top - 1, d), "timber")
+    b.door("n", 0, 3, z0, w=24, h=24)
+    b.c("openings", "door_split", (-0.5, 3, z0 - 0.6), (0.5, 27, z0 - 0.25), "timber")
+    for cx in (-6, 6):
+        for ang in (63.4, -63.4):
+            b.c("openings", "door_brace", (cx - 12, 14.25, z0 - 0.7), (cx + 12, 15.75, z0 - 0.3), "timber",
+                rotation=(0, 0, ang), origin=(cx, 15, z0 - 0.5))
+    for x in (-24, 24):
+        b.door("n", x, 3, z0, w=10, h=18)
+        b.c("openings", "half_door_rail", (x - 5, 11, z0 - 0.7), (x + 5, 12, z0 - 0.3), "timber")
+    for x in (-20, 20):
+        b.window("n", x, gt + 4, 6, 8, at=z0 - 0.5, shutters=True)
+    for x in (-22, 0, 22):
+        b.window("s", x, 12, 6, 8, at=z1)
+    b.window("w", 0, 12, 6, 8, at=x0)
+    # hay loft door and hoist beam on the east gable
+    b.door("e", 0, gt + 2, x1, w=12, h=12)
+    b.c("details", "hoist_beam", (x1, top + 6, -1), (x1 + 9, top + 8, 1), "timber")
+    b.c("details", "hoist_rope", (x1 + 7.5, top - 4, -0.25), (x1 + 8, top + 6, 0.25), "iron")
+    b.c("details", "hoist_bale", (x1 + 5, top - 9, -2.5), (x1 + 10.5, top - 4, 2.5), HAY)
+    b.gable_roof(x0, x1, z0, z1, top, axis="x", step=2.5, tier_h=2.5, core="plaster")
+    ry = top + 1.5 + 2.5 * 7
+    b.c("details", "vane_post", (-0.5, ry, -0.5), (0.5, ry + 9, 0.5), "iron")
+    b.c("details", "vane_arrow", (-4, ry + 6, -0.25), (4, ry + 7, 0.25), "iron")
+    b.c("details", "vane_tail", (-4.5, ry + 5, -0.3), (-2.5, ry + 8, 0.3), "iron")
+    # hay bales stacked by the front left, a water trough on the right
+    for (bx, by, bz) in ((-33, 0, -26), (-25, 0, -26), (-29, 5, -26)):
+        b.c("details", "hay_bale", (bx - 4, by, bz - 3), (bx + 4, by + 5, bz + 3), HAY)
+    b.c("details", "trough", (16, 0, -27), (30, 5, -22), "plank")
+    b.c("details", "trough_water", (16.75, 4.25, -26.25), (29.25, 4.75, -22.75), "glass")
+    return b.done(dummy=(0, 0, -34))
+
+
+def gatehouse():
+    """The village gate: two crenellated towers with stepped spires either side of an arched road
+    passage, a half raised portcullis, banners over the arch. The road runs through (z)."""
+    b = B("gatehouse", split=True)
+    gx, gz = 16, 14
+    gt = 3 + 52
+    # piers and the span over the passage (the passage is open, front to back)
+    for s in (-1, 1):       # base course on the piers only, so it doesn't make a kerb across the road
+        xa, xb = sorted((s * (gx + 1), s * 11))
+        b.c("foundation", "base_course", (xa, 0, -gz - 1), (xb, 3, gz + 1), "base")
+    b.c("walls", "pier", (-gx, 3, -gz), (-11, gt, gz), "wall")
+    b.c("walls", "pier", (11, 3, -gz), (gx, gt, gz), "wall")
+    b.c("walls", "span", (-11, 34, -gz), (11, gt, gz), "wall", hide=("up",))
+    b.c("walls", "parapet_floor", (-11, gt - 0.5, -gz), (11, gt, gz), "base")
+    for s in (-1, 1):
+        xa, xb = sorted((s * 11, s * 8))
+        b.c("walls", "arch", (xa, 30, -gz), (xb, 34, gz), "frame")
+        xa, xb = sorted((s * 8, s * 6))
+        b.c("walls", "arch", (xa, 32.5, -gz), (xb, 34, gz), "frame")
+    b.c("walls", "keystone", (-1.5, 33, -gz - 0.75), (1.5, 36, -gz), "quoin")
+    b.c("walls", "keystone", (-1.5, 33, gz), (1.5, 36, gz + 0.75), "quoin")
+    b.ring("walls", "string_course", -gx, gx, -gz, gz, 36, 37, 1, "ledge")
+    b.ring("walls", "cornice", -gx, gx, -gz, gz, gt - 1, gt, 1.5, "ledge")
+    b.crenels(-gx, gx, -gz, gz, gt)
+    b.c("foundation", "road", (-11, 0, -24), (11, 0.5, 24), "base")
+    for x in range(-9, 10, 3):
+        b.c("openings", "portcullis_bar", (x - 0.5, 22, -gz + 1), (x + 0.5, 34, -gz + 2), "iron")
+    for y in (24, 29):
+        b.c("openings", "portcullis_rail", (-10.5, y, -gz + 0.75), (10.5, y + 1, -gz + 2.25), "iron")
+    for x in range(-9, 10, 3):
+        b.c("openings", "portcullis_spike", (x - 0.4, 20.5, -gz + 1.1), (x + 0.4, 22, -gz + 1.9), "iron")
+    b.banner("n", 0, 39, -gz - 0.25, w=8, h=12)
+    b.banner("s", 0, 39, gz + 0.25, w=8, h=12)
+    # towers
+    tt = 3 + 66
+    for s in (-1, 1):
+        x0, x1 = sorted((s * gx, s * 40))
+        b.block(x0, x1, -16, 16, 0, tt, 3)
+        cx = (x0 + x1) / 2
+        b.window("n", cx, 26, 3, 9, at=-16, arched=True)
+        b.window("n", cx, 47, 3, 9, at=-16, arched=True)
+        b.window("e" if s > 0 else "w", 0, 36, 3, 9, at=x1 if s > 0 else x0, arched=True)
+        b.corbels(x0, x1, -16, 16, tt)
+        b.crenels(x0, x1, -16, 16, tt + 1.5)
+        b.c("towers", "spire_drum", (cx - 8, tt + 1.5, -8), (cx + 8, tt + 7, 8), "wall")
+        b.c("towers", "spire_drum_ledge", (cx - 9, tt + 7, -9), (cx + 9, tt + 8, 9), "ledge")
+        b.spire(cx, 0, 18, tt + 8, tiers=11 if s > 0 else 10, step=0.8)
+    return b.done(dummy=(0, 0, -28))
+
+
+def townhouse():
+    """A narrow three storey townhouse with crow-stepped gables front and back, a shop window under a
+    striped awning, shuttered windows. Several can stand in a row along a street."""
+    b = B("townhouse", split=True)
+    x0, x1, z0, z1 = -15, 15, -14, 14
+    top = 3 + 63
+    sh = b.block(x0, x1, z0, z1, 0, top, 3)
+    b.door("n", -7, 3, z0, w=12, h=24, steps=1)
+    b.window("n", 7, 8, 9, 14, at=z0)
+    aw = Mat("awning", ramp("#3a0c10", "#5c141a", "#801e24", "#a42c2c", "#c84a3c"), "cloth", base=3, fold=3,
+             bands=(ramp("#a89a80", "#c4b698", "#d8ccb0", "#e8dec6", "#f2ead6"), 6))
+    b.c("details", "awning", (1, 24, z0 - 6), (13, 25, z0), aw, rotation=(-25, 0, 0), origin=(7, 25, z0))
+    for i in (1, 2):
+        y = 3 + i * sh + 5
+        for x in (-7, 7):
+            b.window("n", x, y, 6, 11, at=z0, shutters=True)
+            b.window("s", x, y, 6, 11, at=z1)
+        b.window("e", 0, y, 6, 11, at=x1)
+        b.window("w", 0, y, 6, 11, at=x0)
+    b.window("s", 0, 9, 8, 12, at=z1)
+    for x in (-7, 7):
+        b.c("details", "flower_box", (x - 4.5, 3 + sh + 3, z0 - 2.5), (x + 4.5, 3 + sh + 5, z0 - 0.5), "plank")
+        b.c("details", "flowers", (x - 4, 3 + sh + 5, z0 - 2.25), (x + 4, 3 + sh + 6.5, z0 - 0.75),
+            Mat("flowers", ramp("#4a2a5a", "#6a3a8a", "#8a52b0", "#a874cc", "#c8a0e4"), "fur", base=3))
+    ry = b.gable_roof(x0, x1, z0, z1, top, axis="z", step=2.0, tier_h=3.0, crow=("start", "end"))
+    b.window("n", 0, top + 6, 4, 7, at=z0 - 1, arched=True)
+    b.chimney(x1 - 4, 0, top, ry + 1, w=5)
+    return b.done(dummy=(0, 0, -32))
+
+
+def windmill():
+    """A stone tower mill on the edge of the village: three tapering stages with ledges, a stepped cap,
+    and four canvas sails on a hub facing the front."""
+    b = B("windmill", split=True)
+    b.block(-16, 16, -16, 16, 0, 3 + 30, 1)
+    b.block(-13, 13, -13, 13, 33, 60, 1, base_h=1.5, quoins=False)
+    b.block(-10, 10, -10, 10, 60, 82, 1, base_h=1.5, quoins=False)
+    b.door("n", 0, 3, -16, w=12, h=22, steps=1)
+    b.window("e", 0, 12, 6, 10, at=16)
+    b.window("w", 0, 12, 6, 10, at=-16)
+    b.window("n", 0, 42, 5, 9, at=-13, arched=True)
+    for face, at in (("e", 13), ("w", -13), ("s", 13)):
+        b.window(face, 0, 42, 5, 9, at=at, arched=True)
+    b.window("s", 0, 66, 4, 8, at=10, arched=True)
+    b.spire(0, 0, 22, 82, tiers=6, step=2.0, tier_h=2.5)
+    # hub and sails
+    hy, hz = 72, -10
+    b.c("details", "axle", (-1.5, hy - 1.5, hz - 4), (1.5, hy + 1.5, hz), "timber")
+    b.c("details", "hub", (-2.75, hy - 2.75, hz - 5.5), (2.75, hy + 2.75, hz - 3), "iron")
+    for ang in (45, 135, 225, 315):
+        r = dict(rotation=(0, 0, ang), origin=(0, hy, hz - 4.5))
+        b.c("details", "sail_spar", (-1, hy + 2, hz - 5), (1, hy + 46, hz - 3.5), "timber", **r)
+        b.c("details", "sail", (1, hy + 9, hz - 4.75), (8, hy + 45, hz - 4), CANVAS, **r)
+        for k in (18, 30, 42):
+            b.c("details", "sail_bar", (-1, hy + k, hz - 5.5), (8.5, hy + k + 1, hz - 4.5), "timber", **r)
+    for x in (-11, -7):
+        b.c("details", "flour_sack", (x - 2, 0, -21), (x + 2, 5, -18), CANVAS.variant("sack", fold=2))
+    return b.done(dummy=(0, 0, -30))
+
+
 BUILDINGS = {"cottage": cottage, "smithy": smithy, "general_store": general_store, "tavern": tavern,
-             "watchtower": watchtower}
+             "watchtower": watchtower, "guild_hall": guild_hall, "market_hall": market_hall,
+             "stable": stable, "gatehouse": gatehouse, "townhouse": townhouse, "windmill": windmill}
+NEW = ["guild_hall", "market_hall", "stable", "gatehouse", "townhouse", "windmill"]
 
 
 def main():
