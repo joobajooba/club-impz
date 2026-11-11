@@ -19,8 +19,13 @@ extends Node
 ##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it   --look_at  a free camera on it
 ##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
 ##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
+##   --mem_log=5                 print memory use every 5 s   --mem_cycle=6   go through the portal 6 times (there and
+##                               back), printing memory after each world has loaded, then quit (leak hunting)
 ##   --wallet=0x…                desktop only: show that wallet's impz.club account (read only) in the HUD and
 ##                               Profile menu, as if it had connected   --profile_open   open the Profile menu too
+
+const MobScript := preload("res://scripts/world/mob.gd")
+const OreVeinScript := preload("res://scripts/world/ore_vein.gd")
 
 const WORLDS := {
 	"hub": "res://scenes/hub/hub_world.tscn",
@@ -171,6 +176,10 @@ func _ready() -> void:
 		_perf_probe(float(args["perf"]))
 	if args.has("portal_test"):
 		_portal_test()
+	if args.has("mem_log"):
+		_mem_log(float(args["mem_log"]))
+	if args.has("mem_cycle"):
+		_mem_cycle(int(args["mem_cycle"]))
 	if args.has("bot"):
 		_bot(float(args["bot"]))
 	if args.has("tool"):                                   # testing: take out a tool kind, swing it at a moment
@@ -309,6 +318,10 @@ func _enter_world(world_name: String, spawn_name: String) -> void:
 
 func _load_world(world_name: String, spawn_name: String, packed: PackedScene = null) -> void:
 	if current_world:
+		# Memory: drop the meshes the last world's mobs, birds and ore veins kept in their shared caches, so
+		# the resource world's models don't stay loaded in the hub (the next world rebuilds what it needs).
+		MobScript._templates = {}
+		OreVeinScript._merged = {}
 		world_holder.remove_child(current_world)
 		current_world.queue_free()
 	if packed == null:
@@ -364,6 +377,81 @@ func _perf_probe(seconds: float) -> void:
 		for c in sc.tree_cells.values(): tm += c.get_child_count()
 		print("PERF   foliage cells %d (%d multimeshes), tree cells %d (%d multimeshes), terrain chunks %d" % [
 			sc.foliage_cells.size(), fm, sc.tree_cells.size(), tm, current_world.terrain.chunks.size()])
+	get_tree().quit()
+
+
+## One line of memory use (testing: --mem_log, --mem_cycle).
+func mem_line(tag: String) -> String:
+	var mb := func(m: int) -> float: return Performance.get_monitor(m) / 1048576.0
+	return "MEM %s: static %.0f MB, textures %.0f MB, buffers %.0f MB, video %.0f MB, objects %d, nodes %d, orphans %d, resources %d" % [
+		tag, mb.call(Performance.MEMORY_STATIC), mb.call(Performance.RENDER_TEXTURE_MEM_USED), mb.call(Performance.RENDER_BUFFER_MEM_USED),
+		mb.call(Performance.RENDER_VIDEO_MEM_USED), Performance.get_monitor(Performance.OBJECT_COUNT),
+		Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
+		Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)]
+
+
+func _mem_log(every: float) -> void:
+	var t := 0.0
+	while true:
+		await get_tree().create_timer(every).timeout
+		t += every
+		print(mem_line("%s %ds" % [current_world_name, int(t)]))
+
+
+func _mem_cycle(trips: int) -> void:
+	while busy:
+		await get_tree().process_frame
+	await get_tree().create_timer(3.0).timeout
+	print(mem_line("start " + current_world_name))
+	if args.has("mem_textures"):                     # the biggest textures in video memory
+		var seen := {}
+		for n in get_tree().root.find_children("*", "", true, false):
+			var mats := []
+			if n is GeometryInstance3D and n.material_override: mats.append(n.material_override)
+			if n is MeshInstance3D and n.mesh:
+				for s in n.mesh.get_surface_count(): mats.append(n.mesh.surface_get_material(s))
+			if n is MultiMeshInstance3D and n.multimesh and n.multimesh.mesh:
+				for s in n.multimesh.mesh.get_surface_count(): mats.append(n.multimesh.mesh.surface_get_material(s))
+			for m in mats:
+				if m is BaseMaterial3D and m.albedo_texture: seen[m.albedo_texture] = true
+				if m is ShaderMaterial:
+					for p in m.shader.get_shader_uniform_list() if m.shader else []:
+						var v = m.get_shader_parameter(p.name)
+						if v is Texture: seen[v] = true
+		var rows := []
+		for t in seen:
+			var w := 0; var h := 0; var layers := 1
+			if t is Texture2D: w = t.get_width(); h = t.get_height()
+			if t is Texture2DArray: layers = t.get_layers()
+			rows.append([w * h * layers * 4, "%dx%d x%d %s %s" % [w, h, layers, t.get_class(), t.resource_path]])
+		rows.sort_custom(func(a, b): return a[0] > b[0])
+		print("TEX %d textures" % rows.size())
+		for r in rows.slice(0, int(args["mem_textures"])):
+			print("TEX %6.1f MB (as RGBA) %s" % [r[0] / 1048576.0, r[1]])
+	for i in trips:
+		var portal: Node3D = null
+		for n in current_world.find_children("*", "Node3D", true, false):
+			if "target_world" in n:
+				portal = n
+				break
+		if portal == null:
+			print("MEM no portal in ", current_world_name)
+			break
+		player.place_at(Transform3D(Basis(), portal.global_position))
+		await get_tree().create_timer(1.0).timeout
+		while busy or joined_world == "":
+			await get_tree().process_frame
+		await get_tree().create_timer(3.0).timeout
+		print(mem_line("trip %d %s" % [i + 1, current_world_name]))
+		var mobs := 0
+		var built := 0
+		for n in current_world.find_children("*", "Node3D", true, false):
+			var s: Script = n.get_script()
+			if s and s.resource_path.get_file() in ["mob.gd", "bird.gd"]:
+				mobs += 1
+				if n.get_child_count() > 0 and n.get_child(0).get_child_count() > 0:
+					built += 1
+		print("MEM   mobs and birds %d, with a model %d" % [mobs, built])   # the shared caches were rebuilt
 	get_tree().quit()
 
 
