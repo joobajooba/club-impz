@@ -232,7 +232,15 @@ J00BA, 2026-11-09: the hub is flat (no edge hills) and walled. A 150 m square of
 
 - **The plan** is `godot-game/data/hub_town.json`, written by `build scripts/build_hub_town.py` (run it with `--preview plan.png` for a top-down map). After changing the plan, re-bake the hub: `godot --headless --path godot-game --script res://scripts/tools/bake_world_data.gd -- --hub_only`.
 - **Districts:**
-  - north: the castle with a cobbled forecourt, and formal gardens either side (hedges, topiary, blossom trees, path lanterns)
+  - north: the castle with a cobbled forecourt and a formal garden on its east side (hedges, topiary, blossom trees, path lanterns)
+  - north-west: the wizard's garden, behind the crafters' yard. The wizard tower (`assets/models/buildings/wizard_tower`, shown at 1.5×, about 35 m tall, with an animated `idle`) stands at the head of the garden walk, with its door facing south. Around it:
+    - a rune circle with a floating crystal (animated)
+    - crystal clusters
+    - a spellbook lectern
+    - violet arcane lamps
+    - a `wizard` NPC spot at the door
+
+    The props are in `assets/models/props/arcane/` (`build scripts/build_arcane_props.py`). Animated models are their own scene instances in `hub_town.gd`, not MultiMeshes.
   - centre: the town square on the grand avenue
   - east: the market (eight stalls facing Market Street)
   - west: the crafters' yard, where each station is its own fenced workshop plot on Market Street (smelter, blacksmith, carpenter, sawyer, tanner, herbalist, brewer with its potion stall). Each plot has:

@@ -47,6 +47,10 @@ for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
 
+MODELS["wizard_tower"] = ("res://assets/models/buildings/wizard_tower.glb", "assets/models/buildings/wizard_tower.bbmodel", 1.5)
+for n in ("arcane_circle", "crystal_cluster", "crystal_cluster_small", "spellbook_lectern", "arcane_lamp"):
+    MODELS[n] = (f"res://assets/models/props/arcane/{n}.glb", f"assets/models/props/arcane/{n}.bbmodel", 1.0)
+
 HOUSES = ["brick_rose_cottage", "wood_timber_house", "brick_bluebell_house", "wood_oak_lodge", "brick_honey_townhouse", "wood_cherry_manor"]
 FACE = {"N": 0.0, "W": 90.0, "S": 180.0, "E": -90.0}
 
@@ -67,7 +71,7 @@ def metrics(bb_rel):
     parts = [[round(e["from"][0] * U, 3), round(e["from"][2] * U, 3), round(e["to"][0] * U, 3), round(e["to"][2] * U, 3),
               round(e["to"][1] * U, 3)] for e in ground if (e["to"][1] - e["from"][1]) * U >= 0.5]
     return {"footprint": [round(v, 3) for v in fp], "extent": [round(v, 3) for v in full], "height": round(h, 3), "lights": lights,
-            "glow": glow, "parts": parts}
+            "glow": glow, "parts": parts, "animated": bool(d.get("animations"))}
 
 
 INFO = {}
@@ -445,26 +449,16 @@ square(1, [("stall_fruit", "fruit"), ("stall_bakery", "baker"), ("stall_cloth", 
 yard()
 
 # ================================================================ 7. castle gardens (north-west and north-east)
-for sx in (-1, 1):
-    gx1, gx2 = (20.0, 68.0) if sx > 0 else (-68.0, -20.0)
-    gz1, gz2 = -71.0, -40.0
-    cx, cz = (gx1 + gx2) / 2, (gz1 + gz2) / 2
-    landmarks[f"garden_{'east' if sx > 0 else 'west'}"] = [cx, cz]
-    # walks: a cross through the middle, a ring round the lawn, and a link down to the market / yard
+# The east garden is a formal garden. The west one is the wizard's garden (J00BA, 2026-11-09): the wizard tower
+# stands at the head of its walk, behind the crafters' yard and its brewer, herbalist and potion stall, with a
+# rune circle, glowing crystals, a spellbook lectern and violet arcane lamps round it.
+WIZ = (-44.0, -60.5)                                             # the tower: door to the south, up the garden walk
+
+
+def garden_common(sx, gx1, gx2, gz1, gz2, cx, cz):
     walk([[gx1 + 2, cz], [gx2 - 2, cz]], 1.4)
-    walk([[cx, gz1 + 2], [cx, gz2 + 4]], 1.4)
-    if sx > 0:
-        walk([[cx, gz2 + 4], [cx, -29.5]], 1.6)                   # into the market through its hedge gap
-    else:                                                        # behind the workshops, down to Market Street
-        walk([[cx, gz2 + 4], [cx, -33.0], [-29.0, -33.0], [-29.0, -20.0]], 1.6)
     walk([[sx * 17.0, -45.0], [sx * 21.0, -45.0], [gx1 + 2 if sx > 0 else gx2 - 2, cz]], 1.4)   # from the forecourt
-    place("blossom_tree_planter", cx, cz, 0, s=1.8)
-    for ox in (-1, 1):
-        for oz in (-1, 1):
-            px, pz = cx + ox * 13.0, cz + oz * 8.0
-            place("blossom_tree_planter" if (ox == oz) else "topiary_tiered_planter", px, pz, 0, s=1.3 if ox == oz else 1.2)
-            place("planter_square_flowers", cx + ox * 4.5, cz + oz * 4.0, 0)
-    for k in range(-5, 6):                                # path lanterns along the long walk
+    for k in range(-5, 6):                                        # path lanterns along the long walk
         if k == 0 or abs(k) == 1: continue
         place("path_lantern", cx + k * 4.0, cz - 2.4 if k % 2 else cz + 2.4, 0)
     # hedge border along the garden's town side, gaps where the walks come through
@@ -476,8 +470,48 @@ for sx in (-1, 1):
         hz = gz1 + 2.0 + k * 3.0
         if abs(hz - cz) < 3.0 or abs(hz + 45.0) < 2.6: continue     # gaps: the cross walk and the forecourt walk
         place("hedge_segment", gx1 if sx > 0 else gx2, hz, 90, s=1.5)
-    for (bx, bz) in ((gx1 + 3, gz1 + 3), (gx2 - 3, gz1 + 3)):
+
+
+for sx in (-1, 1):
+    gx1, gx2 = (20.0, 68.0) if sx > 0 else (-68.0, -20.0)
+    gz1, gz2 = -71.0, -40.0
+    cx, cz = (gx1 + gx2) / 2, (gz1 + gz2) / 2
+    landmarks[f"garden_{'east' if sx > 0 else 'west'}"] = [cx, cz]
+    garden_common(sx, gx1, gx2, gz1, gz2, cx, cz)
+    if sx > 0:                                                    # ---- the formal east garden
+        walk([[cx, gz1 + 2], [cx, gz2 + 4]], 1.4)
+        walk([[cx, gz2 + 4], [cx, -29.5]], 1.6)                   # into the market through its hedge gap
+        place("blossom_tree_planter", cx, cz, 0, s=1.8)
+        for ox in (-1, 1):
+            for oz in (-1, 1):
+                px, pz = cx + ox * 13.0, cz + oz * 8.0
+                place("blossom_tree_planter" if (ox == oz) else "topiary_tiered_planter", px, pz, 0, s=1.3 if ox == oz else 1.2)
+                place("planter_square_flowers", cx + ox * 4.5, cz + oz * 4.0, 0)
+        for (bx, bz) in ((gx1 + 3, gz1 + 3), (gx2 - 3, gz1 + 3)):
+            place("urn_planter", bx, bz, 0, s=1.2)
+        continue
+    # ---- the wizard's garden (west)
+    wx, wz = WIZ
+    landmarks["wizard_tower"] = [wx, wz]
+    walk([[cx, cz], [cx, gz2 + 4]], 1.4)                          # the walk up to the tower door
+    walk([[cx, gz2 + 4], [cx, -33.0], [-29.0, -33.0], [-29.0, -20.0]], 1.6)   # behind the workshops to Market Street
+    place("wizard_tower", wx, wz, "S", max_h=8)
+    npc("wizard", wx + 1.6, wz + 3.9, "S", "the wizard, at the tower door")
+    place("spellbook_lectern", wx + 4.5, wz + 2.3, "S")
+    for x, z in ((wx - 2.5, -53.2), (wx + 2.5, -53.2), (wx - 6.0, wz), (wx + 6.0, wz)):   # violet lamps: approach, flanks
+        place("arcane_lamp", x, z, "S")
+    for x in (wx - 5.0, wx + 5.0):                                # flowers either side of the approach
+        place("planter_square_flowers", x, -51.5, 0)
+    place("arcane_circle", -58.5, -64.0, 0)                       # the rune circle in the north-west corner
+    for a, x, z, yaw in (("crystal_cluster", -62.0, -50.0, 30), ("crystal_cluster", -34.0, -67.0, -40), ("crystal_cluster_small", -35.5, -61.0, 75),
+                         ("crystal_cluster_small", -52.5, -67.5, 10), ("crystal_cluster_small", -53.5, -61.5, -60), ("crystal_cluster_small", -64.0, -58.5, 130)):
+        place(a, x, z, yaw)
+    place("blossom_tree_planter", cx + 13.0, cz + 8.0, 0, s=1.3)  # the garden's blossom tree and topiary stay
+    place("topiary_tiered_planter", cx - 13.0, cz + 8.0, 0, s=1.2)
+    place("topiary_tiered_planter", cx + 13.0, cz - 8.0, 0, s=1.2)
+    for (bx, bz) in ((gx2 - 3, gz1 + 3),):
         place("urn_planter", bx, bz, 0, s=1.2)
+
 
 # ================================================================ 8. residential lanes (south)
 L1 = (20.0, 26.0)     # Rose Lane
@@ -568,7 +602,7 @@ plan = {
             "lights: [x, y, z, lanterns, alias]. ground.cobble: rects [x1, z1, x2, z2]; ground.dirt: walks {points, radius}. "
             "npc_spots: where vendor / crafter NPCs can stand (yaw: which way they face). no_scatter: rects with no grass or flowers.",
     "walls": W, "ground_height": 2.0,
-    "models": {a: {k: INFO[a][k] for k in ("path", "glow", "height")} for a in INFO},
+    "models": {a: {k: INFO[a][k] for k in ("path", "glow", "height", "animated")} for a in INFO},
     "placements": placements, "colliders": colliders, "lights": lights, "npc_spots": npc_spots,
     "landmarks": landmarks, "spawn_point": landmarks["spawn_point"],
     "ground": {"cobble": cobble, "dirt": dirt, "dirt_rects": dirt_rects}, "no_scatter": no_scatter,

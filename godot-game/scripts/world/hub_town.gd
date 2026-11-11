@@ -17,6 +17,8 @@ const LIGHT_ENERGY := 3.0
 const LIGHT_RANGE := 9.0
 const LIGHT_COLOR := Color("#ffc878")
 const LIGHT_FADE_BEGIN := 38.0   # lights further than this from the camera fade out (Compatibility renderer budget)
+const ARCANE_COLOR := Color("#b48cff")   # the wizard's garden: violet light from the arcane lamps and the rune circle
+const ARCANE := ["arcane_lamp", "arcane_circle"]
 
 var world: GameWorld
 var glow_mats: Array[StandardMaterial3D] = []
@@ -43,6 +45,9 @@ func populate(w: GameWorld) -> void:
 	for p in plan["placements"]:
 		if p[0] == "castle":
 			_place_castle(p)
+			continue
+		if plan["models"][p[0]].get("animated", false):   # the wizard tower, the rune circle: their own scene, idle looping
+			_place_animated(plan["models"][p[0]]["path"], p)
 			continue
 		if not by_alias.has(p[0]):
 			by_alias[p[0]] = []
@@ -172,7 +177,7 @@ func _make_lights(list: Array) -> void:
 		light.position = Vector3(x, world.ground_height(x, z) + float(l[1]), z)
 		var many: int = l[3]
 		light.omni_range = LIGHT_RANGE * (1.35 if many > 1 else 1.0)
-		light.light_color = LIGHT_COLOR
+		light.light_color = ARCANE_COLOR if ARCANE.has(l[4]) else LIGHT_COLOR
 		light.light_energy = 0.0
 		light.shadow_enabled = false
 		light.distance_fade_enabled = true
@@ -197,6 +202,32 @@ func _make_npc_spots(list: Array) -> void:
 		m.rotation.y = deg_to_rad(n["yaw"])
 		m.set_meta("role", n["role"])
 		root.add_child(m)
+
+
+## A model with a Blockbench animation: instanced as its own scene (a MultiMesh can't animate), with the same
+## hard-alpha materials as the merged models, *_glow parts emissive and following the night, and "idle" looping.
+func _place_animated(path: String, p: Array) -> void:
+	var inst := (load(path) as PackedScene).instantiate() as Node3D
+	inst.name = String(p[0])
+	add_child(inst)
+	inst.transform = _xf(p)
+	var cache := {}
+	for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
+		var glow := _is_glow(mi, inst)
+		for si in mi.mesh.get_surface_count():
+			var src := mi.get_active_material(si) as BaseMaterial3D
+			if src == null:
+				continue
+			var key := [src.albedo_texture, glow]
+			if not cache.has(key):
+				cache[key] = _material(src.albedo_texture, glow)
+			mi.set_surface_override_material(si, cache[key])
+	var players := inst.find_children("*", "AnimationPlayer", true, false)
+	if not players.is_empty():
+		var ap := players[0] as AnimationPlayer
+		if ap.has_animation("idle"):
+			ap.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
+			ap.play("idle")
 
 
 func _place_castle(p: Array) -> void:
