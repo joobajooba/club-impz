@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import { WebSocket } from "ws";
 const N = Number(process.argv[2] || 100), PORT = 18091, SECONDS = 20;
-const server = spawn(process.execPath, ["server.mjs"], { env: { ...process.env, PORT: String(PORT), MAX_PLAYERS: "500" }, stdio: ["ignore", "pipe", "ignore"] });
+const server = spawn(process.execPath, ["server.mjs"], { env: { ...process.env, PORT: String(PORT), MAX_PLAYERS: "500", MAX_PER_IP: "1000", CONNECTS_PER_MIN: "1000" }, stdio: ["ignore", "pipe", "ignore"] });
 await new Promise((ok) => server.stdout.on("data", (d) => String(d).includes("Club Impz beta") && ok()));
 const bots = [];
 let received = 0, bytes = 0, lateSum = 0, lateMax = 0, lateN = 0;
