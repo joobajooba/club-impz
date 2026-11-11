@@ -35,6 +35,8 @@ var bird_seed := 1
 var data: WorldData
 var view: Node3D
 var water := {}                   # for swimmers and waders: {rect, level}
+var range_scale := 1.0            # shrinks (or grows) the kind's home radius (the hub keeps birds round the spawn)
+var spot_ok := Callable()         # optional func(x, z) -> bool: where a bird may land (the hub: not on a stall)
 
 var _body: Node3D
 var _anim: AnimationPlayer
@@ -84,7 +86,7 @@ func _update(force: bool) -> void:
 
 ## Eagles and gulls: a circle round a slowly drifting centre, gliding, a few wing beats every so often.
 func _soar(t: float, k: Dictionary) -> Array:
-	var r: float = k.radius * (0.7 + 0.3 * _hash01(0, 1))
+	var r: float = k.radius * range_scale * (0.7 + 0.3 * _hash01(0, 1))
 	var w: float = k.speed / r * (1.0 if _hash01(0, 2) < 0.5 else -1.0)
 	var c := home + Vector3(cos(t * 0.013 + bird_seed) * 12.0, 0, sin(t * 0.017 + bird_seed) * 12.0)
 	var a := t * w + _hash01(0, 3) * TAU
@@ -142,7 +144,7 @@ func _spot(k: int) -> Vector3:
 		return _spots[k]
 	if _spots.size() > 8:
 		_spots.clear()
-	var r: float = KINDS[kind].radius
+	var r: float = KINDS[kind].radius * range_scale
 	var out := home
 	var swim: bool = KINDS[kind].style == "swim"
 	var shore: bool = KINDS[kind].get("shore", false)
@@ -152,6 +154,8 @@ func _spot(k: int) -> Vector3:
 		var x := home.x + cos(ang) * d
 		var z := home.z + sin(ang) * d
 		if not data.in_bounds(x, z, 4.0):
+			continue
+		if spot_ok.is_valid() and not spot_ok.call(x, z):
 			continue
 		var h := data.height(x, z)
 		var wl := data.water_level(x, z)

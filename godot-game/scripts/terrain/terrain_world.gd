@@ -81,6 +81,7 @@ func _build_walls() -> void:
 
 func _build_layer_array() -> Texture2DArray:
 	var images: Array[Image] = []
+	var size := 0
 	for id in data.biome_data["layer_files"]:
 		# imported as Image resources (no GPU texture, so no GPU readback when building the array)
 		var img: Image = (load("res://assets/textures/terrain/%s.png" % id) as Image).duplicate()
@@ -88,8 +89,14 @@ func _build_layer_array() -> Texture2DArray:
 			img.decompress()
 		img.clear_mipmaps()
 		img.convert(Image.FORMAT_RGBA8)
-		img.generate_mipmaps()
+		size = maxi(size, img.get_width())
 		images.append(img)
+	# Layers may differ in size (hub_cobblestone is 256 px, 64 px per metre; the rest 128): the array needs one
+	# size, so smaller layers are scaled up with nearest filtering, which keeps their pixels exactly as they were.
+	for img in images:
+		if img.get_width() != size:
+			img.resize(size, size, Image.INTERPOLATE_NEAREST)
+		img.generate_mipmaps()
 	var arr := Texture2DArray.new()
 	arr.create_from_images(images)
 	return arr
