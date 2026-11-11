@@ -33,6 +33,7 @@ var _auth := ["", ""]            # [wallet, session] last sent
 var _remotes := {}               # id -> RemoteImp
 var _info := {}                  # id -> {name, guest, look, world, s}
 var _holder: Node3D
+var _shown_world := ""           # the world _refresh_visible last placed Imps for
 var _hud: Label
 
 
@@ -154,6 +155,9 @@ func _hello() -> void:
 
 
 func _send_moves() -> void:
+	var main = _main()
+	if main != null and str(main.get("joined_world")) != _shown_world:
+		_refresh_visible()                # finished loading: the players the welcome listed can be placed now
 	var acct := _account()
 	if acct != _auth:                     # signed in or out in the Profile menu
 		_auth = acct
@@ -267,6 +271,7 @@ func _refresh_visible() -> void:
 		_holder.name = "remote_players"
 		main.add_child(_holder)
 	var world: String = main.joined_world
+	_shown_world = world
 	for id in _info:
 		var p: Dictionary = _info[id]
 		var here: bool = str(p.get("world", "")) == world
