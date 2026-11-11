@@ -4,8 +4,9 @@ FROM node:22-alpine
 WORKDIR /app
 COPY game-server/package.json game-server/package-lock.json ./game-server/
 RUN cd game-server && npm ci --omit=dev --no-audit --no-fund
-COPY game-server/server.mjs ./game-server/
+COPY game-server/*.mjs ./game-server/
 COPY godot-game/data/impz/manifest.json ./godot-game/data/impz/manifest.json
+COPY godot-game/data/chat_filter.json ./godot-game/data/chat_filter.json
 COPY godot-game/export/web ./web
 # gzip the big files once here, so each player downloads ~115 MB instead of ~200 MB
 RUN for f in $(find web -type f \( -name '*.pck' -o -name '*.wasm' -o -name '*.js' -o -name '*.html' \)); do \
