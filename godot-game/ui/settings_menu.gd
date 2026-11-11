@@ -235,6 +235,9 @@ func _render_controls() -> void:
 	for row in CONTROLS:
 		_key_row(row[0], _keys_for(row[1]))
 	_key_row("Settings, or close a menu", ["Esc"])
+	if not OS.is_debug_build():            # the test keys (fast sprint, biome teleport) only work in test builds
+		_note("Keys can't be changed yet.")
+		return
 	_heading("Test keys")
 	for row in TEST_KEYS:
 		_key_row(row[0], _keys_for(row[1]))

@@ -41,6 +41,19 @@ const ORE_EVENTS = {
 
 const TICK_MS = 100;                 // states go out 10 times a second
 const MAX_MSGS_PER_SEC = 40;         // a game sends ~10; more than this is closed
+
+// Anti-cheat and abuse limits. The game in the browser can be changed by whoever runs it, so the server
+// never takes its word for anything that other players see without checking it first.
+const MAX_SPEED = 10;                // m/s along the ground: sprint is 6.5, so a little slack for lag
+const MAX_RISE = 12;                 // m/s upwards (a jump starts at 4.6)
+const MAX_FALL = 60;                 // m/s downwards
+const MOVE_SLACK = 3;                // metres a burst of late packets may catch up by
+const MAX_PER_IP = Number(process.env.MAX_PER_IP || 4);   // open connections from one address
+const CONNECTS_PER_MIN = Number(process.env.CONNECTS_PER_MIN || 20);   // new connections from one address per minute
+const HELLO_WITHIN_MS = 20000;       // a connection that never says hello is closed
+const WORLD_EVERY_MS = 3000;         // world changes (they take a loading screen, so never faster)
+const CHECK_EVERY_MS = 3000;         // sign-in / look checks that ask impz.club: at most this often
+const API_PER_MIN = 60;              // /api/imps and /api/profile requests from one address per minute
 const WORLDS = new Set(["hub", "resource", "test"]);
 const SLOTS = ["body", "head", "eyes", "clothing", "back"];
 const BASE_LOOK = { body: "body_green", head: "", eyes: "", clothing: "", back: "" };
@@ -187,11 +200,51 @@ function finite(v, limit) {
   return Number.isFinite(n) ? Math.max(-limit, Math.min(limit, n)) : 0;
 }
 
-function readState(p, msg) {
-  if (Array.isArray(msg.p) && msg.p.length === 3) p.pos = msg.p.map((v) => finite(v, 20000));
+// A new position, as far as the player could really have got: a speed or teleport cheat is pulled back
+// to the most an Imp can move since the last one, so other players only ever see an Imp moving normally.
+// `jump` (hello, world change) takes the position as it is: that is where the player spawned.
+function readState(p, msg, jump = false) {
+  const now = Date.now();
+  if (Array.isArray(msg.p) && msg.p.length === 3) {
+    const want = msg.p.map((v) => finite(v, 20000));
+    if (jump || !p.movedAt) {
+      p.pos = want;
+    } else {
+      const dt = Math.min((now - p.movedAt) / 1000, 1);
+      const dx = want[0] - p.pos[0], dz = want[2] - p.pos[2];
+      const flat = Math.hypot(dx, dz);
+      const most = MAX_SPEED * dt + MOVE_SLACK;
+      const k = flat > most ? most / flat : 1;
+      const dy = Math.max(-(MAX_FALL * dt + MOVE_SLACK), Math.min(MAX_RISE * dt + MOVE_SLACK, want[1] - p.pos[1]));
+      if (k < 1 || dy !== want[1] - p.pos[1]) p.strikes = (p.strikes || 0) + 1;
+      p.pos = [p.pos[0] + dx * k, p.pos[1] + dy, p.pos[2] + dz * k];
+    }
+    p.movedAt = now;
+  }
   if (msg.y != null) p.yaw = finite(msg.y, 1000);
   p.moving = [0, 1, 2].includes(msg.m) ? msg.m : 0;
   p.dirty = true;
+}
+
+// Runs a check that asks impz.club (sign-in, look) at most every CHECK_EVERY_MS per player: a burst
+// keeps only the last request and runs it when the wait is over, so a quick click through traits still
+// ends on the right look, but nobody can make the server hammer impz.club.
+function throttled(p, key, run) {
+  p.waits ??= {};
+  const w = (p.waits[key] ??= { last: 0, next: null, timer: null });
+  w.next = run;
+  if (w.timer) return;
+  const go = () => {
+    w.timer = null;
+    if (!players.has(p.id) || !w.next) return;
+    const fn = w.next;
+    w.next = null;
+    w.last = Date.now();
+    fn().catch((error) => console.error(error));
+  };
+  const wait = w.last + CHECK_EVERY_MS - Date.now();
+  if (wait <= 0) go();
+  else w.timer = setTimeout(go, wait);
 }
 
 // Who the player is: a checked account's username and wallet, or a guest.
@@ -214,7 +267,7 @@ async function onMessage(p, msg) {
       if (p.ready || p.greeting) return;
       p.greeting = true;
       p.world = WORLDS.has(msg.world) ? msg.world : "hub";
-      readState(p, msg);
+      readState(p, msg, true);
       await identify(p, msg.wallet, msg.session);
       await setLook(p, msg.look);
       if (!players.has(p.id)) return;
@@ -233,15 +286,19 @@ async function onMessage(p, msg) {
       if (p.ready) readState(p, msg);
       return;
     case "world":
-      if (!p.ready || !WORLDS.has(msg.world)) return;
+      if (!p.ready || !WORLDS.has(msg.world) || msg.world === p.world) return;
+      if (Date.now() - (p.worldAt || 0) < WORLD_EVERY_MS) return;   // world hopping is a teleport
+      p.worldAt = Date.now();
       p.world = msg.world;
-      readState(p, msg);
+      readState(p, msg, true);
       broadcast({ t: "update", id: p.id, world: p.world, s: stateRow(p) }, p);
       return;
     case "look":
       if (!p.ready) return;
-      await setLook(p, msg.look);
-      broadcast({ t: "update", id: p.id, look: p.look });
+      throttled(p, "look", async () => {
+        await setLook(p, msg.look);
+        if (players.has(p.id)) broadcast({ t: "update", id: p.id, look: p.look });
+      });
       return;
     case "chat": {
       if (!p.ready) return;
@@ -269,9 +326,11 @@ async function onMessage(p, msg) {
     case "auth": {
       // signed in or out in the Profile menu: the name and the traits follow
       if (!p.ready) return;
-      await identify(p, msg.wallet, msg.session);
-      await setLook(p, msg.look);
-      broadcast({ t: "update", id: p.id, name: p.name, guest: p.guest, look: p.look });
+      throttled(p, "auth", async () => {
+        await identify(p, msg.wallet, msg.session);
+        await setLook(p, msg.look);
+        if (players.has(p.id)) broadcast({ t: "update", id: p.id, name: p.name, guest: p.guest, look: p.look });
+      });
       return;
     }
   }
@@ -301,6 +360,30 @@ setInterval(() => {
 }, TICK_MS);
 
 // --- http ---------------------------------------------------------------------------------------
+
+// The player's address. Render's proxy puts the address it saw first in X-Forwarded-For; without a
+// proxy (local runs) it is the socket's own.
+function addressOf(req) {
+  const fwd = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return fwd || req.socket.remoteAddress || "?";
+}
+
+// Counts per address in a rolling minute (connections, API calls).
+const perMinute = new Map();           // "kind address" -> { start, n }
+function overLimit(kind, ip, limit) {
+  const key = kind + " " + ip;
+  const now = Date.now();
+  const c = perMinute.get(key);
+  if (!c || now - c.start > 60000) {
+    perMinute.set(key, { start: now, n: 1 });
+    return false;
+  }
+  return ++c.n > limit;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, c] of perMinute) if (now - c.start > 60000) perMinute.delete(k);
+}, 60000);
 
 async function proxy(req, res, url) {
   const headers = { Accept: "application/json", "Content-Type": "application/json" };
@@ -353,6 +436,10 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/healthz") {
       res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ ok: true, online: countReady() }));
     } else if (url.pathname === "/api/imps" || url.pathname === "/api/profile") {
+      if (overLimit("api", addressOf(req), API_PER_MIN)) {
+        res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60" }).end(JSON.stringify({ error: "too many requests" }));
+        return;
+      }
       await proxy(req, res, url);
     } else {
       serveFile(req, res, url);
@@ -366,18 +453,29 @@ const server = createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 8 * 1024 });
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   if (players.size >= MAX_PLAYERS) {
     ws.send(JSON.stringify({ t: "full", max: MAX_PLAYERS }));
     ws.close(1013, "full");
     return;
   }
+  // One person can't fill the room or flood it with reconnects.
+  const ip = addressOf(req);
+  let fromHere = 0;
+  for (const o of players.values()) if (o.ip === ip) fromHere++;
+  if (fromHere >= MAX_PER_IP || overLimit("ws", ip, CONNECTS_PER_MIN)) {
+    ws.close(1008, "too many connections");
+    return;
+  }
   const p = {
-    ws, id: nextId++, ready: false, name: "", guest: true, wallet: "", look: { ...BASE_LOOK },
+    ip, ws, id: nextId++, ready: false, name: "", guest: true, wallet: "", look: { ...BASE_LOOK },
     world: "hub", pos: [0, 0, 0], yaw: 0, moving: 0, dirty: false, alive: true, window: Date.now(), count: 0,
   };
   p.name = guestName(p.id);
   players.set(p.id, p);
+  setTimeout(() => {
+    if (!p.ready && !p.greeting && players.has(p.id)) ws.close(1008, "no hello");
+  }, HELLO_WITHIN_MS);
   ws.on("pong", () => (p.alive = true));
   ws.on("message", (data) => {
     const now = Date.now();
@@ -399,6 +497,8 @@ wss.on("connection", (ws) => {
   });
   ws.on("close", () => {
     players.delete(p.id);
+    for (const w of Object.values(p.waits || {})) clearTimeout(w.timer);
+    if (p.strikes) console.log(`#${p.id} ${p.name}: ${p.strikes} moves pulled back (too fast)`);
     if (p.ready) {
       broadcast({ t: "leave", id: p.id });
       broadcast({ t: "online", n: countReady() });

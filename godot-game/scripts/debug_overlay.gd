@@ -23,7 +23,7 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_debug"):
 		visible = not visible
-	elif event.is_action_pressed("debug_next_biome"):
+	elif event.is_action_pressed("debug_next_biome") and OS.is_debug_build():  # a teleport: never in the live game
 		var main := get_tree().get_first_node_in_group("game_main")
 		if main and main.current_world and main.current_world.has_method("biome_centre"):
 			var names: Array = main.current_world.biome_names()

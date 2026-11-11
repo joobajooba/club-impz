@@ -41,9 +41,7 @@ func _ready() -> void:
 	url = _pick_url()
 	_make_hud()
 	Look.changed.connect(func(): _send({t = "look", look = Look.worn}))
-	if url != "":
-		_connect()
-	_show()
+	_show()                               # _process connects once the first world has loaded
 
 
 func _pick_url() -> String:
@@ -85,7 +83,9 @@ func _lost() -> void:
 
 func _process(delta: float) -> void:
 	if _ws == null:
-		if url != "":
+		# Join only once a world has loaded, so the hello carries the real spawn spot: the server takes
+		# the hello's position as given and holds every later move to running speed (anti-cheat).
+		if url != "" and not _me().is_empty():
 			_retry_in -= delta
 			if _retry_in <= 0.0:
 				_connect()

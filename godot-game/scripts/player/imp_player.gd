@@ -87,7 +87,7 @@ func menu_open() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if frozen or menu_open():
 		return  # world change fade or camera mode: the free camera owns the mouse and keys
-	if event.is_action_pressed("toggle_fast_sprint"):
+	if event.is_action_pressed("toggle_fast_sprint") and OS.is_debug_build():   # test key: not in the live game
 		fast_sprint = not fast_sprint
 	if event.is_action_pressed("use_tool") and visual.has_method("play_action"):
 		if not chopper.use() and not miner.use():        # E by a tree / event vein: chop it / mine it
