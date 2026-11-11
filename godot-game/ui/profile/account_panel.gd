@@ -195,6 +195,10 @@ func set_wallet(address: String) -> void:
 	changed.emit()
 	if wallet != "":
 		refresh()
+		# Sign in straight away (one free signature): the game server only shows other players the
+		# traits of a wallet it has checked, so without this the Imp looks plain to everyone else.
+		if session == "" and WalletBridge.is_supported():
+			_on_sign_in.call_deferred()
 
 
 ## Reads the account again, and what the wallet can still claim. ProfileUI also calls this when

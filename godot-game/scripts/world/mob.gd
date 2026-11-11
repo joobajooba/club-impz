@@ -87,6 +87,8 @@ func _ready() -> void:
 	_tag.position = Vector3(0, float(info.height) + 0.35 / size, 0)
 	_tag.scale = Vector3.ONE / size                    # the same size over every mob, whatever its scale
 	_tag.visible = false
+	_tag.font = Settings.font()
+	Settings.changed.connect(_on_settings_changed)
 	add_child(_tag)
 	for c in info.calls:
 		var path := "res://assets/sounds/%s.wav" % c
@@ -219,6 +221,10 @@ static func _template(id: String) -> PackedScene:
 	_templates[id] = packed
 	return packed
 
+
+
+func _on_settings_changed() -> void:
+	_tag.font = Settings.font()           # Text style (Settings, Options)
 
 
 ## Close to the player: the nametag fades in, and now and then the mob calls.
