@@ -28,9 +28,10 @@ func _init(player_id: int, look: Dictionary, player_name: String) -> void:
 	label = Label3D.new()
 	label.position = Vector3(0, 1.55, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.fixed_size = true
-	label.pixel_size = 0.0022
-	label.font_size = 28
+	# world sized (about 14 cm tall), so it is small but readable beside the Imp and shrinks with distance
+	label.fixed_size = false
+	label.pixel_size = 0.0045
+	label.font_size = 32
 	label.outline_size = 8
 	label.no_depth_test = false
 	add_child(label)
