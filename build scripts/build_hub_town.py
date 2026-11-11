@@ -42,7 +42,7 @@ for n in ("planter_square_flowers", "planter_trough_flowers", "urn_planter", "to
           "hedge_segment", "blossom_tree_planter"):
     MODELS[n] = (f"res://assets/models/foliage/town/{n}.glb", f"assets/models/foliage/town/{n}.bbmodel", 1.0)
 
-for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter_apothecary", "fence_rail", "fence_post", "log_pile",
+for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter_apothecary", "fence_rail", "fence_rail_short", "fence_post", "log_pile",
           "lumber_stack", "coal_ore_bins", "tool_rack", "quench_trough", "crate_stack", "tannery_vats", "potion_shelf", "herb_bed",
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
@@ -254,13 +254,114 @@ def square(sx, north, south, kind):
         place("blossom_tree_planter", sx * x, 7.0, 0, s=1.2)
 
 
+# ---- fences (J00BA, 2026-11-09: every run connects to another fence or ends in a post, never two posts in one spot)
+# fence_rail is one rail length with its post on the west end (local -x); its open east end is closed by the next
+# rail's post or by a fence_post. The pitches (post to open end) come from the models: 2 m and 1.1875 m.
+def _rail_geom(alias):
+    d = json.load(open(os.path.join(GAME, MODELS[alias][1]), encoding="utf8"))
+    post = next(e for e in d["elements"] if e["name"] == "post")
+    pc = (post["from"][0] + post["to"][0]) / 2 * U
+    end = max(e["to"][0] for e in d["elements"] if e["name"].startswith("rail_")) * U
+    return pc, end - pc                                          # post x (local), pitch
+
+
+FENCE_SEGS = []                                                   # straight segments [(x, z), (x, z)]
+
+
+def fence_run(points):
+    """A fence along the corner points (a straight line per pair). Rails are laid when build_fences() runs, after
+    every run is known, so shared corners and T joints get exactly one post."""
+    for a, b in zip(points[:-1], points[1:]):
+        FENCE_SEGS.append((tuple(map(float, a)), tuple(map(float, b))))
+
+
+def _pieces(a, b):
+    """Whole rails from a to b: as many full rails as fit, then one short rail for the rest (must fit exactly)."""
+    full_x, full_p = _rail_geom("fence_rail")
+    short_x, short_p = _rail_geom("fence_rail_short")
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    n = int(L / full_p + 1e-6); rest = L - n * full_p
+    kinds = ["fence_rail"] * n
+    if rest > 1e-3:
+        assert abs(rest - short_p) < 1e-3, f"fence {a} -> {b}: {L} m is not whole rails ({full_p} / {short_p})"
+        kinds.append("fence_rail_short")
+    ux, uz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    out, t = [], 0.0
+    for k in kinds:
+        px_, pt = _rail_geom(k)
+        out.append((k, (a[0] + ux * t, a[1] + uz * t), (a[0] + ux * (t + pt), a[1] + uz * (t + pt)), px_))
+        t += pt
+    return out
+
+
+def build_fences():
+    """Lay every fence run: turn segments so no two rails put their post on the same point, then put a fence_post on
+    every end that no rail's post covers."""
+    key = lambda p: (round(p[0], 3), round(p[1], 3))
+    flip = [False] * len(FENCE_SEGS)
+
+    def pieces(i):
+        a, b = FENCE_SEGS[i]
+        return _pieces(b, a) if flip[i] else _pieces(a, b)
+
+    def starts():
+        c = {}
+        for i in range(len(FENCE_SEGS)):
+            for _, p0, _, _ in pieces(i):
+                c[key(p0)] = c.get(key(p0), 0) + 1
+        return c
+
+    def clash():
+        return sum(v - 1 for v in starts().values() if v > 1)
+    # Each segment's first post goes on one of its two ends; a point can hold one post. Points inside a segment
+    # (its rail joints) are already taken. Pick the ends by bipartite matching (augmenting paths), so T joints
+    # and corners always find a free arrangement if there is one.
+    taken = set()
+    for i in range(len(FENCE_SEGS)):
+        for _, p0, _, _ in _pieces(*FENCE_SEGS[i])[1:]:
+            taken.add(key(p0))
+    owner = {}                                                    # point -> segment whose first post stands there
+
+    def assign(i, seen):
+        a, b = FENCE_SEGS[i]
+        for end, fl in ((key(a), False), (key(b), True)):
+            if end in taken or end in seen:
+                continue
+            seen.add(end)
+            if end not in owner or assign(owner[end], seen):
+                owner[end] = i; flip[i] = fl
+                return True
+        return False
+    for i in range(len(FENCE_SEGS)):
+        if not assign(i, set()):
+            raise SystemExit(f"fences: segment {FENCE_SEGS[i]} has no free end for its post")
+    assert clash() == 0, f"fences: {clash()} doubled posts left"
+    st = starts()
+    ends = set()
+    for i in range(len(FENCE_SEGS)):
+        for alias, p0, p1, px_ in pieces(i):
+            ux, uz = p1[0] - p0[0], p1[1] - p0[1]
+            n = math.hypot(ux, uz); ux, uz = ux / n, uz / n
+            yaw = math.degrees(math.atan2(-uz, ux))               # local +x (the open end) along the run
+            ox, oz = p0[0] - ux * px_, p0[1] - uz * px_          # model origin: the post sits at local px_
+            place(alias, ox, oz, round(yaw, 3), collide="extent")
+            ends.add(key(p1))
+    for e in sorted(ends):
+        if e not in st:
+            place("fence_post", e[0], e[1], 0.0, collide=False)
+
+
 # ---- the crafters' yard: eight small workshops along Market Street, each its own plot (J00BA, 2026-11-09)
 # Plot: 7.75 m along the street, 9.5 m deep. A lean-to shelter at the back (its lantern lights at night), the
 # station under its front edge facing the street, the trade's props round it, fences between the plots and a
 # short front fence each side of a 3.75 m gateway with the trade sign. Forge plots are cobbled, the rest earth.
 # Local plot coordinates: lx along the street (east), d = metres from the back of the plot toward the street.
-YARD_X = (-59.625, -51.875, -44.125, -36.375)
-PLOT_W, PLOT_D = 7.75, 9.5
+YARD_X = (-60.0, -52.0, -44.0, -36.0)       # 8 m plots: every plot edge is on the fences' 2 m post grid
+PLOT_W, PLOT_D = 8.0, 9.5
+# The front fence line: four 2 m rails and one short rail from the back of the plot (8 + 1.1875 = 9.1875 m). The
+# gate sign stands at d = PLOT_D - 0.6 with a 0.19 m base, so a line at 9.0 would run through it; 9.1875 clears it.
+FRONT_D = None
+yard_plots, yard_rows = [], {}
 YARD_PLOTS = {
     "north": [  # backs at z -29.5, fronts on Market Street (z -20)
         ("smelter", "furnace", -1.0, 3.4, "forge", True, [("coal_ore_bins", 1.4, 6.6, 0), ("crate_stack", 2.0, 1.3, 0)]),
@@ -278,7 +379,9 @@ YARD_PLOTS = {
 
 
 def yard():
+    global FRONT_D
     sx = -1
+    FRONT_D = 4 * _rail_geom("fence_rail")[1] + _rail_geom("fence_rail_short")[1]
     landmarks["crafting_area"] = [-48.0, -16.0]
     x_edges = [YARD_X[0] - PLOT_W / 2] + [x + PLOT_W / 2 for x in YARD_X]
     for row, back_z, face in (("north", -29.5, 180.0), ("south", -2.5, 0.0)):
@@ -292,6 +395,8 @@ def yard():
             z1, z2 = sorted((back_z, back_z + dz * PLOT_D))
             (street if cob else earth)(x1, z1, x2, z2)
             if trade == "passage":
+                yard_plots.append({"name": trade, "rect": [x1, z1, x2, z2], "gate": [x1, x2], "front_z": back_z + dz * FRONT_D,
+                                   "passage": True})
                 continue
             if shelter:
                 hx, hz = at(cx, 0.0, 2.2)
@@ -307,16 +412,28 @@ def yard():
                 place(a, px_, pz_, face + yl)
                 if a.startswith("stall_"):                     # the brewer sells what they brew
                     vendor_spot(a, px_, pz_, face + yl, "vendor_potion_brewer", "potion seller at the brewery")
-            # short front fences either side of the gateway
-            for lx in (-PLOT_W / 2 + 1.0, PLOT_W / 2 - 1.0):
-                fx, fz = at(cx, lx, PLOT_D - 0.3)
-                place("fence_rail", fx, fz, 0.0, collide="extent")
-        # fences between the plots and at the yard ends, back to front (four 2 m rails and an end post)
+            # front fences: one 2 m rail from each plot corner to its side of the gateway
+            for lx0, lx1 in ((-PLOT_W / 2, -PLOT_W / 2 + 2.0), (PLOT_W / 2, PLOT_W / 2 - 2.0)):
+                fence_run([at(cx, lx0, FRONT_D), at(cx, lx1, FRONT_D)])
+            gl, gr = sorted((at(cx, -PLOT_W / 2 + 2.0, 0)[0], at(cx, PLOT_W / 2 - 2.0, 0)[0]))
+            yard_plots.append({"name": trade, "rect": [x1, z1, x2, z2], "gate": [gl, gr], "front_z": back_z + dz * FRONT_D})
+        # side fences between the plots and at the yard ends, back to the front line (four 2 m rails and one short
+        # rail), and a back fence behind the shelters closing each plot (open behind the passage)
+        front_z = back_z + dz * FRONT_D
         for xe in x_edges:
-            for k in range(4):
-                fz = back_z + dz * (1.0 + k * 2.0)
-                place("fence_rail", xe, fz, 90.0, collide="extent")
-            place("fence_post", xe, back_z + dz * 8.0, 0.0, collide=False)
+            fence_run([(xe, back_z), (xe, front_z)])
+        runs, cur = [], [x_edges[0]]
+        for (trade, *_), xa, xb in zip(YARD_PLOTS[row], x_edges[:-1], x_edges[1:]):
+            if trade == "passage":
+                runs.append(cur); cur = [xb]
+            else:
+                cur.append(xb)
+        runs.append(cur)
+        for r_ in runs:
+            if len(r_) > 1:
+                fence_run([(r_[0], back_z), (r_[-1], back_z)])
+        yard_rows[row] = {"back": back_z, "front": front_z}
+    build_fences()
     place("blossom_tree_planter", -69.5, -16.0, 0, s=1.6)
     for z in (-22.0, -10.0):
         place("urn_planter", -66.5, z, "E", s=1.2)
@@ -455,6 +572,7 @@ plan = {
     "placements": placements, "colliders": colliders, "lights": lights, "npc_spots": npc_spots,
     "landmarks": landmarks, "spawn_point": landmarks["spawn_point"],
     "ground": {"cobble": cobble, "dirt": dirt, "dirt_rects": dirt_rects}, "no_scatter": no_scatter,
+    "yard_rows": yard_rows, "yard_plots": yard_plots,
 }
 out = os.path.join(GAME, "data", "hub_town.json")
 with open(out, "w") as f:

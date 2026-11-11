@@ -40,6 +40,55 @@ def hammer(H, name, grp, x, y, z, yaw=0.0, head="steel", L=6):
     return g
 
 
+# ---- z-fight free octagons (J00BA, 2026-11-09: the cauldron's brew flickered green and grey)
+# house_lib.octo() makes an octagon from two crossed boxes; their tops and bottoms overlap in one plane with different
+# paint, which flickers. These helpers cut the same octagon (or a ring of it) into rectangles that only meet edge to
+# edge, and hide every side face that a neighbour covers completely.
+def octo_cells(D, inset=None):
+    """Half-unit cells (i, j) of house_lib.octo()'s outline, centred on 0 (cell i covers x = i/2 .. i/2 + 0.5)."""
+    inset = inset if inset is not None else h2(D * 0.3)
+    a, b = D / 2, (D - inset) / 2
+    cells = set()
+    for i in range(int(-a * 2), int(a * 2)):
+        for j in range(int(-a * 2), int(a * 2)):
+            x, z = (i + 0.5) / 2, (j + 0.5) / 2
+            if (abs(x) < a and abs(z) < b) or (abs(x) < b and abs(z) < a):
+                cells.add((i, j))
+    return cells
+
+
+def cell_rects(cells):
+    """Greedy split of a cell set into non-overlapping rectangles (i0, j0, i1, j1), half-open."""
+    left, rects = set(cells), []
+    for j in sorted({c[1] for c in cells}):
+        for i in sorted(i for i, jj in cells if jj == j):
+            if (i, j) not in left:
+                continue
+            i1 = i
+            while (i1 + 1, j) in left:
+                i1 += 1
+            j1 = j
+            while all((k, j1 + 1) in left for k in range(i, i1 + 1)):
+                j1 += 1
+            for k in range(i, i1 + 1):
+                for m in range(j, j1 + 1):
+                    left.discard((k, m))
+            rects.append((i, j, i1 + 1, j1 + 1))
+    return rects
+
+
+def octo_solid(H, name, grp, cells, y1, y2, mat, var, hide=()):
+    """Boxes for a cell set between y1 and y2. A side face is hidden when the cells just past it are all filled
+    (it's inside the solid); `hide` hides up / down on every box."""
+    for k, (i0, j0, i1, j1) in enumerate(cell_rects(cells)):
+        h = set(hide)
+        if all((i1, m) in cells for m in range(j0, j1)): h.add("east")
+        if all((i0 - 1, m) in cells for m in range(j0, j1)): h.add("west")
+        if all((n, j1) in cells for n in range(i0, i1)): h.add("south")
+        if all((n, j0 - 1) in cells for n in range(i0, i1)): h.add("north")
+        H.box(f"{name}_{k + 1}", grp, [i0 / 2, y1, j0 / 2], [i1 / 2, y2, j1 / 2], mat, tuple(h), var)
+
+
 # ==================================================================== 1. furnace
 def furnace():
     H = Station("furnace", 4101, station_mats(extra={
@@ -569,22 +618,27 @@ def cauldron():
         a = math.radians(90 + k * 120); foot = np.array([math.cos(a) * 14, 0, math.sin(a) * 14])
         H.rotbar(f"tripod_pole_{k + 1}", tp, foot, top + (top - foot) * 0.08, 1.5, "pole")
     H.box("tripod_lashing", tp, [-1.5, 34.5, -1.5], [1.5, 37, 1.5], "rope" if "rope" in H.mats else "wood", (), "lash")
-    H.box("chain", tp, [-0.25, 21, -0.25], [0.25, 34.5, 0.25], "steel", (), "chain")
+    H.box("chain", tp, [-0.25, 21, -0.25], [0.25, 34.5, 0.25], "steel", ("up", "down"), "chain")
     H.box("chain_hook", tp, [-0.75, 20, -0.75], [0.75, 21, 0.75], "steel", (), "hook")
-    # the pot: octagonal iron belly, rim, glowing brew, bubbles, a bail handle, little legs
+    # the pot: octagonal iron belly, rim, glowing brew, bubbles, a bail handle, little legs. Every octagon is cut into
+    # edge-to-edge boxes (octo_solid), the rim is a ring open in the middle, and the brew sits 0.5 below the rim top,
+    # so no two faces share a plane anywhere (the old rim was a solid lid level with the brew).
     p = g["pot"]
-    H.octo("pot_body", p, 0, 0, 12, 5, 13, "cauldron", ("down",), "pbody")
-    H.octo("pot_belly", p, 0, 0, 13, 6.5, 11.5, "cauldron", (), "pbelly")
-    H.octo("pot_base", p, 0, 0, 9, 4, 5, "cauldron", (), "pbase")
-    H.octo("pot_rim", p, 0, 0, 13, 13, 14, "cauldron", ("down",), "prim")
-    H.item("brew_glow", p, [-5, 13.5, -5], [5, 14, 5], "brew", lambda W, Hh, c: H.P.pile(R["glow_green"], W, Hh, c, r=1.5, stem=False, gap=R["glow_green"]))
-    for i, (x, z, s, y) in enumerate(((-2, 1, 1.5, 14), (2, -1.5, 1, 14.5), (0.5, 2.5, 1, 15.5), (-1, -2, 0.5, 16.5))):
-        H.item(f"bubble_{i + 1}_glow", p, [x - s / 2, y, z - s / 2], [x + s / 2, y + s, z + s / 2], f"bub{s}",
-               lambda W, Hh, c: H.P.form(R["glow_green"], W, Hh, c, 4.6, noise=0), hide=())
+    body, belly, base = octo_cells(12), octo_cells(13), octo_cells(9)
+    rim = octo_cells(13) - octo_cells(10, inset=4)                # 1.5 wide ring round the opening
+    octo_solid(H, "pot_body", p, body, 5, 13, "cauldron", "pbody", hide=("down", "up"))   # top: under the brew and rim
+    octo_solid(H, "pot_belly", p, belly, 6.5, 11.5, "cauldron", "pbelly")
+    octo_solid(H, "pot_base", p, base, 4, 5, "cauldron", "pbase", hide=("up",))           # top: under the body
+    octo_solid(H, "pot_rim", p, rim, 13, 14, "cauldron", "prim", hide=("down",))
+    H.item("brew_glow", p, [-5, 13, -5], [5, 13.5, 5], "brew", lambda W, Hh, c: H.P.pile(R["glow_green"], W, Hh, c, r=1.5, stem=False, gap=R["glow_green"]),
+           hide=("down", "north", "south", "east", "west"))
+    for i, (x, z, s_, y) in enumerate(((-2, 1, 1.5, 13.5), (2, -1.5, 1, 14), (0.5, 2.5, 1, 15), (-1, -2, 0.5, 16))):
+        H.item(f"bubble_{i + 1}_glow", p, [x - s_ / 2, y, z - s_ / 2], [x + s_ / 2, y + s_, z + s_ / 2], f"bub{s_}",
+               lambda W, Hh, c: H.P.form(R["glow_green"], W, Hh, c, 4.6, noise=0), hide=("down",) if y <= 13.5 else ())
     for i, (x, z) in enumerate(((-3.5, -3.5), (3.5, -3.5), (0, 4))):
-        H.box(f"pot_leg_{i + 1}", p, [x - 0.75, 2, z - 0.75], [x + 0.75, 4, z + 0.75], "cauldron", ("down",), "pleg")
-    for s, x in (("left", -7), ("right", 6.5)):
-        H.box(f"bail_lug_{s}", p, [x, 12, -0.75], [x + 0.5, 14, 0.75], "steel", (), "lug")
+        H.box(f"pot_leg_{i + 1}", p, [x - 0.75, 2, z - 0.75], [x + 0.75, 4, z + 0.75], "cauldron", ("down", "up"), "pleg")
+    for s_, x, inner in (("left", -7, "east"), ("right", 6.5, "west")):
+        H.box(f"bail_lug_{s_}", p, [x, 12, -0.75], [x + 0.5, 14, 0.75], "steel", (inner,), "lug")
     H.rotbar("bail_left", p, [-6.75, 14, 0], [0, 20.5, 0], 0.5, "steel")
     H.rotbar("bail_right", p, [6.75, 14, 0], [0, 20.5, 0], 0.5, "steel")
     # ladle resting in the brew (pivot at the rim)
@@ -594,9 +648,9 @@ def cauldron():
     # side table with ingredients and bottles
     t = g["table"]
     for i, (x, z) in enumerate(((15, -5), (23, -5), (15, 3), (23, 3))):
-        H.box(f"table_leg_{i + 1}", t, [x - 0.75, 0, z - 0.75], [x + 0.75, 9, z + 0.75], "wood", ("down",), "tleg")
+        H.box(f"table_leg_{i + 1}", t, [x - 0.75, 0, z - 0.75], [x + 0.75, 9, z + 0.75], "wood", ("down", "up"), "tleg")
     H.box("table_top", t, [14, 9, -6], [24, 10, 4], "top", (), "ttop")
-    for i, (x, z, gl) in enumerate(((16, -4, "glow_pink"), (18, -4.5, "glow_cyan"), (16.5, -1.5, "glow_violet"))):
+    for i, (x, z, gl) in enumerate(((16, -4, "glow_pink"), (18.5, -4.5, "glow_cyan"), (16.5, -1.5, "glow_violet"))):
         bg = H.group(f"bottle_{i + 1}", [x, 10, z], t)
         H.item(f"bottle_{i + 1}_body_glow", bg, [x - 1, 10, z - 1], [x + 1, 12, z + 1], f"gl_{gl}", lambda W, Hh, c, r_=gl: H.P.glass(R[r_], W, Hh, c))
         H.item(f"bottle_{i + 1}_neck", bg, [x - 0.5, 12, z - 0.5], [x + 0.5, 13, z + 0.5], "neck", lambda W, Hh, c: H.P.form(R["glass"], W, Hh, c, 4.2))
@@ -613,10 +667,10 @@ def cauldron():
     # details: crate of bundles, firewood stack, a stool
     d = g["details"]
     H.item("bundle_crate", d, [-23, 0, -4], [-17, 5, 2], "crate_pine_wood", lambda W, Hh, c: H.P.crate(R["pine_wood"], W, Hh, c))
-    for i, (x, z, rm) in enumerate(((-21.5, -2.5, "bluebell"), (-19.5, -2, "apple"), (-20.5, 0.5, "orange"), (-18.5, 0.5, "glow_violet"))):
+    for i, (x, z, rm) in enumerate(((-21.5, -2.5, "bluebell"), (-19, -2, "apple"), (-21, 0.5, "orange"), (-18.5, 0.5, "glow_violet"))):
         H.item(f"crate_bundle_{i + 1}", d, [x - 1, 4, z - 1], [x + 1, 7, z + 1], f"cb_{rm}", lambda W, Hh, c, r_=rm: H.P.leafy(R[r_], W, Hh, c))
     for i, (y, z0) in enumerate(((0, 5), (0, 8.5), (3, 6.75))):
-        H.log(f"wood_stack_{i + 1}", d, [-24, y, z0 - 1.5], [-16, y + 3, z0 + 1.5], axis="x", hide=("down",) if y == 0 else ())
+        H.log(f"wood_stack_{i + 1}", d, [-24, y, z0 - 1.5], [-16, y + 3, z0 + 1.5], axis="x", hide=("down",))   # the top log rests on the two below
     return H
 
 
