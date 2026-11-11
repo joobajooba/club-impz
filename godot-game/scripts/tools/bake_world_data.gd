@@ -6,6 +6,8 @@ extends SceneTree
 ##   data/resource_terrain.png  641 x 257, 2 m per pixel. RG = height (16 bit), BA = warped depth "s" (16 bit)
 ##   data/resource_mask.png     1280 x 512, 1 m per pixel. R path, G wet / low ground, B special patch, A leaf litter / tree clusters
 ##   data/resource_layout.json  path lines, landmarks, water planes, river, ore spots
+##   data/resource_skirt.png    577 x 385, 4 m per pixel, RG = height (16 bit, its own scale): the cliffs and mountains
+##                              round the outside of the world (512 m each side), so its edge is a wall, not a drop
 ##   data/hub_terrain.png, data/hub_mask.png, data/hub_layout.json   the flat 200 x 200 m hub, from data/hub_town.json
 ## Hub only:   godot --headless --path . --script res://scripts/tools/bake_world_data.gd -- --hub_only
 
@@ -34,6 +36,8 @@ var n_detail := FastNoiseLite.new()
 var n_mesa := FastNoiseLite.new()
 var n_island := FastNoiseLite.new()
 var n_litter := FastNoiseLite.new()
+var n_crag := FastNoiseLite.new()     # skirt: cliff height and width along the border
+var n_massif := FastNoiseLite.new()   # skirt: the mountain range behind the cliffs
 
 var landmarks := {}
 var main_path := PackedVector2Array()
@@ -56,8 +60,8 @@ func _init() -> void:
 
 
 func _setup_noise() -> void:
-	var seeds := [101, 202, 303, 404, 505, 606, 707]
-	var all := [n_warp, n_hill, n_ridge, n_detail, n_mesa, n_island, n_litter]
+	var seeds := [101, 202, 303, 404, 505, 606, 707, 808, 909]
+	var all := [n_warp, n_hill, n_ridge, n_detail, n_mesa, n_island, n_litter, n_crag, n_massif]
 	for i in all.size():
 		all[i].seed = seeds[i]
 		all[i].noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
@@ -71,6 +75,11 @@ func _setup_noise() -> void:
 	n_mesa.frequency = 1.0 / 70.0
 	n_island.frequency = 1.0 / 45.0
 	n_litter.frequency = 1.0 / 40.0
+	n_crag.frequency = 1.0 / 110.0
+	n_crag.fractal_octaves = 2
+	n_massif.frequency = 1.0 / 210.0
+	n_massif.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+	n_massif.fractal_octaves = 3
 
 
 # ---------------------------------------------------------------- layout
@@ -200,15 +209,36 @@ func height_at(x: float, z: float, s: float, d_path: float) -> float:
 	# main path: keep it walkable (mountain pass, mesa edges)
 	var ph := 8.0 + smoothstep(240.0, 300.0, x) * 14.0 - smoothstep(470.0, 530.0, x) * 12.0 - smoothstep(1000.0, 1050.0, x) * 8.0
 	if x > 200.0 and x < 560.0:
-		h = lerp(maxf(ph, minf(h, ph + 4.0)), h, smoothstep(7.0, 48.0, d_path))
+		h = lerp(smax(ph, smin(h, ph + 4.0, 3.0), 3.0), h, smoothstep(7.0, 48.0, d_path))  # smooth, no crease lines
 	elif x > 760.0 and x < 1030.0:
-		h = lerp(minf(h, 14.0), h, smoothstep(6.0, 20.0, d_path))
+		h = lerp(smin(h, 14.0, 2.0), h, smoothstep(6.0, 20.0, d_path))
 	# portal clearing: flat
 	h = lerp(6.0, h, smoothstep(12.0, 26.0, Vector2(x, z).distance_to(landmarks["portal_clearing"])))
-	# ring of tall mountains round the edge
-	var e := minf(minf(z + RD / 2.0, RD / 2.0 - z), minf(x + 10.0, RW - x))
-	h += pow(1.0 - smoothstep(4.0, 80.0, e), 1.6) * (40.0 + n_hill.get_noise_2d(x * 0.5, z * 0.5) * 6.0)  # low, rounded border hills
+	# foothills that level off along the border; the cliffs and mountains beyond it are the skirt (_bake_skirt)
+	h += _edge_ring(x, z)
 	return h
+
+
+func _edge_ring(x: float, z: float) -> float:
+	## Rounded foothills (at most about 20 deg) rising to a level shelf at the border, where the skirt's cliffs start.
+	## North, south and east are 48 / 48 / 36 m deep; the west one is narrow because the portal clearing is near it.
+	var n := n_hill.get_noise_2d(x * 0.5, z * 0.5)
+	var rn := 1.0 - smoothstep(6.0, 48.0, z + RD / 2.0)
+	var rs := 1.0 - smoothstep(6.0, 48.0, RD / 2.0 - z)
+	var re := 1.0 - smoothstep(6.0, 36.0, RW - x)
+	var outer := (1.0 - (1.0 - rn) * (1.0 - rs) * (1.0 - re)) * (9.0 + 4.0 * n)  # soft union: no crease in the corners
+	var west := (1.0 - smoothstep(4.0, 22.0, x)) * (5.0 + 2.0 * n)
+	return smax(outer, west, 3.0)
+
+
+static func smin(a: float, b: float, k: float) -> float:
+	## Smooth minimum (polynomial): like minf but rounded over k metres, so clamps leave no crease.
+	var hh := clampf(0.5 + 0.5 * (b - a) / k, 0.0, 1.0)
+	return lerpf(b, a, hh) - k * hh * (1.0 - hh)
+
+
+static func smax(a: float, b: float, k: float) -> float:
+	return -smin(-a, -b, k)
 
 
 func _h_biome(i: int, x: float, z: float) -> float:
@@ -249,6 +279,7 @@ func _bake_resource() -> void:
 			ss[gz * nx + gx] = s
 			hs[gz * nx + gx] = height_at(x, z, s, path_dist[gz * nx + gx])
 	_post_process(hs, nx, nz)
+	_bake_skirt(hs, nx, nz)
 	var img := Image.create(nx, nz, false, Image.FORMAT_RGBA8)
 	for k in nx * nz:
 		var hv := clampi(int(round((hs[k] + H_OFFSET) * H_SCALE)), 0, 65535)
@@ -299,6 +330,8 @@ func _bake_resource() -> void:
 		"water": WATER,
 		"waterfall": {"x": 214.0, "z": river_z(214), "top": 10.0, "bottom": 3.0},
 		"spawn_point": [36.0, 0.0],
+		"skirt": {"origin": [-SKIRT, -RD / 2.0 - SKIRT], "step": SKIRT_STEP, "size": [RW + 2.0 * SKIRT, RD + 2.0 * SKIRT],
+			"h_offset": H_OFFSET, "h_scale": SKIRT_H_SCALE},
 	}
 	var f := FileAccess.open("res://data/resource_layout.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(layout, "  "))
@@ -338,6 +371,50 @@ func _v2dict(d: Dictionary) -> Dictionary:
 	for k in d:
 		out[k] = [snappedf(d[k].x, 0.1), snappedf(d[k].y, 0.1)]
 	return out
+
+
+# ---------------------------------------------------------------- skirt: cliffs and mountains round the world
+const SKIRT := 512.0          # how far the skirt reaches past each side
+const SKIRT_STEP := 4.0
+const SKIRT_H_SCALE := 100.0  # value = (h + 20) * 100, up to 635 m
+
+
+func _skirt_rise(x: float, z: float, d: float) -> float:
+	## Height added above the border at distance d outside it: a level shelf of 2 to 4.5 m, then a cliff of 46 to
+	## 76 m whose steepest part is 60 to 70 deg (the Imp can climb 46 deg), then a ridged range rising up to 170 m more.
+	var crag := n_crag.get_noise_2d(x, z) * 0.5 + 0.5
+	var nd := n_detail.get_noise_2d(x * 1.7, z * 1.7)
+	# buttresses and gullies: ridges of rock that stand out of the cliff every 15 to 30 m, ravines between them
+	var gully := absf(n_detail.get_noise_2d(x * 2.6 + 400.0, z * 2.6 - 300.0))
+	var foot := 2.0 + 2.5 * (nd * 0.5 + 0.5) + gully * 6.0
+	var wall := (46.0 + 30.0 * crag - gully * 10.0) * smoothstep(foot, foot + 24.0 + 10.0 * crag, d)
+	# ledges: the cliff climbs in uneven steps (each still too steep to stand on between them)
+	wall += sin(wall * 0.42 + nd * 2.0) * 1.6 * smoothstep(foot, foot + 6.0, d) * (1.0 - smoothstep(foot + 30.0, foot + 44.0, d))
+	var massif := (50.0 + 120.0 * (n_massif.get_noise_2d(x, z) * 0.5 + 0.5)) * smoothstep(24.0, 300.0, d)
+	var rough := n_detail.get_noise_2d(x * 3.0, z * 3.0) * 2.5 * smoothstep(8.0, 40.0, d)
+	return wall + massif + rough
+
+
+func _bake_skirt(hs: PackedFloat32Array, nx: int, nz: int) -> void:
+	var sw := int((RW + 2.0 * SKIRT) / SKIRT_STEP) + 1
+	var sd := int((RD + 2.0 * SKIRT) / SKIRT_STEP) + 1
+	var img := Image.create(sw, sd, false, Image.FORMAT_RGBA8)
+	var top := 0.0
+	for j in sd:
+		for i in sw:
+			var x := -SKIRT + i * SKIRT_STEP
+			var z := -RD / 2.0 - SKIRT + j * SKIRT_STEP
+			var cx := clampf(x, 0.0, RW)
+			var cz := clampf(z, -RD / 2.0, RD / 2.0)
+			var d := Vector2(x - cx, z - cz).length()
+			var h := _h_at(hs, nx, nz, cx, cz)  # inside: the world itself, so interpolation near the border is right
+			if d > 0.0:
+				h += _skirt_rise(x, z, d)
+			top = maxf(top, h)
+			var hv := clampi(int(round((h + H_OFFSET) * SKIRT_H_SCALE)), 0, 65535)
+			img.set_pixel(i, j, Color8(hv >> 8, hv & 255, 0, 255))
+	img.save_png(ProjectSettings.globalize_path("res://data/resource_skirt.png"))
+	print("BAKE CHECK skirt: %d x %d, highest %.1f m" % [sw, sd, top])
 
 
 # ---------------------------------------------------------------- hub (200 x 200 m, centred on 0, 0)
@@ -410,7 +487,7 @@ func _post_process(hs: PackedFloat32Array, nx: int, nz: int) -> void:
 				kind[k] = 2
 			elif path_dist[k] < 6.0:
 				kind[k] = 1  # paths win over the rugged areas so every branch stays walkable
-			elif (s >= 256.0 and s <= 512.0 and hs[k] > 40.0) or _edge_e(x, z) < 46.0 or _in_fall_cliff(x, z):
+			elif (s >= 256.0 and s <= 512.0 and hs[k] > 40.0) or _in_fall_cliff(x, z):
 				kind[k] = 3
 	var carved := hs.duplicate()  # riverbed, swamp hollows and pools before the blur fills them in
 	_blur5(hs, nx, nz, 5)
@@ -663,7 +740,49 @@ func _shape_water(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: in
 			var inner := 1.0 - maxf(absf(x - 204.0) / 3.0, dz / 7.0)
 			var bowl := 1.6 - 0.5 * clampf(inner, 0.0, 1.0)
 			hs[k] = minf(hs[k], lerp(bowl, hs[k], smoothstep(0.0, 6.0, out)))
+	_soften(hs, kind, label, dist_out, near, nx, nz)
 	_validate(hs, kind, label, dist_in, dist_out, nx, nz)
+
+
+func _soften(hs: PackedFloat32Array, kind: PackedByteArray, label: PackedInt32Array, dist_out: PackedFloat32Array,
+		near: PackedInt32Array, nx: int, nz: int) -> void:
+	## Rounds off creases and pits: cells that stick out of (or sink into) their 3 x 3 neighbourhood by more than
+	## 8 cm move most of the way to its average. Gentle ground and fine detail are left alone. The waterfall stays
+	## as it is, and each side of every waterline is clamped again so no water leaks.
+	for pass_i in 8:
+		var src := hs.duplicate()
+		var moved := 0
+		for gz in range(1, nz - 1):
+			for gx in range(1, nx - 1):
+				var k := gz * nx + gx
+				var x := gx * STEP
+				var z := gz * STEP - RD / 2.0
+				if kind[k] == 2 or (x > 188.0 and x < 226.0 and z > 30.0 and z < 130.0):
+					continue
+				if label[k] >= 0 or dist_out[k] < 12.0:
+					continue  # shores and beds are already shaped (and checked) by _shape_water
+				var sum := 0.0
+				for dz in range(-1, 2):
+					for dx in range(-1, 2):
+						sum += src[k + dz * nx + dx]
+				var dev := sum / 9.0 - src[k]
+				if absf(dev) < 0.08:
+					continue
+				var v := src[k] + dev * 0.6
+				# stay inside the slope limits (_slope_limit) with each normal or path neighbour
+				if kind[k] < 2:
+					for j in [k - 1, k + 1, k - nx, k + nx]:
+						if kind[j] < 2:
+							var rise := 2.0 * (0.30 if kind[k] == 1 or kind[j] == 1 else 0.45)
+							v = clampf(v, src[j] - rise, src[j] + rise)
+				if label[k] >= 0:
+					v = minf(v, WATER[label[k]]["level"] - 0.1)
+				elif dist_out[k] < 12.0 and _needs_bank(k, near[k], dist_out[k], nx):
+					v = maxf(v, WATER[near[k]]["level"] + 0.1)
+				hs[k] = v
+				moved += 1
+		if moved == 0:
+			break
 
 
 func _needs_bank(k: int, wi: int, d_out: float, nx: int) -> bool:
@@ -727,7 +846,7 @@ func _in_lower_water(x: float, z: float, lvl: float) -> bool:
 
 func _slope_limit(hs: PackedFloat32Array, kind: PackedByteArray, nx: int, nz: int) -> void:
 	## Max rise per 2 m cell: normal 24 deg, path 17 deg, rugged 37 deg. The waterfall (kind 2) is exempt.
-	for pass_i in 60:
+	for pass_i in 400:  # big mountains need many passes; it stops once nothing moves
 		var changed := 0
 		for gz in nz:
 			for gx in nx:

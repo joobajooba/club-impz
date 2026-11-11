@@ -14,8 +14,8 @@ These come from `blockbench_detailed_prompts.md` section 3.12 and section 1.5.
 
 | Rule | Value |
 | --- | --- |
-| Size | **128 × 128** pixels for every terrain texture |
-| Texel density | **32 px per metre**, so one tile covers **4 × 4 metres** of ground (same pixel size as the models) |
+| Size | **256 × 256** pixels for every terrain texture (HD, 2026-11-10; first drawn at 128 × 128, see `K` in `tools/generate_terrain_textures.py`) |
+| Texel density | **64 px per metre**, so one tile covers **4 × 4 metres** of ground. Features keep their size on the ground but are drawn with twice the pixels (J00BA asked for higher definition ground, 2026-11-10) |
 | Tiling | Seamless in both directions. Checked with a 3 × 3 preview |
 | Format | RGB PNG, no alpha |
 | Colour | Hue shifted ramps of 5 to 8 shades (shadows cooler, highlights warmer). No pure black or white. 40 to 120 colours per texture where possible |
@@ -154,6 +154,6 @@ Each biome uses its own set. Inside a biome, the shader picks layers by these ru
 | Swamp | `swamp_mud` | `swamp_grass` and `swamp_moss` on raised islands, `swamp_slime` around dreadstone | `swamp_mud` | `swamp_grass` | `swamp_mud` | `swamp_boardwalk` |
 
 - **Biome borders** blend over 30 to 60 metres (`game_worlds.md` section 4.7). Inside the border, the two biomes' layers mix.
-- **Blend in pixel steps**, not smooth fades: use a dithered or height based blend snapped to the 32 px per metre grid, so transitions keep the pixel look (grass blades poke over the dirt instead of a soft gradient).
+- **Blend in pixel steps**, not smooth fades: use a dithered or height based blend snapped to the 64 px per metre grid, so transitions keep the pixel look (grass blades poke over the dirt instead of a soft gradient).
 - **Paths** come from a path mask (1 pixel per metre) painted along the path lines.
 - **Ground cover matches the ground:** grass tufts in each biome use that biome's grass ramp (`game_worlds.md` section 4.10).

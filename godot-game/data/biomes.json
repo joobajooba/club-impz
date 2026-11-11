@@ -55,7 +55,10 @@
         "wet": 5,
         "special": 2,
         "path": 1,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": -1,
+        "cap": -1,
+        "cap_y": 9999
       },
       "env": {
         "sky_top": "#8fc8f0",
@@ -91,7 +94,10 @@
         "special": 9,
         "special_on_steep": true,
         "path": 7,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 9,
+        "cap": 11,
+        "cap_y": 140
       },
       "env": {
         "sky_top": "#8fc8f0",
@@ -127,7 +133,10 @@
         "wet": 10,
         "special": -1,
         "path": 12,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 9,
+        "cap": 11,
+        "cap_y": 55
       },
       "env": {
         "sky_top": "#a8c4e0",
@@ -162,7 +171,10 @@
         "wet": 14,
         "special": -1,
         "path": 15,
-        "border_patch": 1.0
+        "border_patch": 1.0,
+        "cliff": 16,
+        "cap": 13,
+        "cap_y": 30
       },
       "env": {
         "sky_top": "#3a78d8",
@@ -197,7 +209,10 @@
         "wet": 20,
         "special": 19,
         "path": 22,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 21,
+        "cap": -1,
+        "cap_y": 9999
       },
       "env": {
         "sky_top": "#90b8d8",
@@ -232,7 +247,10 @@
         "wet": 23,
         "special": 26,
         "path": 5,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 9,
+        "cap": 8,
+        "cap_y": 20
       },
       "env": {
         "sky_top": "#7aa898",
@@ -262,5 +280,6 @@
     "rare": 22.0
   },
   "foliage_view_distance": 46.0,
-  "tree_view_distance": 180.0
+  "tree_view_distance": 180.0,
+  "_doc_cliff": "cliff / cap / cap_y: outside the world's border (the skirt's cliffs and mountains) steep ground uses the cliff layer and ground above cap_y the cap layer (snow, or mountain grass round the swamp)."
 }
