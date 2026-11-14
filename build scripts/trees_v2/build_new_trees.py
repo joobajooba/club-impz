@@ -893,7 +893,7 @@ def build_titanwood():
         return ex
     # huge root buttresses: thin tall fins stepping down
     add_roots(g_roots, "steel", [15, 78, 140, 200, 262, 320], [(1.0, 24, 5, 12), (1.0, 13, 0, 7), (0.75, 6, 0, 6), (0.5, 2.5, 0, 4)], (1, 3, 5))
-    secs = [(16, 0, 20, 0, 0), (14, 20, 46, 0.5, 0), (12, 46, 76, 0.5, 0.5), (10, 76, 106, 1, 0.5), (8, 106, 134, 1, 1), (6, 134, 160, 1.5, 1), (4, 160, 176, 1.5, 1)]
+    secs = [(16, 0, 20, 0, 0), (14, 20, 46, 0.5, 0), (12, 46, 76, 0.5, 0.5), (10, 76, 106, 1, 0.5), (8, 106, 134, 1, 1), (6, 134, 160, 1.5, 1)]   # trunk_7 removed (J00BA, 2026-11-14)
     tp = lambda i, f, y2: (lambda W, H: bark("steel", W, H, f, moss_rows=6 if i == 0 else 0, knots=1 if i < 2 else 0, ao=i == 0, extra=metal(y2)))
     add_trunk(g_trunk, secs, tp, share_from=2)
     add_strips(g_trunk, secs, [(0, "north", 1, 0, 17, 1.5), (0, "east", -3, 0.5, 15, 1), (0, "south", -4, 0, 18, 1.5), (0, "west", 2, 1, 16, 1),
