@@ -145,16 +145,17 @@ func _log_bridge() -> void:
 
 
 func _giant_titanwood(p: Array) -> void:
-	## The biggest titanwood tree (plains landmark): the titanwood model at 3.5x.
-	var rule := {"id": "giant_titanwood", "biomes": ["plains"], "kind": "tree", "view": 900}
+	## The biggest titanwood tree (plains landmark): a large pine placeholder with the titanwood recolour.
+	var rule := {"id": "giant_titanwood_placeholder", "biomes": ["plains"], "kind": "tree", "trunk_tint": "#8a929c",
+		"recolor": ["#0e2e2e", "#3a8a80"], "view": 900}
 	var mi := MeshInstance3D.new()
 	mi.name = "giant_titanwood"
-	mi.mesh = world.scatter._prepared_mesh(rule, "titanwood")
+	mi.mesh = world.scatter._prepared_mesh(rule, "pine")
 	add_child(mi)
 	var x: float = p[0]
 	var z: float = p[1]
 	mi.global_position = Vector3(x, data.height(x, z) - 0.3, z)
-	mi.scale = Vector3.ONE * 3.5
+	mi.scale = Vector3.ONE * 5.0
 
 
 func _place_ores() -> void:
