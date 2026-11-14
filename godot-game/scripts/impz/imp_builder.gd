@@ -10,7 +10,8 @@ class_name ImpBuilder
 
 const MANIFEST := "res://data/impz/manifest.json"
 const SLOTS := ["body", "head", "eyes", "clothing", "back"]
-const DEFAULT := {body = "body_green", head = "", eyes = "", clothing = "", back = ""}
+## The base Imp every player wears until they pick traits their wallet holds: the White body (J00BA, 2026-11-14).
+const DEFAULT := {body = "body_white", head = "", eyes = "", clothing = "", back = ""}
 
 static var _manifest := {}
 static var _models := {}

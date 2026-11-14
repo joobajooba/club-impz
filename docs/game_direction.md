@@ -23,7 +23,8 @@ Players drop into a shared 3D world, talk to each other, show off their imp, gea
 
 ## 2. Who can play
 
-- **Anyone can play for free.** Every player gets a **base imp** to play as. No wallet or NFT is needed.
+- **Anyone can play for free.** Every player gets a **base imp** to play as: the **White Imp** (decided by J00BA,
+  2026-11-14). Players wear it until they pick traits from Impz they hold. No wallet or NFT is needed.
 - **Imp holders** (owners of an Implingz NFT) get extras on top:
   - Use their owned imp as a **skin**.
   - Unlock **trait cosmetics**: each trait on an imp they own becomes a cosmetic item they can mix and match on their in-game imp.

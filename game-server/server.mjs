@@ -56,7 +56,8 @@ const CHECK_EVERY_MS = 3000;         // sign-in / look checks that ask impz.club
 const API_PER_MIN = 60;              // /api/imps and /api/profile requests from one address per minute
 const WORLDS = new Set(["hub", "resource", "test"]);
 const SLOTS = ["body", "head", "eyes", "clothing", "back"];
-const BASE_LOOK = { body: "body_green", head: "", eyes: "", clothing: "", back: "" };
+// The base Imp: the White body, which every player has (J00BA, 2026-11-14). Green is a held trait like the others.
+const BASE_LOOK = { body: "body_white", head: "", eyes: "", clothing: "", back: "" };
 const WALLET = /^0x[0-9a-f]{40}$/;
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".wasm": "application/wasm",
