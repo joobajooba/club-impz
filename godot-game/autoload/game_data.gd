@@ -139,6 +139,12 @@ const _METALS := [
 ## Highest ore tier each pickaxe mines: its named ore (D-006) and every ore below (D-011).
 const _PICKAXE_REACH := [2, 3, 4, 5, 6, 7, 8, 9, 10, 10]
 const GEM_BOOST_TOOL := "stellarite_pickaxe"   # doubles gem chances while held (D-059)
+## Tool recipes unlocked by skill level (J00BA, 2026-11-14): the next pickaxe every 5 mining levels and the next
+## axe every 5 lumbering levels (bronze at 5, iron at 10 ... stellarite at 45). This replaces the uneven unlock
+## levels of resource_gathering.md section 2.1 for these two tools. Other tools have no level lock.
+const RECIPE_SKILL := {"pickaxe": "mining", "axe": "lumbering"}
+const RECIPE_EVERY := 5
+const SKILL_TREE_MAX := 100                     # skill trees: a node every 5 levels up to the skill cap
 
 ## Where each tool kind is crafted. Bows at the tanning rack and rods at the sawbench are Proposed:
 ## the docs say what they cost (D-069, D-110) but not where.
@@ -415,6 +421,41 @@ func tool_for_tier(kind: String, tier: int) -> Dictionary:
 
 ## Pickaxes use their drawn sprites. The other tools have no pictures yet, so a small pixel icon
 ## is drawn in code from the tool's colours: TEST art.
+## The skill level a tool's recipe needs (0 = no lock: the starter tools and tools of other kinds).
+func recipe_level(t: Dictionary) -> int:
+	if not RECIPE_SKILL.has(t.kind):
+		return 0
+	return (int(t.tier) - 1) * RECIPE_EVERY
+
+
+## The tool whose recipe this skill unlocks at this level, or {}.
+func recipe_at(skill: String, level: int) -> Dictionary:
+	for kind in RECIPE_SKILL:
+		if RECIPE_SKILL[kind] != skill:
+			continue
+		for t in tools_of[kind]:
+			if level > 0 and recipe_level(t) == level:
+				return t
+	return {}
+
+
+## The player's level in a skill, or -1 while skill XP isn't built. There is no XP system yet (xp_system.md is
+## still a proposal), so debug builds read the TEST levels in data/profile_test.json, like the Profile menu does.
+## While it is -1 nothing is level locked.
+var _test_levels := {}
+var _test_levels_read := false
+
+func skill_level(skill: String) -> int:
+	if not _test_levels_read:
+		_test_levels_read = true
+		if OS.is_debug_build() and FileAccess.file_exists("res://data/profile_test.json"):
+			var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/profile_test.json"))
+			if d is Dictionary:
+				for k in d.get("skills", {}):
+					_test_levels[k] = int(d["skills"][k].get("level", -1))
+	return int(_test_levels.get(skill, -1))
+
+
 var _icon_cache := {}
 
 func tool_icon(id: String) -> Texture2D:

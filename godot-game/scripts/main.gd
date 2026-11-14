@@ -14,6 +14,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
+##   --skill_tree=mining         open the Profile menu and that skill's tree popup
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
 ##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it   --look_at  a free camera on it
@@ -170,6 +171,11 @@ func _ready() -> void:
 			print("DROP after walking onto it: ", Inventory.count("pine_log")))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
+	if args.has("skill_tree"):                             # testing: open the Profile menu and that skill's tree popup
+		get_tree().create_timer(2.0).timeout.connect(func():
+			ProfileMenu.open()
+			if str(args["skill_tree"]) != "none":       # --skill_tree=none: just the Stats tab
+				ProfileMenu.call("_open_tree", str(args["skill_tree"])))
 	if args.has("shot"):
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
 	if args.has("perf"):
