@@ -3,19 +3,24 @@ extends Node3D
 ## models in assets/models/ores via scripts/world/ore_vein.gd, placed where section 4.8 says) and the portal back
 ## to the hub. Everything is placed from the baked layout and a fixed seed, so it is the same every load.
 
-const ORES := {  # biome -> ores (game_worlds.md section 4.4)
-	"forest": ["coal", "tin", "copper"],
-	"mountain": ["coal", "tin", "copper", "iron"],
-	"frost": ["coal", "iron", "gold"],
-	"plains": ["coal", "titanite"],
-	"swamp": ["coal", "iron", "gold"],
+## Ores by biome (game_worlds.md section 4.4), each with a weight: how often it comes up among that biome's
+## veins. Lower tiers are common, the top ore of each biome is rare (mountain obsidian, swamp dreadstone).
+## The void and stellar biomes aren't built yet, so voidstone and stellarite only appear as world events.
+const ORES := {
+	"forest": {"coal": 4.0, "tin": 3.0, "copper": 3.0},
+	"mountain": {"coal": 4.0, "tin": 2.5, "copper": 2.5, "iron": 2.0, "obsidian": 0.7},
+	"frost": {"coal": 4.0, "iron": 3.0, "gold": 1.6},
+	"plains": {"coal": 4.0, "titanite": 1.2},
+	"swamp": {"coal": 4.0, "iron": 3.0, "gold": 1.6, "dreadstone": 0.7},
 }
-## Veins of each ore in each of its biomes. Ores are kept far rarer than trees (a handful per biome, not
-## thousands); coal, the fuel, is a little more common. Obsidian and dreadstone sit round
-## their landmarks (RING). Voidstone and stellarite only appear as world events (EVENT_SPOTS).
-const PER_ORE := 3
-const PER_ORE_OF := {"coal": 4}
-const RING := 3                  # obsidian round the volcanic cave, dreadstone round the toxic pit
+## Veins are scattered over each biome like the trees (a jittered grid at ORE_SPACING metres, thinned by a
+## noise patch so they come in loose clusters with open ground between), and never run out (section 9).
+const ORE_SPACING := 24.0
+const ORE_PATCH_FREQ := 0.022
+const ORE_PATCH_KEEP := 0.52     # noise level (0..1) above which a grid spot gets a vein
+const ORE_GAP := 9.0             # metres between two veins
+const ORE_CLEAR := 3.2           # trees and rocks keep this far from a vein's centre (scatter.gd)
+const RING := 3                  # extra obsidian round the volcanic cave, dreadstone round the toxic pit
 
 const ORE_VEIN := preload("res://scripts/world/ore_vein.gd")
 const MOB := preload("res://scripts/world/mob.gd")
@@ -160,20 +165,40 @@ func _place_ores() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 777
 	var placed: Array[Vector2] = []
+	var noise := FastNoiseLite.new()
+	noise.seed = 777
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = ORE_PATCH_FREQ
 	var names := ["forest", "mountain", "frost", "plains", "swamp"]
+	var counts := {}
 	for bi in names.size():
 		var biome: String = names[bi]
-		for ore in ORES[biome]:
-			var count := 0
-			var tries := 0
-			while count < int(PER_ORE_OF.get(ore, PER_ORE)) and tries < 6000:
-				tries += 1
-				var x := rng.randf_range(bi * 256.0 + 12.0, bi * 256.0 + 244.0)
-				var z := rng.randf_range(-200.0, 200.0)
-				if _ore_spot_ok(biome, x, z, tries > 4000, placed):
-					_ore(root, ore, x, z, rng)
-					placed.append(Vector2(x, z))
-					count += 1
+		var weights: Dictionary = ORES[biome]
+		var total := 0.0
+		for ore in weights:
+			total += float(weights[ore])
+		var nx := int(ceil(256.0 / ORE_SPACING))
+		var nz := int(ceil(400.0 / ORE_SPACING))
+		for gz in nz:
+			for gx in nx:
+				var x := bi * 256.0 + (gx + rng.randf()) * ORE_SPACING
+				var z := -200.0 + (gz + rng.randf()) * ORE_SPACING
+				var pick := rng.randf() * total
+				if noise.get_noise_2d(x, z) * 0.5 + 0.5 < ORE_PATCH_KEEP - 0.12 * float(_ore_spot_ok(biome, x, z, false, placed)):
+					continue                                   # the biome's favourite ground gets a few more
+				if not _ore_spot_ok(biome, x, z, true, placed):
+					continue
+				var ore := ""
+				for o in weights:
+					pick -= float(weights[o])
+					if pick <= 0.0:
+						ore = o
+						break
+				if ore == "":
+					ore = weights.keys()[0]
+				_ore(root, ore, x, z, rng)
+				placed.append(Vector2(x, z))
+				counts[ore] = int(counts.get(ore, 0)) + 1
 	# special nodes: obsidian round the volcanic cave, dreadstone in the most toxic swamp
 	var lm: Dictionary = data.layout["landmarks"]
 	for spec in [["obsidian", lm["obsidian_cave"], 14.0, RING], ["dreadstone", lm["dreadstone_pit"], 9.0, RING]]:
@@ -183,6 +208,10 @@ func _place_ores() -> void:
 		for i in n:
 			var a := i * TAU / n + 0.4
 			_ore(root, spec[0], c[0] + cos(a) * r, c[1] + sin(a) * r, rng)
+			placed.append(Vector2(c[0] + cos(a) * r, c[1] + sin(a) * r))
+	print("ORE VEINS: %d %s" % [placed.size(), counts])
+	if world.scatter:
+		world.scatter.add_blockers(placed, ORE_CLEAR)  # no tree or rock grows through a vein
 	_event_spots(placed)
 	_event_root = Node3D.new()
 	_event_root.name = "ore_events"
@@ -247,7 +276,7 @@ func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Arra
 	if m.r > 0.1:
 		return false
 	for p in placed:
-		if p.distance_to(Vector2(x, z)) < 10.0:
+		if p.distance_squared_to(Vector2(x, z)) < ORE_GAP * ORE_GAP:
 			return false
 	var h := data.height(x, z)
 	if h < data.water_level(x, z) + 0.2:

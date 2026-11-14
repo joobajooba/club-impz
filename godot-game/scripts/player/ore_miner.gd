@@ -154,7 +154,11 @@ func _look_for_vein() -> void:
 	target = null
 	if not player.frozen and not player.menu_open():
 		var best := INF
+		var me := player.global_position
 		for v: Node3D in get_tree().get_nodes_in_group("ore_vein"):
+			var o := v.global_position
+			if absf(o.x - me.x) > 8.0 or absf(o.z - me.z) > 8.0:
+				continue                                   # hundreds of veins: skip the far ones cheaply
 			var c: Vector3 = v.call("centre")
 			if absf(c.y - player.global_position.y) > 3.0:
 				continue
