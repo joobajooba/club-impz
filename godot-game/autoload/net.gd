@@ -205,6 +205,47 @@ func _send_moves() -> void:
 			y = snappedf(me[2], 0.001), m = me[3]})
 
 
+## The teleport menu (ui/teleport_menu.gd) moved the Imp: tell the server it jumped, or it would pull the next
+## move back towards the old spot. A jump into another world goes as the world change.
+func teleported() -> void:
+	var me := _me()
+	if me.is_empty() or state != "online":
+		return
+	var pos: Vector3 = me[1]
+	if me[0] != _world:
+		_send_moves()
+		return
+	_send({t = "tp", p = [pos.x, pos.y, pos.z], y = me[2]})
+	_last_sent = [pos, me[2], me[3]]
+
+
+## The other players online, by name: [{id, name, world, pos}]. pos is where their Imp is (null if unknown): live
+## for players in this world, otherwise where they were when they last changed world.
+func others() -> Array:
+	var out := []
+	for id in _info:
+		out.append(other(id))
+	out.sort_custom(func(a, b): return str(a.name).naturalnocasecmp_to(str(b.name)) < 0)
+	return out
+
+
+func other(id: int) -> Dictionary:
+	if not _info.has(id):
+		return {}
+	var p: Dictionary = _info[id]
+	var pos = null
+	var r: Node3D = _remotes.get(id)
+	if r and is_instance_valid(r):
+		pos = r.global_position
+	elif p.get("s") is Array and p.s.size() >= 4:
+		pos = Vector3(float(p.s[1]), float(p.s[2]), float(p.s[3]))
+	return {id = id, name = str(p.get("name", "")), world = str(p.get("world", "")), pos = pos}
+
+
+func has_remote(id: int) -> bool:
+	return _remotes.has(id) and is_instance_valid(_remotes[id])
+
+
 # --- what the server sends ---------------------------------------------------------------------
 
 func _on_message(msg: Dictionary) -> void:

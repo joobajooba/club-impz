@@ -75,9 +75,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()   # so a menu it opens doesn't see the same F
 	elif event.is_action_pressed("tame") and not event.is_echo():
 		var target := _target()
-		if action.is_empty() and target is Animal:
-			if Stable.tame(target.row):
+		if target is Animal:                     # T tames an animal you look at; otherwise it opens the teleport menu
+			if action.is_empty() and Stable.tame(target.row):
 				target.tamed()
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("cycle_tool") and not event.is_echo() and action.is_empty():
 		Inventory.cycle_held()
 
