@@ -252,6 +252,7 @@ func _build_test_tools() -> void:
 	vbox.add_child(row)
 	row.add_child(UIKit.label("TEST:", UIKit.MUTED, 13))
 	for t in [["Refill energy", Inventory.test_refill_energy], ["+20 every raw item", Inventory.test_add_raw],
+			["Clear inventory", Inventory.test_clear_items],
 			["Unlock all tools", Inventory.test_unlock_tools], ["+1000 coins", Inventory.test_add_coins],
 			["Tame 3 starters", Stable.test_tame_starters]]:
 		var b := UIKit.button(t[0], true, t[1])

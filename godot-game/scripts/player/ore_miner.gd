@@ -17,7 +17,7 @@ const CHIPS := {
 	"coal": [Color("#1c1c22"), Color("#4a4e5c"), Color("#575b64")],
 	"tin": [Color("#9ea4aa"), Color("#d6dbe0"), Color("#6b6f78")],
 	"copper": [Color("#c4642e"), Color("#f28c52"), Color("#4e525b")],
-	"iron": [Color("#86462c"), Color("#c47a5a"), Color("#5e4d43")],
+	"iron": [Color("#60676f"), Color("#aab1b9"), Color("#5e4d43")],
 	"gold": [Color("#e6b22a"), Color("#ffe27a"), Color("#6f645c")],
 	"obsidian": [Color("#2b1f40"), Color("#6a4c9c"), Color("#24222d")],
 	"titanite": [Color("#547ea2"), Color("#a8d4f0"), Color("#a7aaae")],
@@ -154,7 +154,11 @@ func _look_for_vein() -> void:
 	target = null
 	if not player.frozen and not player.menu_open():
 		var best := INF
+		var me := player.global_position
 		for v: Node3D in get_tree().get_nodes_in_group("ore_vein"):
+			var o := v.global_position
+			if absf(o.x - me.x) > 8.0 or absf(o.z - me.z) > 8.0:
+				continue                                   # hundreds of veins: skip the far ones cheaply
 			var c: Vector3 = v.call("centre")
 			if absf(c.y - player.global_position.y) > 3.0:
 				continue
