@@ -863,7 +863,7 @@ def build_titanwood():
     reseed(7170)
     RAMPS["steel"] = R_("#14171c #1e232a #2a3039 #373e49 #464e5a #57606d #6a7483 #7f8a99")
     RAMPS["silver"] = R_("#5d6672 #7a8490 #98a2ad #b8c0c8 #d4dadf")
-    RAMPS["leaf"] = R_("#08181a #0c2426 #113234 #174242 #1e5350 #27645e #33776c #428a7a")
+    RAMPS["leaf"] = R_("#16181b #212428 #2d3136 #3a3f45 #494e55 #5a6068 #6d737b #82888f")   # grey needles (J00BA, 2026-11-14; was deep teal)
     RAMPS["dry"] = R_("#3a3e44 #565c64 #767e88 #98a0aa #b8c0c8")       # silver dead needles as the accent
     RAMPS["cone"] = R_("#22262c #343a42 #4a525c #646e7a #808a96 #a0aab4")
     RAMPS["stone"] = R_("#2a2c30 #3c3f44 #50545a #666a70 #7e8288 #96999e")
