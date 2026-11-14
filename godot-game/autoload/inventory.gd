@@ -312,7 +312,20 @@ func tool_cost(t: Dictionary) -> Dictionary:
 
 
 func can_craft_tool(t: Dictionary) -> bool:
-	return not t.cost.is_empty() and not owns(t.id) and has_all(tool_cost(t)) and has_room(t.id)
+	return not t.cost.is_empty() and not owns(t.id) and recipe_lock(t) == "" and has_all(tool_cost(t)) and has_room(t.id)
+
+
+## Why the recipe is still locked ("Unlocks at Mining 15"), or "". A pickaxe needs mining level 5 per tier above
+## stone and an axe lumbering level 5 per tier (GameData.recipe_level); nothing is locked while levels aren't built.
+func recipe_lock(t: Dictionary) -> String:
+	var need := GameData.recipe_level(t)
+	if need <= 0:
+		return ""
+	var skill: String = GameData.RECIPE_SKILL[t.kind]
+	var have := GameData.skill_level(skill)
+	if have < 0 or have >= need:
+		return ""
+	return "Unlocks at %s %d" % [GameData.SKILLS[skill].label, need]
 
 
 func craft_tool(t: Dictionary) -> void:

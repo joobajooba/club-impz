@@ -83,10 +83,14 @@ func _tools(tool_kind: String, heading: String) -> void:
 		name_box.add_theme_constant_override("separation", 0)
 		name_box.add_child(UIKit.label(t.label))
 		name_box.add_child(UIKit.label("Up to " + GameData.row_by_tier(skill, t.reach).label, UIKit.MUTED, 12))
+		var lock := Inventory.recipe_lock(t)
+		if lock != "":
+			name_box.add_child(UIKit.label(lock, UIKit.SHORT, 12))
 		r.add_child(name_box)
 		r.add_child(UIKit.spacer())
 		var cost := Inventory.tool_cost(t)
 		for item in cost:
 			r.add_child(UIKit.cost_part(item, cost[item]))
 		var owned := Inventory.owns(t.id)
-		r.add_child(UIKit.button("Owned" if owned else "Craft", Inventory.can_craft_tool(t), Inventory.craft_tool.bind(t)))
+		var text := "Owned" if owned else ("Locked" if lock != "" else "Craft")
+		r.add_child(UIKit.button(text, Inventory.can_craft_tool(t), Inventory.craft_tool.bind(t)))
