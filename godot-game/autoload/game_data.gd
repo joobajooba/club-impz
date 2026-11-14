@@ -141,8 +141,10 @@ const _PICKAXE_REACH := [2, 3, 4, 5, 6, 7, 8, 9, 10, 10]
 const GEM_BOOST_TOOL := "stellarite_pickaxe"   # doubles gem chances while held (D-059)
 ## Tool recipes unlocked by skill level (J00BA, 2026-11-14): the next pickaxe every 5 mining levels and the next
 ## axe every 5 lumbering levels (bronze at 5, iron at 10 ... stellarite at 45). This replaces the uneven unlock
-## levels of resource_gathering.md section 2.1 for these two tools. Other tools have no level lock.
-const RECIPE_SKILL := {"pickaxe": "mining", "axe": "lumbering"}
+## levels of resource_gathering.md section 2.1 for these two tools. The same day every skill got a full tree, so
+## sickles (foraging), bows (hunting) and rods (fishing) unlock the same way: tier N at level 5 x (N - 1).
+## Swords have no level lock.
+const RECIPE_SKILL := {"pickaxe": "mining", "sickle": "foraging", "bow": "hunting", "axe": "lumbering", "rod": "fishing"}
 const RECIPE_EVERY := 5
 const SKILL_TREE_MAX := 100                     # skill trees: a node every 5 levels up to the skill cap
 
