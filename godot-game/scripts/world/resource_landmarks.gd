@@ -272,7 +272,7 @@ func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Arra
 	if data.biome_name(x, z) != biome or not data.in_bounds(x, z, 50.0):
 		return false
 	var wt: Array = data.layout["landmarks"]["worldbark_grove"]
-	if Vector2(x, z).distance_to(Vector2(wt[0], wt[1])) < 18.0:
+	if Vector2(x, z).distance_to(Vector2(wt[0], wt[1])) < 36.0:
 		return false                                  # the world tree's roots
 	var m := data.mask_at(x, z)
 	if m.r > 0.1:
@@ -306,8 +306,12 @@ func _ore(root: Node3D, ore: String, x: float, z: float, rng: RandomNumberGenera
 	n.name = "%s_vein_%d" % [ore, root.get_child_count() + 1]
 	root.add_child(n)
 	n.global_position = Vector3(x, data.height(x, z) - 0.15, z)
-	n.rotation.y = rng.randf() * TAU
-	n.scale = Vector3.ONE * rng.randf_range(0.9, 1.15)   # the models are already to scale (16 units = 1 m)
+	# turn and size from the vein's own spot, not the placement sequence, so which veins exist never shifts
+	# when one is added or removed elsewhere
+	var own := RandomNumberGenerator.new()
+	own.seed = hash(Vector2i(roundi(x * 10.0), roundi(z * 10.0)))
+	n.rotation.y = own.randf() * TAU
+	n.scale = Vector3.ONE * own.randf_range(0.9, 1.15)   # the models are already to scale (16 units = 1 m)
 
 
 
