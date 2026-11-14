@@ -8,10 +8,10 @@ extends Node3D
 ## The void and stellar biomes aren't built yet, so voidstone and stellarite only appear as world events.
 const ORES := {
 	"forest": {"coal": 4.0, "tin": 3.0, "copper": 3.0},
-	"mountain": {"coal": 4.0, "tin": 2.5, "copper": 2.5, "iron": 2.0, "obsidian": 0.7},
-	"frost": {"coal": 4.0, "iron": 3.0, "gold": 1.6},
+	"mountain": {"coal": 4.0, "tin": 2.5, "copper": 2.5, "iron": 2.6, "obsidian": 0.7},
+	"frost": {"coal": 4.0, "iron": 3.7, "gold": 1.6},
 	"plains": {"coal": 4.0, "titanite": 1.2},
-	"swamp": {"coal": 4.0, "iron": 3.0, "gold": 1.6, "dreadstone": 0.7},
+	"swamp": {"coal": 4.0, "iron": 3.7, "gold": 1.6, "dreadstone": 0.7},
 }
 ## Veins are scattered over each biome like the trees (a jittered grid at ORE_SPACING metres, thinned by a
 ## noise patch so they come in loose clusters with open ground between), and never run out (section 9).
