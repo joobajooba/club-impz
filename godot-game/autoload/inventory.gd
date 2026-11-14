@@ -398,5 +398,14 @@ func test_unlock_tools() -> void:
 	sync_tools()
 
 
+## Empties the inventory grid of every item (ores, logs, gems, crafted goods). Owned tools stay, in their
+## grid slots and on the tool bar, so the player can keep gathering.
+func test_clear_items() -> void:
+	for id in items.keys():
+		if not is_tool(id):
+			items.erase(id)
+	sync_tools()
+
+
 func test_add_coins(n := 1000) -> void:
 	_set_coins(coins + n)
