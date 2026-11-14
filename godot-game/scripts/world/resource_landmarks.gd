@@ -145,17 +145,16 @@ func _log_bridge() -> void:
 
 
 func _giant_titanwood(p: Array) -> void:
-	## The biggest titanwood tree (plains landmark): a large pine placeholder with the titanwood recolour.
-	var rule := {"id": "giant_titanwood_placeholder", "biomes": ["plains"], "kind": "tree", "trunk_tint": "#8a929c",
-		"recolor": ["#0e2e2e", "#3a8a80"], "view": 900}
+	## The biggest titanwood tree (plains landmark): the titanwood model at 3.5x.
+	var rule := {"id": "giant_titanwood", "biomes": ["plains"], "kind": "tree", "view": 900}
 	var mi := MeshInstance3D.new()
 	mi.name = "giant_titanwood"
-	mi.mesh = world.scatter._prepared_mesh(rule, "pine")
+	mi.mesh = world.scatter._prepared_mesh(rule, "titanwood")
 	add_child(mi)
 	var x: float = p[0]
 	var z: float = p[1]
 	mi.global_position = Vector3(x, data.height(x, z) - 0.3, z)
-	mi.scale = Vector3.ONE * 5.0
+	mi.scale = Vector3.ONE * 3.5
 
 
 func _place_ores() -> void:
@@ -272,6 +271,9 @@ func _on_event_end(id: int) -> void:
 func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Array[Vector2]) -> bool:
 	if data.biome_name(x, z) != biome or not data.in_bounds(x, z, 50.0):
 		return false
+	var wt: Array = data.layout["landmarks"]["worldbark_grove"]
+	if Vector2(x, z).distance_to(Vector2(wt[0], wt[1])) < 18.0:
+		return false                                  # the world tree's roots
 	var m := data.mask_at(x, z)
 	if m.r > 0.1:
 		return false

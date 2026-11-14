@@ -34,12 +34,12 @@ const RULE_TREE := {
 	"forest_tree": "",
 	"frost_green_pine": "pine",
 	"maple_tree": "maple",
-	"hickory_tree_placeholder": "hickory",
+	"hickory_tree": "hickory",
 	"frostbark_tree_placeholder": "frostbark",
-	"titanwood_tree_placeholder": "titanwood",
-	"runewood_tree_placeholder": "runewood",
-	"gembark_tree_placeholder": "gembark",
-	"worldbark_tree_placeholder": "worldbark",
+	"titanwood_tree": "titanwood",
+	"runewood_tree": "runewood",
+	"gembark_tree": "gembark",
+	"worldbark_tree": "worldbark",
 }
 
 ## Per tree mesh: its stump model and its trunk's half width (Blockbench units, trunk_1 of the model).
@@ -50,6 +50,12 @@ const MESHES := {
 	"maple": {stump = "maple", trunk = 5.5},
 	"maple_2": {stump = "maple", trunk = 6.0},
 	"maple_3": {stump = "maple", trunk = 6.0},
+	# no stump models of their own yet: they borrow one, scaled to their trunk (and tinted by the rule's stump_tint)
+	"hickory": {stump = "oak", trunk = 6.0, stump_scale = 0.9},
+	"titanwood": {stump = "pine", trunk = 8.0, stump_scale = 1.6},
+	"runewood": {stump = "oak", trunk = 6.5, stump_scale = 0.95},
+	"gembark": {stump = "maple", trunk = 6.0, stump_scale = 1.1},
+	"worldbark": {stump = "oak", trunk = 36.0, stump_scale = 5.2},
 }
 ## Trees with a stump of their own, whatever mesh stands in for the tree (frostbark is a recoloured pine).
 const OWN_STUMP := {"frostbark": "frostbark"}
