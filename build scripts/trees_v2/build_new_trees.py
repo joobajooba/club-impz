@@ -586,8 +586,9 @@ def dome(g_canopy, clusters, dome_c, core_r, keys, cross_key, inner_key, n_cards
         cands.sort(key=lambda x: -x[0])
         cards = cands[:n_cards] if len(cands) >= 4 else cands[:4]
         edge = sorted(cards, key=lambda x: abs(x[1][1]))[:n_cross]
+        ks = keys(ci) if callable(keys) else keys
         for k_, (_, n, p) in enumerate(cards):
-            key = keys[0] if n[1] > 0.3 else keys[1] if n[1] > -0.35 else keys[2]
+            key = ks[0] if n[1] > 0.3 else ks[1] if n[1] > -0.35 else ks[2]
             t = out + np.array([0, 0.6, 0]) + np.array([rng.uniform(-0.5, 0.5) for _ in range(3)])
             n2 = unit(n + np.array([rng.uniform(-0.25, 0.25) for _ in range(3)]))
             t = t - np.dot(t, n2) * n2
@@ -772,6 +773,10 @@ def build_hickory():
     reseed(5150)
     RAMPS["shag"] = R_("#1a1816 #26231f #34302a #433d36 #544c44 #675e54 #7c7266 #93897b")
     RAMPS["olive"] = R_("#151c0c #1e2810 #283414 #334218 #40521c #4f6422 #61782a #748c34")
+    # leaf greens (J00BA, 2026-11-14: light, medium and dark green for colour variation; was one deep olive)
+    RAMPS["g_light"] = R_("#1e3410 #2c4a16 #3e641c #528024 #6a9c2e #84b83a #a2d04c #c0e468")
+    RAMPS["g_mid"] = R_("#14280e #1c3a12 #275018 #33661e #407c26 #4f9230 #62a83c #78bc4a")
+    RAMPS["g_dark"] = R_("#0c1a0a #12260e #193412 #214218 #2a521e #346226 #3f722e #4c8238")
     RAMPS["husk"] = R_("#26280e #383a14 #4e501c #666826 #7e8032 #969642")
     RAMPS["nut"] = R_("#36241a #4e3624 #684a30 #82603e #9c7850")
     RAMPS["stone"] = R_("#2a2a2c #3c3c40 #505056 #66666c #7e7e84 #96969c")
@@ -836,21 +841,24 @@ def build_hickory():
         branch_chain(f"limb_{j + 1}", g_br, [s, mid, c - np.array([0, 2, 0])], [2.5, 2.0], "shag")
 
     nuts = lambda rgb, a, r: dots("husk", 0.012, 2)(rgb, a, r)
-    card_variant("big_light", 10, 16, lambda W, H: pinnate_card(W, H, "olive", 1.2, 51))
-    card_variant("big_mid", 10, 16, lambda W, H: pinnate_card(W, H, "olive", 0.5, 52, accents=nuts))
-    card_variant("med_light", 9, 13, lambda W, H: pinnate_card(W, H, "olive", 1.4, 53))
-    card_variant("med_dark", 9, 13, lambda W, H: pinnate_card(W, H, "olive", -0.6, 54))
-    card_variant("small_light", 6, 9, lambda W, H: pinnate_card(W, H, "olive", 1.5, 55))
-    card_variant("inner", 8, 12, lambda W, H: clump_card(W, H, "olive", -2.2, 56, vmax=1.5))
+    GREENS = ("g_light", "g_mid", "g_dark")
+    for gi, gr in enumerate(GREENS):
+        card_variant(f"big_light_{gr}", 10, 16, lambda W, H, gr=gr, gi=gi: pinnate_card(W, H, gr, 1.2, 51 + 10 * gi))
+        card_variant(f"big_mid_{gr}", 10, 16, lambda W, H, gr=gr, gi=gi: pinnate_card(W, H, gr, 0.5, 52 + 10 * gi, accents=nuts))
+        card_variant(f"med_dark_{gr}", 9, 13, lambda W, H, gr=gr, gi=gi: pinnate_card(W, H, gr, -0.6, 54 + 10 * gi))
+    card_variant("small_light", 6, 9, lambda W, H: pinnate_card(W, H, "g_mid", 1.5, 55))
+    card_variant("inner", 8, 12, lambda W, H: clump_card(W, H, "g_dark", -2.2, 56, vmax=1.5))
+    cluster_green = [rng.choice(GREENS) for _ in range(len(cl))]
     big = [c for c in cl if c[1] >= 11.5]
-    dome(g_can, cl, dome_c, 10.0, ("big_light", "big_mid", "med_dark"), "small_light", "inner", n_cards=9, n_cross=1, n_inner=3)
+    dome(g_can, cl, dome_c, 10.0, lambda ci: (f"big_light_{cluster_green[ci]}", f"big_mid_{cluster_green[ci]}", f"med_dark_{cluster_green[ci]}"),
+         "small_light", "inner", n_cards=9, n_cross=1, n_inner=3)
 
     # ground: hickory nuts (husk splitting open), fallen leaflets, a stone, a peeled bark plate
     for i, (x, z) in enumerate([(15, -5), (-13, 9), (6, 16)]):
         detail(g_det, f"hickory_nut_{i + 1}", [x - 0.75, 0, z - 0.75], [x + 0.75, 1.5, z + 0.75], lambda W, H, f: plain("husk", W, H, f, 2.6), key="nut")
         detail(g_det, f"hickory_nut_{i + 1}_shell", [x - 0.5, 1.5, z - 0.5], [x + 0.5, 2.0, z + 0.5], lambda W, H, f: plain("nut", W, H, f, 2.5), key="nutshell")
     for i, (x, z, yaw) in enumerate([(17, 6, 20), (-16, -6, 75), (-5, 18, 130), (9, -16, 200)]):
-        detail(g_det, f"fallen_leaf_{i + 1}", [x - 1.5, 0, z - 1], [x + 1.5, 0.5, z + 1], lambda W, H, f: plain("olive", W, H, f, 3.4), yaw=yaw, origin=[x, 0, z], key="fallen")
+        detail(g_det, f"fallen_leaf_{i + 1}", [x - 1.5, 0, z - 1], [x + 1.5, 0.5, z + 1], lambda W, H, f: plain("g_mid", W, H, f, 3.4), yaw=yaw, origin=[x, 0, z], key="fallen")
     detail(g_det, "stone_1", [-16, 0, 1], [-13.5, 2, 3.5], lambda W, H, f: plain("stone", W, H, f, 2.6), yaw=25, origin=[-14.75, 0, 2.25])
     write()
 
@@ -957,7 +965,7 @@ def build_runewood():
     TEX = 256
     reseed(8180)
     RAMPS["rune"] = R_("#0c0810 #140e1a #1c1424 #251b2e #2f2339 #3a2c45 #463652 #53405f")
-    RAMPS["murk"] = R_("#0f150e #161f13 #1f2a18 #28351d #324023 #3d4b2a #495634 #566240")
+    RAMPS["murk"] = R_("#062026 #0a2e36 #0e3e48 #13505a #1a646e #227a84 #2e909a #42a8b0")   # cyan leaves (J00BA, 2026-11-14; was murky green)
     RAMPS["violet"] = R_("#2a1040 #4a1c6a #7030a0 #9a50c8 #c080e8")
     RAMPS["runeglow"] = R_("#2e0c4e #4e1880 #7a30b8 #a650e8 #cc80ff #e8c0ff")
     RAMPS["swampmoss"] = R_("#141c10 #1e2a14 #2a3a18 #38481e #465626")
