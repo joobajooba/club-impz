@@ -218,6 +218,7 @@ const REFILL_PRICE := 600        # TEST: must stay above what 100 energy earns b
 const ROW_PRICE := 100           # TEST: first extra inventory row or stable slot; each costs twice the last (D-077, D-095)
 const EXTRA_ROWS_MAX := 4        # TEST cap
 const EXTRA_SLOTS_MAX := 4       # TEST cap
+const BUY_MARKUP := 2            # the merchant sells an item for 2x what it pays for it (J00BA, 2026-11-15)
 
 # --- built at start-up ------------------------------------------------------------
 
@@ -315,8 +316,12 @@ func _build_lumbering() -> void:
 func _add_chopped_logs() -> void:
 	for t in Lumbering.TREES.values():
 		if not items.has(t.log):
-			items[t.log] = {label = t.label + " log", icon = "res://sprites/items/log_oak.png", tint = t.bark,
-					tier = t.tier, skill = "lumbering", kind = "raw"}
+			var own := "res://sprites/items/log_%s.png" % t.log.trim_suffix("_log")   # its Blockbench render (2026-11-15)
+			if ResourceLoader.exists(own):
+				items[t.log] = {label = t.label + " log", icon = own, tier = t.tier, skill = "lumbering", kind = "raw"}
+			else:
+				items[t.log] = {label = t.label + " log", icon = "res://sprites/items/log_oak.png", tint = t.bark,
+						tier = t.tier, skill = "lumbering", kind = "raw"}
 
 
 func _build_fishing() -> void:
@@ -473,6 +478,12 @@ func tool_icon(id: String) -> Texture2D:
 
 
 # --- prices (TEST) ------------------------------------------------------------------
+
+## What the merchant charges for one of an item: BUY_MARKUP x what it pays, so nothing can be bought and
+## sold back for a profit (J00BA, 2026-11-15). 0 if the merchant doesn't trade it.
+func buy_price(id: String) -> int:
+	return sell_price(id) * BUY_MARKUP
+
 
 ## What the merchant pays for one of an item (D-074 rules, BASE_PRICE is TEST): raw = base x tier;
 ## made = the raw items it took (and its fuel) plus 25%; rare = 10 x that tier's raw item.

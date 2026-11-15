@@ -116,6 +116,10 @@ func _ruins(key: String, lm: Dictionary, yaw: float) -> void:
 
 
 func _place(path: String, x: float, z: float, yaw: float, sink := 0.0) -> Node3D:
+	if not data.in_bounds(x, z):                     # biome worlds: landmarks of the other biomes stay out
+		var none := Node3D.new()
+		none.queue_free()
+		return none
 	var n := (load(path) as PackedScene).instantiate() as Node3D
 	if "ground" in n:  # placeholders that sit each piece on the terrain need the transform while they build
 		n.set("ground", data.height)
@@ -302,6 +306,8 @@ func _ore_spot_ok(biome: String, x: float, z: float, relaxed: bool, placed: Arra
 
 
 func _ore(root: Node3D, ore: String, x: float, z: float, rng: RandomNumberGenerator) -> void:
+	if not data.in_bounds(x, z):                     # biome worlds: only the veins inside this biome
+		return
 	var n: Node3D = ORE_VEIN.new()
 	n.set("ore", ore)
 	n.name = "%s_vein_%d" % [ore, root.get_child_count() + 1]
@@ -404,6 +410,8 @@ func _clear_of_landmarks(x: float, z: float) -> bool:
 
 
 func _mob(root: Node3D, kind: String, p: Vector2, mob_seed: int) -> void:
+	if not data.in_bounds(p.x, p.y):                 # biome worlds: only the mobs inside this biome
+		return
 	var m: Node3D = MOB.new()
 	m.set("kind", kind)
 	m.set("home", Vector3(p.x, data.height(p.x, p.y), p.y))

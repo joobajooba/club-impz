@@ -16,6 +16,22 @@ var heights := PackedFloat32Array()
 var depths := PackedFloat32Array()
 var mask: Image
 var fixed_biome := -1
+## Biome worlds (J00BA, 2026-11-15): one world per biome, cut from the resource world's bake. `origin` / `size` become
+## the biome's own stretch (its depth band plus the mountains round it); the height and mask arrays keep their grid
+## (`g_origin` / `g_size`). Outside the band the ground climbs smoothly into a ring of steep peaks, and in_bounds()
+## refuses everything past the band, so scatter, mobs, veins and landmarks stay in the biome and nobody walks out.
+var band_lock := false
+var band_lo := 0.0
+var band_hi := 0.0
+var g_origin := Vector2.ZERO
+var g_size := Vector2.ZERO
+const RISE_W := 56.0            # metres of depth past the band edge over which the ground climbs to the peaks
+const RISE_H := 52.0            # how high the peaks climb above the ground at the band edge
+const RIM := 40.0               # metres of mountains kept round the band (the loaded area's border)
+## Extra depth a biome world keeps past its band before the peaks start (J00BA, 2026-11-15: room in the forest for
+## the wide swan pond and its ledge). path_hi stays at the band, so paths still stop before the mountains.
+const BAND_EXTRA := {1: 40.0}
+var path_hi := 0.0
 var band := 256.0
 var blend_half := 22.5
 # skirt (resource world): cliffs and mountains outside the world, from data/<prefix>_skirt.png (bake_world_data.gd)
@@ -27,7 +43,7 @@ var sk_nz := 0
 var sk_heights := PackedFloat32Array()
 
 
-func _init(prefix: String, biome_fixed := -1) -> void:
+func _init(prefix: String, biome_fixed := -1, lock := false) -> void:
 	fixed_biome = biome_fixed
 	biome_data = JSON.parse_string(FileAccess.get_file_as_string("res://data/biomes.json"))
 	band = biome_data["band_depth"]
@@ -63,6 +79,34 @@ func _init(prefix: String, biome_fixed := -1) -> void:
 		sk_heights.resize(sk_nx * sk_nz)
 		for i in sk_nx * sk_nz:
 			sk_heights[i] = (sdata[i * 4] * 256 + sdata[i * 4 + 1]) / sc - so
+	g_origin = origin
+	g_size = size
+	if lock and fixed_biome >= 1 and fixed_biome <= 5:
+		_lock_band()
+
+
+## The biome's own rectangle: every grid column whose depth comes within the band (plus the climb and the rim),
+## snapped out to the 64 m terrain chunks.
+func _lock_band() -> void:
+	band_lock = true
+	band_lo = (fixed_biome - 1) * band
+	band_hi = band_lo + band
+	path_hi = band_hi
+	band_hi += float(BAND_EXTRA.get(fixed_biome, 0.0))
+	var lo := band_lo - RISE_W - RIM
+	var hi := band_hi + RISE_W + RIM
+	var x0 := g_size.x
+	var x1 := 0.0
+	for j in nz:
+		for i in nx:
+			var s := depths[j * nx + i]
+			if s >= lo and s <= hi:
+				x0 = minf(x0, i * step)
+				x1 = maxf(x1, i * step)
+	x0 = maxf(0.0, floorf(x0 / 64.0) * 64.0)
+	x1 = minf(g_size.x, ceilf(x1 / 64.0) * 64.0)
+	origin = Vector2(g_origin.x + x0, g_origin.y)
+	size = Vector2(x1 - x0, g_size.y)
 
 
 static func _load_png(path: String) -> Image:
@@ -74,7 +118,7 @@ static func _load_png(path: String) -> Image:
 
 
 func _grid(x: float, z: float) -> Vector2:
-	return Vector2(clamp((x - origin.x) / step, 0.0, nx - 1.001), clamp((z - origin.y) / step, 0.0, nz - 1.001))
+	return Vector2(clamp((x - g_origin.x) / step, 0.0, nx - 1.001), clamp((z - g_origin.y) / step, 0.0, nz - 1.001))
 
 
 func _bilinear(arr: PackedFloat32Array, x: float, z: float) -> float:
@@ -90,16 +134,35 @@ func _bilinear(arr: PackedFloat32Array, x: float, z: float) -> float:
 
 
 func height(x: float, z: float) -> float:
-	if has_skirt and not in_bounds(x, z):
+	if has_skirt and not in_grid(x, z):
 		return skirt_height(x, z)
-	return _bilinear(heights, x, z)
+	var h := _bilinear(heights, x, z)
+	if band_lock:
+		h += rise(x, z)
+	return h
+
+
+## Biome worlds: how far the ground has climbed toward the peaks round the band (0 inside the band). A smooth
+## climb over RISE_W metres of depth, with long gentle ridges so the ring reads as mountains, not a wall.
+func rise(x: float, z: float) -> float:
+	var s := depth(x, z)
+	var over := maxf(maxf(band_lo - s, s - band_hi), 0.0)
+	if over <= 0.0:
+		return 0.0
+	var ridge := 0.5 + 0.22 * sin(x * 0.043 + 0.7) + 0.18 * sin(z * 0.057 + 1.9) + 0.1 * sin((x - z) * 0.031)
+	var t := smoothstep(0.0, RISE_W, over)
+	return t * t * (3.0 - 2.0 * t) * RISE_H * (0.75 + 0.5 * ridge) + maxf(over - RISE_W, 0.0) * 0.6
+
+
+func in_grid(x: float, z: float) -> bool:
+	return x >= g_origin.x and z >= g_origin.y and x <= g_origin.x + g_size.x and z <= g_origin.y + g_size.y
 
 
 func skirt_height(x: float, z: float) -> float:
 	## Outside the world: Catmull-Rom (smooth, no 4 m creases) through the skirt samples, corrected over the first
 	## 8 m so it meets the world's own border height exactly.
-	var cx := clampf(x, origin.x, origin.x + size.x)
-	var cz := clampf(z, origin.y, origin.y + size.y)
+	var cx := clampf(x, g_origin.x, g_origin.x + g_size.x)
+	var cz := clampf(z, g_origin.y, g_origin.y + g_size.y)
 	var d := Vector2(x - cx, z - cz).length()
 	var h := _skirt_cubic(x, z)
 	if d < 8.0:
@@ -143,8 +206,8 @@ func normal(x: float, z: float) -> Vector3:
 
 
 func mask_at(x: float, z: float) -> Color:
-	var px := clampi(int(x - origin.x), 0, mask.get_width() - 1)
-	var pz := clampi(int(z - origin.y), 0, mask.get_height() - 1)
+	var px := clampi(int(x - g_origin.x), 0, mask.get_width() - 1)
+	var pz := clampi(int(z - g_origin.y), 0, mask.get_height() - 1)
 	return mask.get_pixel(px, pz)
 
 
@@ -160,7 +223,12 @@ func biome_name(x: float, z: float) -> String:
 
 
 func in_bounds(x: float, z: float, margin := 0.0) -> bool:
-	return x >= origin.x + margin and z >= origin.y + margin and x <= origin.x + size.x - margin and z <= origin.y + size.y - margin
+	if not (x >= origin.x + margin and z >= origin.y + margin and x <= origin.x + size.x - margin and z <= origin.y + size.y - margin):
+		return false
+	if band_lock and in_grid(x, z):              # biome worlds: only inside the band (margin metres in)
+		var s := depth(x, z)
+		return s >= band_lo + margin and s <= band_hi - margin
+	return true
 
 
 func biome_pick(x: float, z: float, r: float) -> int:

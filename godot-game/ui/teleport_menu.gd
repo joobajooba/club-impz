@@ -80,7 +80,7 @@ func _render() -> void:
 	if main == null:
 		return
 	var world: String = main.current_world_name
-	var here: String = "hub" if world == "hub" else (main.biome_name_at(main.player.global_position) if world == "resource" else "")
+	var here: String = "hub" if world == "hub" else (world.trim_prefix("wilds_") if world.begins_with("wilds_") else "")
 	var wait := _wait_left()
 	var can_go := wait <= 0.0 and not _going
 	_note("Wait %d s before teleporting again." % ceili(wait) if wait > 0.0 else "Pick a place or a player.")
@@ -93,7 +93,7 @@ func _render() -> void:
 	for p in PLACES:
 		var b := UIKit.button(p[1] + ("\nYou are here" if p[0] == here else ""), can_go, _go_place.bind(p[0]))
 		b.custom_minimum_size = Vector2(212, 64)
-		b.tooltip_text = "Teleport to the hub" if p[0] == "hub" else "Teleport to the middle of the %s biome in The Wilds" % p[1]
+		b.tooltip_text = "Teleport to the hub" if p[0] == "hub" else "Load the %s and arrive in its middle" % p[1]
 		grid.add_child(b)
 	_list.add_child(UIKit.divider())
 	_heading("Players")
@@ -150,11 +150,14 @@ func _go_place(place: String) -> void:
 			var marker := main.current_world.find_child("spawn_point", true, false) as Node3D
 			if marker:
 				main.player.place_at(marker.global_transform)
-	else:
-		if main.current_world_name != "resource":
-			await main.change_world("resource", "spawn_point")
-		if main.current_world_name == "resource" and main.current_world.has_method("biome_centre"):
-			main.player.place_at(main.current_world.biome_centre(place))
+	else:                                                   # each biome is its own world: load it, arrive in its middle
+		var world := "wilds_" + place
+		if main.current_world_name != world:
+			await main.change_world(world, "spawn_point")
+		else:
+			var marker := main.current_world.find_child("spawn_point", true, false) as Node3D
+			if marker:
+				main.player.place_at(marker.global_transform)
 	_done()
 
 

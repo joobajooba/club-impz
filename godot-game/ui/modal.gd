@@ -1,7 +1,7 @@
 class_name Modal
 extends CanvasLayer
 ## A centred menu with a title, a Close button and a scrolling list. The player doesn't move while
-## one is open (the "modal" group, see Player.ui_open). Esc or F closes it.
+## one is open (the "modal" group, see Player.ui_open). Esc, F or E closes it.
 ## Subclasses list the station kinds they open for in `kinds` and fill `_list` in `_render()`.
 
 var kinds: Array = []
@@ -49,7 +49,7 @@ func _render() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event is InputEventKey and event.pressed and not event.echo \
-			and (event.keycode == KEY_ESCAPE or event.is_action("interact")):
+			and (event.keycode == KEY_ESCAPE or event.is_action("interact") or event.is_action("use_tool")):
 		close()
 		get_viewport().set_input_as_handled()
 

@@ -355,6 +355,21 @@ func sell(id: String, n: int) -> void:
 	_set_coins(coins + price * n)
 
 
+## Buys n of an item from the merchant at GameData.buy_price (J00BA, 2026-11-15). False (with a message)
+## if it costs more than the coins held or a new item has no free slot.
+func buy(id: String, n: int) -> bool:
+	var price := GameData.buy_price(id)
+	if n < 1 or price <= 0:
+		return false
+	if coins < price * n:
+		message.emit("Not enough coins")
+		return false
+	if not add(id, n):
+		return false
+	_set_coins(coins - price * n)
+	return true
+
+
 func row_price() -> int:
 	return GameData.ROW_PRICE << extra_rows
 

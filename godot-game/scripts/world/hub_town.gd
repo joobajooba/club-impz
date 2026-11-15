@@ -13,6 +13,8 @@ extends Node3D
 
 const PLAN := "res://data/hub_town.json"
 const NPCS := "res://data/hub_npcs.json"   # the NPCs at the stores (J00BA, 2026-11-14)
+## npc spots that are shop counters: spot name -> [menu kind, prompt label] (J00BA, 2026-11-15)
+const SHOPS := {"vendor_merchant": ["merchant", "Merchant"]}
 const GLOW_DAY := 0.25           # lamp glass emission by day
 const GLOW_NIGHT := 0.9          # and at full night
 const LIGHT_ENERGY := 3.0
@@ -204,10 +206,14 @@ func _make_npc_spots(list: Array) -> void:
 		m.position = Vector3(x, world.ground_height(x, z), z)
 		m.rotation.y = deg_to_rad(n["yaw"])
 		m.set_meta("role", n["role"])
+		if SHOPS.has(n["name"]):                    # a shop counter: E here opens its menu (shop_keeper.gd)
+			m.add_to_group("shop")
+			m.set_meta("kind", SHOPS[n["name"]][0])
+			m.set_meta("label", SHOPS[n["name"]][1])
 		root.add_child(m)
 
 
-## The store NPCs: each glb at its spot (offset in the spot's frame), with the hub's hard-alpha materials, *_glow parts
+## The store NPCs: each glb at its spot (offset in the spot's frame) or at its own pos inside a stall, with the hub's hard-alpha materials, *_glow parts
 ## emissive, "idle" looping, and a body-sized collider so players walk round them.
 func _place_npcs(spots: Array) -> void:
 	var by_name := {}
@@ -228,14 +234,20 @@ func _place_npcs(spots: Array) -> void:
 			continue
 		var spot: Dictionary = by_name[n["spot"]]
 		var yaw := deg_to_rad(float(spot["yaw"]))
-		var off := Vector3(n["offset"][0], 0, n["offset"][1]).rotated(Vector3.UP, yaw)
+		var o: Array = n.get("offset", [0, 0])
+		var off := Vector3(o[0], 0, o[1]).rotated(Vector3.UP, yaw)
 		var x: float = spot["pos"][0] + off.x
 		var z: float = spot["pos"][2] + off.z
+		var face := yaw + deg_to_rad(float(n.get("turn", 0)))
+		if n.has("pos"):   # inside a stall: world x, z and facing yaw instead of the spot's frame
+			x = n["pos"][0]
+			z = n["pos"][1]
+			face = deg_to_rad(float(n["yaw"]))
+		var y: float = world.ground_height(x, z) + float(n.get("lift", 0.0))   # lift: stand on a stall's plinth
 		var inst := (load(n["model"]) as PackedScene).instantiate() as Node3D
 		inst.name = String(n["model"]).get_file().get_basename()
 		root.add_child(inst)
-		inst.transform = Transform3D(Basis(Vector3.UP, yaw + deg_to_rad(float(n["turn"]))).scaled(Vector3.ONE * float(n["scale"])),
-			Vector3(x, world.ground_height(x, z), z))
+		inst.transform = Transform3D(Basis(Vector3.UP, face).scaled(Vector3.ONE * float(n["scale"])), Vector3(x, y, z))
 		var cache := {}
 		for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
 			var glow := _is_glow(mi, inst)

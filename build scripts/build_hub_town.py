@@ -406,7 +406,7 @@ YARD_PLOTS = {
         ("tanner", "tanning_rack", -0.6, 3.3, "timber", False, [("tannery_vats", 0.6, 6.7, 0)]),
         ("herbalist", "drying_rack", -0.6, 3.4, "apothecary", False, [("herb_bed", 0.4, 6.8, 0)]),
         ("passage", None, 0.0, 0.0, None, True, []),      # open: Market Street -> the lane connector to Rose Lane
-        ("brewer", "cauldron", -1.6, 3.5, "apothecary", True, [("potion_shelf", 1.8, 0.9, 0), ("stall_potion", 1.7, 7.0, 0)]),
+        ("brewer", "cauldron", -1.6, 3.5, "apothecary", True, [("potion_shelf", 1.8, 0.9, 0)]),   # no stall: the potion Imp sells from the shelter (J00BA, 2026-11-15)
     ],
 }
 

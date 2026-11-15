@@ -373,6 +373,8 @@ All lumbering and fishing icons are drawn by `godot-game/assets/sprites/source/b
 
 The user set these on 2026-10-21.
 
+**Changed by D-124 (2026-11-15):** the merchant now trades every gathered item both ways, from a tab per skill (Ores, Lumber, Plants, Fish, Hunting). It sells an item for **2 times** what it pays for it. It **no longer sells energy refills, inventory rows or stable slots**, so the Buying table below is replaced for those three rows. Selling (D-074) is unchanged.
+
 **Selling (D-074).** The merchant buys every gathered item at a fixed price:
 
 | Kind | Examples | Sell price |

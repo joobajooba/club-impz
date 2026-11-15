@@ -27,6 +27,7 @@ var frozen := false
 var fast_sprint := false
 var chopper: Node                 # scripts/player/tree_chopper.gd: chopping trees with the axe
 var miner: Node                   # scripts/player/ore_miner.gd: mining the ore veins
+var shop: Node                    # scripts/player/shop_keeper.gd: E at a shop counter opens its menu
 ## Footsteps (assets/sounds, made by build scripts/make_sounds.py): one per step of the walk bob, in the
 ## ground's sound for the biome underfoot; running steps are quicker, louder and a little higher.
 const STEP_SOUNDS := {
@@ -55,6 +56,9 @@ func _ready() -> void:
 	miner = preload("res://scripts/player/ore_miner.gd").new()
 	miner.name = "ore_miner"
 	add_child(miner)
+	shop = preload("res://scripts/player/shop_keeper.gd").new()
+	shop.name = "shop_keeper"
+	add_child(shop)
 	for ground in STEP_SOUNDS:
 		_steps[ground] = STEP_SOUNDS[ground].map(func(n): return load("res://assets/sounds/%s.wav" % n))
 	_step_player = AudioStreamPlayer.new()
@@ -90,6 +94,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fast_sprint") and OS.is_debug_build():   # test key: not in the live game
 		fast_sprint = not fast_sprint
 	if event.is_action_pressed("use_tool") and visual.has_method("play_action"):
+		if shop.use():                                    # E at a shop counter: open the shop
+			get_viewport().set_input_as_handled()            # so the menu it opened doesn't see the same E
+			return
 		if not chopper.use() and not miner.use():        # E by a tree / event vein: chop it / mine it
 			visual.play_action(Inventory.in_hand)        # left click or E: swing the tool in hand
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
