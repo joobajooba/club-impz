@@ -46,6 +46,33 @@ R.update({
     "candle": ramp("#6a5a40 #8a7a5a #aa9a76 #c8b894 #ded2b0 #ece4c8 #f6f0de"),
     "paper": ramp("#6a5e48 #8a7c60 #a89a7c #c4b696 #d8ccae #e6dcc4 #f0eada"),
 })
+# ---- the merchant's stall (2026-11-15): goods coloured from their item icons in
+# godot-game/assets/sprites/source/items/ (sampled from the PNGs, then smoothed into 7 step hue shifted ramps)
+R.update({
+    "awn_indigo": ramp("#0e1636 #172456 #213678 #2e4a98 #4462b2 #6482c8 #8ca4dc"),
+    "ore_copper": ramp("#4a1a10 #6e2a18 #993f22 #c0573a #dc7650 #eb9474 #f5b8a6"),      # nugget_copper
+    "ore_tin": ramp("#2e3036 #44464e #5e626a #7c828c #9ea6b2 #bcc4cc #dce2e6"),         # nugget_tin (nugget_iron: the iron ramp)
+    "ingot_copper": ramp("#4e1a1a #762d35 #9a4630 #ba5a2a #ce6825 #e08448 #eea474"),    # ingot_copper
+    "ingot_iron": ramp("#24262e #383a49 #4c4c58 #605e66 #78767c #938d93 #b0b4be"),      # ingot_iron
+    "ingot_gold": ramp("#7a3a0c #a8561a #ce6825 #e38a23 #f19f26 #f9d369 #f9f0a0"),      # ingot_gold
+    "gem_ruby": ramp("#4a0408 #8c080e #a10e25 #bf0f24 #d42431 #e94b62 #f69bb6"),        # gemstone_ruby
+    "gem_sapphire": ramp("#0e1a52 #172a7d #213b9e #2c50b0 #345fba #5a90d0 #a0e6f0"),    # gemstone_sapphire
+    "gem_emerald": ramp("#012e04 #014c03 #067739 #1d874c #24cb3f #5ee25a #a6fa86"),     # gemstone_emerald
+    "hide_wolf": ramp("#1e1c24 #2d2a34 #3c3c44 #52545c #6a6c74 #8c8e96 #b8bac0"),       # hide_wolf
+    "hide_fox": ramp("#3a1206 #5a1e08 #94360e #c85a1a #e8843a #f2a05a #f8c08e"),        # hide_fox
+    "hide_boar": ramp("#24160c #3a2416 #4a2e1c #5c3c26 #765034 #8a6040 #a47a58"),       # hide_boar, leather_boar
+    "hide_belly": ramp("#6a5e50 #8a7c6a #a89a84 #c4b69c #d6cab0 #e4dac4 #eee8d8"),      # the pale belly patch on the hides
+    "bark_oak": ramp("#3a2614 #452d20 #5a3c20 #7a5430 #9c7044 #bc8e5c #d4a86c"),        # log_oak
+    "bark_ash": ramp("#3a3438 #4e4844 #6a6258 #8c8478 #aea696 #c8c0ae #e0d8c6"),        # log_ash
+    "log_ring": ramp("#5a4024 #7a5a34 #9c7a4a #bc9a64 #cfb68a #e0c89c #ecdcb6"),        # the cut ends of both logs
+    "herb_nettle": ramp("#1a3418 #2c4b29 #3c6a34 #538c42 #75b254 #94c464 #b8dc86"),     # bundle_nettle
+    "herb_marigold": ramp("#6a2a0c #94400e #b4561f #d97c2d #eca343 #f2bc5c #f6d68a"),   # bundle_marigold
+    "seed_gold": ramp("#5a3008 #8a4a06 #b46a0a #d89018 #f0b02c #ffd040 #ffe684"),       # seed_sunpetal, trophy_golden_antler
+    "fang": ramp("#6e6a62 #8c8678 #aaa290 #c4b898 #d6caac #e2d4bc #eee6d4"),            # trophy_wolf_fang
+    "hilt_ash": ramp("#4e4436 #6a5c48 #7a6a5a #8a7454 #9f917d #b09670 #cfb68a"),        # hilt_ash_hilt
+    "hilt_oak": ramp("#4e3218 #6a4626 #845a30 #94683a #a87a46 #b88a52 #cca06a"),        # hilt_oak_hilt
+    "pommel": ramp("#2e262e #453842 #615352 #7a6a5a #9f917d #b4a896 #c8beae"),          # the hilts' grey pommels
+})
 LO = {"up": 0.6, "lit": 0.15, "shade": -0.4, "down": -1.2}
 CAT = {"north": "lit", "east": "lit", "south": "shade", "west": "shade", "up": "up", "down": "down"}
 
@@ -404,6 +431,162 @@ class StallPainter(Painter):
             r0 = w / 2; a = ~((yy + 0.5 < r0 * 0.5) & (np.hypot((xx + 0.5 - w / 2) / (w / 2), (r0 * 0.5 - yy - 0.5) / (r0 * 0.5)) > 1))
         return rgb, a
 
+    # ------------------------------------------------------------ the merchant's stall (2026-11-15)
+    def shingle(self, Rm, w, h, light, style="scale", accent=None, moss=False):
+        """Adds style "clay_curved" (the merchant's red roof); every other style is house_lib's, unchanged."""
+        if style != "clay_curved":
+            return super().shingle(Rm, w, h, light, style, accent, moss)
+        nr = self.nr; v = np.zeros((h, w)); rh, tw = 4, 4
+        for r, y0 in enumerate(range(0, h, rh)):
+            g = 1.0 - y0 / max(1, h); off = 2 if r % 2 else 0
+            for x0 in range(-off, w, tw):
+                b = 2.6 + light + g * 1.2 + nr.normal(0, 0.15)
+                if nr.random() < 0.05: b += 0.8                                     # a weathered, lighter tile
+                for dy in range(rh):
+                    yy = y0 + dy
+                    if yy >= h: break
+                    for dx in range(tw):
+                        xx = x0 + dx
+                        if not 0 <= xx < w: continue
+                        barrel = (-0.5, 0.35, 0.45, -0.25)[dx]                     # each tile rounded across
+                        v[yy, xx] = b + barrel + (0.55 if dy == rh - 1 else 0) - (1.1 if dy == 0 else 0)  # lit lip, dark gap
+        v += self.noise(w, h, 0.08)
+        return C(Rm, v), np.ones((h, w), bool)
+
+    def panel(self, Rm, w, h, cat):
+        """A plaster panel between timbers: lime plaster mottling and hairline cracks (as house_lib's plaster), darker
+        where it meets the frame on all four sides, one pass so the shades stay on the ramp."""
+        yy, xx = grid(w, h)
+        v = np.full((h, w), 4.2 + LO[cat]) + self.blotches(w, h, max(2, w * h // 900), 0.35, 4, 14) + self.noise(w, h, 0.08, 50)
+        for _ in range(max(1, w * h // 3000)):                                 # hairline cracks
+            x, y = int(self.nr.integers(2, w - 2)), int(self.nr.integers(2, h - 2))
+            for _ in range(int(self.nr.integers(4, 10))):
+                if 0 <= x < w and 0 <= y < h: v[y, x] -= 0.9
+                x += int(self.nr.integers(-1, 2)); y += 1
+        e = np.minimum.reduce([xx + 0.5, w - xx - 0.5, yy + 0.5, h - yy - 0.5])
+        v -= np.clip(1 - e / 4.0, 0, 1) * 1.0
+        v += self.vfall(h, 0.75, 0.6)
+        return C(Rm, v), np.ones((h, w), bool)
+
+    def ingot(self, Rm, w, h, cat):
+        """A cast bar: soft form, a light bevel on its top edge, one hot pixel."""
+        rgb, a = self.form(Rm, w, h, cat, 3.4, hl=True, noise=0.05, vert=0.8)
+        if cat in ("lit", "shade") and h >= 2: rgb[0] = C(Rm, np.full(w, 5.4 + LO[cat] * 0.5))
+        if cat == "up" and h >= 3 and w >= 3: rgb[1:-1, 1] = Rm[-1]
+        return rgb, a
+
+    def gem(self, Rm, w, h, cat):
+        """A cut gem: pale lit centre, a darker lower facet, a near white glint."""
+        yy, xx = grid(w, h)
+        d = np.maximum(np.abs((xx + 0.5) / w - 0.5), np.abs((yy + 0.5) / h - 0.5)) * 2
+        v = 4.8 + LO[cat] * 0.5 - d * 1.8 - ((yy + 0.5) / h > 0.6) * 0.8
+        rgb = C(Rm, v)
+        if w >= 2 and h >= 2 and cat != "down": rgb[0, 0] = Rm[-1]
+        return rgb, np.ones((h, w), bool)
+
+    def coins(self, w, h, cat):
+        """A stack of gold coins: a ridge per coin (light top edge, darker rim), a lit top face with a stamped dot."""
+        Rm = R["gold"]; yy, xx = grid(w, h)
+        if cat in ("up", "down"):
+            r = np.hypot(xx + 0.5 - w / 2, yy + 0.5 - h / 2) / (max(w, h) / 2)
+            rgb = C(Rm, 5.0 - r * 1.6 + LO[cat])
+            if cat == "up" and w >= 3: rgb[h // 2, w // 2] = Rm[3]
+            return rgb, np.ones((h, w), bool)
+        cx = np.abs((xx + 0.5) / w - 0.5) * 2
+        v = 3.6 + LO[cat] - cx ** 2 * 1.2 + np.where(yy % 2 == 0, 0.7, -0.7)
+        return C(Rm, v), np.ones((h, w), bool)
+
+    def pelt(self, Rm, w, h, cat, belly=True):
+        """A stretched hide (hard alpha), as on the hide_ icons: a broad body, four splayed triangular leg flaps,
+        a head flap and a tail, fur strokes along the body, a ragged edge, a small pale belly patch (wolf, fox)."""
+        yy, xx = grid(w, h); u = (xx + 0.5) / w - 0.5; t = (yy + 0.5) / h
+        body = (np.abs(u) / 0.3) ** 2 + ((t - 0.52) / 0.36) ** 2 < 1
+        legs = np.zeros((h, w), bool)
+        for ty, dirn in ((0.3, -1), (0.74, 1)):                          # flaps reach out and toward the ends
+            k = np.clip((np.abs(u) - 0.12) / 0.38, 0, 1)
+            legs |= (np.abs(u) < 0.5) & (np.abs(t - ty - dirn * k * 0.16) < 0.11 * (1 - k) + 0.02)
+        head = (np.abs(u) < 0.12 - (0.16 - t) * 0.3) & (t < 0.2) & (t > 0.02)
+        tail = (np.abs(u) < 0.05) & (t > 0.86) & (t < 0.98)
+        a = body | legs | head | tail
+        edge = a & ~(np.roll(a, 1, 0) & np.roll(a, -1, 0) & np.roll(a, 1, 1) & np.roll(a, -1, 1))
+        a = a & ~(edge & (self.nr.random((h, w)) < 0.3))                  # ragged fur edge
+        v = 3.6 + LO[cat] - np.clip(np.abs(u) * 1.8, 0, 1) - np.abs(t - 0.52) * 0.9
+        v = v + 0.45 * ((yy + (xx % 2)) % 3 == 0) - 0.35 * ((yy + xx * 3) % 5 == 0)   # fur strokes
+        rgb = C(Rm, v)
+        if belly:
+            bm = (np.abs(u) / 0.1) ** 2 + ((t - 0.55) / 0.15) ** 2 < 1
+            rgb[bm] = C(R["hide_belly"], 3.6 - np.abs(u[bm]) * 6)
+        return rgb, a
+
+    def log_side(self, Rm, w, h, cat):
+        """Bark along a log: lengthwise ridges, rounded across, a knot."""
+        yy, xx = grid(w, h)
+        v = 3.2 + LO[cat] - np.abs((yy + 0.5) / h - 0.5) * 1.6 + 0.5 * ((yy + (xx // 5)) % 3 == 0) - 0.5 * ((yy * 3 + xx) % 7 == 0)
+        return C(Rm, v + self.noise(w, h, 0.1)), np.ones((h, w), bool)
+
+    def log_ring(self, w, h, cat):
+        """A cut log end: growth rings round the heart, the bark rim one step darker."""
+        yy, xx = grid(w, h); r = np.hypot(xx + 0.5 - w / 2, yy + 0.5 - h / 2) / (min(w, h) / 2)
+        v = 4.6 - r * 1.2 - 0.6 * (np.sin(r * 9) > 0.5) + LO[cat] * 0.4
+        rgb = C(R["log_ring"], v); rgb[r > 0.85] = C(R["bark_oak"], np.full((h, w), 2.4))[r > 0.85]
+        return rgb, np.ones((h, w), bool)
+
+    def bag(self, Rm, w, h, cat, flap=True):
+        """Leather pack: soft form, a flap with a stitched edge and a brass buckle on the front."""
+        rgb, a = self.form(Rm, w, h, cat, 3.4, noise=0.08, vert=0.6)
+        if cat == "lit" and flap and h >= 4:
+            fh = max(2, h * 2 // 5)
+            rgb[:fh] = C(Rm, np.full((fh, w), 4.2) - np.arange(fh)[:, None] * 0.15)
+            rgb[fh] = C(Rm, np.full(w, 2.0))
+            if w >= 3: rgb[fh - 1:fh + 1, w // 2 - 1:w // 2 + 1] = R["gold"][5]
+        return rgb, a
+
+    def ivy(self, w, h, cat):
+        """Ivy on a wall (hard alpha): wandering stems with leaf clusters, darker toward the ground."""
+        yy, xx = grid(w, h); a = np.zeros((h, w), bool)
+        for k in range(max(2, w // 4)):
+            x = float(self.nr.integers(0, w))
+            for y in range(h - 1, -1, -1):
+                x = min(w - 1, max(0, x + self.nr.uniform(-0.8, 0.8)))
+                if self.nr.random() < 0.85 * (y / h + 0.35): a[y, int(x)] = True
+                if self.nr.random() < 0.35:
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1)):
+                        if 0 <= int(x) + dx < w and 0 <= y + dy < h: a[y + dy, int(x) + dx] = True
+        v = 3.4 + LO[cat] + self.noise(w, h, 0.6, 30) - (yy + 0.5) / h * 0.8
+        return C(R["herb_nettle"], v), a
+
+    def coin_badge(self, w, h, ring=False):
+        """The round coin sign (hard alpha disk): gold rim, painted indigo field (ring=True: the gold backing disk)."""
+        yy, xx = grid(w, h); r = np.hypot(xx + 0.5 - w / 2, yy + 0.5 - h / 2) / (w / 2)
+        a = r <= 1.0
+        if ring:
+            return C(R["gold"], 3.6 - (yy + 0.5) / h * 1.4 + (r > 0.9) * 0.6), a
+        v = 3.4 - r * 0.8
+        rgb = C(R["awn_indigo"], v + self.noise(w, h, 0.06))
+        rim = r > 0.82; rgb[rim] = C(R["gold"], 4.4 - (yy + 0.5) / h * 1.6 + (r > 0.92) * 0.4)[rim]
+        return rgb, a
+
+    def coin_face(self, w, h):
+        """The raised coin in the middle of the sign: bevelled gold disk, a stamped crown."""
+        yy, xx = grid(w, h); r = np.hypot(xx + 0.5 - w / 2, yy + 0.5 - h / 2) / (w / 2)
+        a = r <= 1.0
+        v = 4.6 - r * 1.2 - ((xx + 0.5 - w / 2) + (yy + 0.5 - h / 2)) / w * 1.4 + (np.abs(r - 0.8) < 0.08) * 0.8
+        rgb = C(R["gold"], v)
+        m, col = icon_crown(int(w * 0.6), int(h * 0.5))
+        ih, iw = m.shape; oy, ox = (h - ih) // 2, (w - iw) // 2
+        sub = rgb[oy:oy + ih, ox:ox + iw]; sub[m] = col[m]
+        return rgb, a
+
+    def chalk_coins(self, w, h, cat):
+        """The price board: the bakery's chalkboard, with gold coin marks beside each line of prices."""
+        rgb, a = self.chalkboard(w, h, cat, doodle=None)
+        if cat in ("lit", "shade") and h > 8:
+            for y in range(3, h - 3, 3):
+                cx = w - 4
+                if cx >= 2:
+                    rgb[y, cx:cx + 2] = R["gold"][5]; rgb[y - 1, cx:cx + 2] = R["gold"][6]
+        return rgb, a
+
     def wheel_face(self, Rm, w, h, cat):
         return self.form(Rm, w, h, cat, 3.3)
 
@@ -498,8 +681,35 @@ def icon_wheat(w, h):
     return m, col
 
 
+def icon_coin(w, h):
+    """A gold coin with a crown stamped in it (the merchant's counter panel)."""
+    s = min(w, h); W = H = s
+    m = _disk(W, H, W / 2, H / 2, s * 0.46, s * 0.46)
+    col = _shade(R["gold"], W, H, m, W * 0.4, H * 0.4, s * 0.55, 3.8)
+    if s >= 10:                                                                # room for the stamped crown
+        cm, cc = icon_crown(int(s * 0.56), int(s * 0.4))
+        ih, iw = cm.shape; oy, ox = (H - ih) // 2, (W - iw) // 2
+        sub = col[oy:oy + ih, ox:ox + iw]; sub[cm] = cc[cm]
+    else:                                                                      # a small coin: a stamped centre
+        col[H // 2 - 1:H // 2 + 1, W // 2 - 1:W // 2 + 1] = R["gold"][2]
+    return m, col
+
+
+def icon_crown(w, h):
+    """A small three-pointed crown, stamped (darker gold with a light top edge)."""
+    w, h = max(w, 5), max(h, 4)
+    yy, xx = grid(w, h); u = (xx + 0.5) / w; t = (yy + 0.5) / h
+    band = t > 0.6
+    points = np.zeros((h, w), bool)
+    for c in (0.15, 0.5, 0.85):
+        points |= (np.abs(u - c) < 0.12 * (t + 0.2) * 1.6) & (t > 0.05)
+    m = band | (points & (t <= 0.6))
+    col = C(R["gold"], 2.6 + (1 - t) * 1.6)
+    return m, col
+
+
 ICONS = {"apple": icon_apple, "loaf": icon_loaf, "potion": icon_potion, "spool": icon_spool, "moon": icon_moon,
-         "wheat": icon_wheat}
+         "wheat": icon_wheat, "coin": icon_coin}
 
 
 # ---------------------------------------------------------------- the stall builder

@@ -32,7 +32,7 @@ MODELS = {
 }
 for n in ("brick_bluebell_house", "brick_honey_townhouse", "brick_rose_cottage", "wood_cherry_manor", "wood_oak_lodge", "wood_timber_house"):
     MODELS[n] = (f"res://assets/models/buildings/houses/{n}.glb", f"assets/models/buildings/houses/{n}.bbmodel", 1.5)
-for n in ("fruit", "bakery", "potion", "cloth"):
+for n in ("fruit", "bakery", "potion", "cloth", "merchant"):
     MODELS[f"stall_{n}"] = (f"res://assets/models/buildings/stalls/market_stall_{n}.glb", f"assets/models/buildings/stalls/market_stall_{n}.bbmodel", 1.0)
 for n in ("furnace", "anvil", "workbench", "sawbench", "drying_rack", "tanning_rack", "cauldron"):
     MODELS[n] = (f"res://assets/models/props/stations/{n}.glb", f"assets/models/props/stations/{n}.bbmodel", 1.0)
@@ -276,7 +276,11 @@ def square(sx, north, south, kind):
         hedge_run((sx * 46.5, hz), (sx * 64.5, hz))
     for x in (31.4, 65.6):                                    # topiary balls finishing the north hedge's ends
         place("topiary_ball_planter", sx * x, -30.6, "S")
-    place("blossom_tree_planter", sx * 69.5, -16.0, 0, s=1.6)   # Market Street ends at a blossom tree by the wall
+    # Market Street ends at the merchant's stall, its back on the last of the cobbles (the street ends at x 63.5),
+    # facing down the street (J00BA, 2026-11-15). The merchant stands behind the centre counter, clear of the desk.
+    place("stall_merchant", sx * 62.5, -16.0, "W" if sx > 0 else "E")
+    npc("vendor_merchant", *local_to_world(sx * 62.5, -16.0, 90.0 if sx > 0 else -90.0, 0.0, 0.06), "W" if sx > 0 else "E",
+        "market vendor (merchant)")
     for z in (-22.0, -10.0):
         place("urn_planter", sx * 66.5, z, "W" if sx > 0 else "E", s=1.2)
     for x in (31.0, 52.0, 62.0):                              # blossom trees on the lawn towards Rose Lane
