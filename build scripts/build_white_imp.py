@@ -5,9 +5,26 @@ Ramp: main is an off-white (never pure white, doc 1.5 rule 3), shading into cool
 shadows deeper and slightly saturated rather than flat grey. Output: OUT/white_imp.bbmodel + .png (padded)."""
 import copy
 from PIL import Image
+import numpy as np
 import build_imp_bodies as b
 
-b.FLAT['white'] = ('#e6e5e1', '#a6aab8', '#545a6c')   # main, mid, deep: main below the eye white, so the eyes still read
+b.FLAT['white'] = ('#dedcd5', '#9097ab', '#4a5064')   # main, mid, deep: main below the eye white, so the eyes still read
+# J00BA (2026-11-15): the front looked flat. The shared tone map keeps most of the skin near the main colour, which on a
+# saturated body still shows the shading through hue, but on an off-white it all reads as one flat tone. White gets a
+# wider map: mid-tones pulled further into the cool shadow and brighter highlights, so the muscle and belly shading
+# reads as clearly as on the coloured bodies.
+_map_flat = b.map_flat
+
+
+def _white_map(L, an, main, mid, deep):
+    if not np.array_equal(main, b.hx(b.FLAT['white'][0])):
+        return _map_flat(L, an, main, mid, deep)
+    ts = [an['lo'] * .8, an['lo'], an['q1'], an['med'], an['lit'], an['hi']]
+    cs = [deep, mid * .85 + deep * .15, mid * .6 + main * .4, mid * .32 + main * .68, main, b.lighten(main, .38)]
+    return np.stack([np.interp(L, ts, [c[k] for c in cs]) for k in range(3)], -1)
+
+
+b.map_flat = _white_map
 
 d = copy.deepcopy(b.BASE)
 src = b.base_texture()
