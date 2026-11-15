@@ -22,6 +22,7 @@ const VERTS := 33  # CHUNK / STEP + 1
 @export var view_chunks := 4           # chunk radius kept visible (64 m each)
 @export var build_per_frame := 2
 @export var far_mesh := true
+@export var band_lock := false          # a biome world cut from the resource bake (WorldData band lock)
 @export var keep_loaded := true        # build the whole world once and never drop chunks (always visible)
 
 var data: WorldData
@@ -45,7 +46,7 @@ func _chunk_rect() -> Rect2i:
 
 
 func setup() -> void:
-	data = WorldData.new(data_prefix, fixed_biome)
+	data = WorldData.new(data_prefix, fixed_biome, band_lock)
 	margin = 1 if data.has_skirt else 0
 	_layer_array = _build_layer_array()
 	material = _make_material(0.0, 0.0)
@@ -107,8 +108,12 @@ func _make_material(near_cut: float, drop: float) -> ShaderMaterial:
 	mat.shader = load("res://shaders/terrain.gdshader")
 	mat.set_shader_parameter("layers", _layer_array)
 	mat.set_shader_parameter("mask_map", ImageTexture.create_from_image(data.mask))
-	mat.set_shader_parameter("mask_rect", Vector4(data.origin.x, data.origin.y, data.mask.get_width(), data.mask.get_height()))
+	mat.set_shader_parameter("mask_rect", Vector4(data.g_origin.x, data.g_origin.y, data.mask.get_width(), data.mask.get_height()))
 	mat.set_shader_parameter("fixed_biome", fixed_biome)
+	if data.band_lock:                         # biome worlds: the path stops before the mountains
+		mat.set_shader_parameter("band_lo", data.band_lo)
+		mat.set_shader_parameter("band_hi", data.band_hi)
+		mat.set_shader_parameter("path_hi", data.path_hi)
 	mat.set_shader_parameter("band_depth", data.band)
 	mat.set_shader_parameter("blend_half", data.blend_half)
 	mat.set_shader_parameter("near_cut", near_cut)
@@ -312,7 +317,7 @@ func _build_collider(c: Vector2i) -> void:
 
 func _far_h(x: float, z: float) -> float:
 	## Far mesh heights on its 8 m lattice: the world's own grid inside, the raw skirt samples outside.
-	if data.has_skirt and not data.in_bounds(x, z):
+	if data.has_skirt and not data.in_grid(x, z):
 		return data.skirt_sample(roundi((x - data.sk_origin.x) / data.sk_step), roundi((z - data.sk_origin.y) / data.sk_step))
 	return data.height(x, z)
 

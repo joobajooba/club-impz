@@ -23,7 +23,7 @@ const BAND := 256.0
 const BLEND := 22.5
 const WATER := [
 	{"name": "forest_river", "rect": [0, 40, 211, 120], "level": 3.0, "biome": "forest"},
-	{"name": "forest_upper_pool", "rect": [211, 40, 262, 120], "level": 10.0, "biome": "forest"},
+	{"name": "forest_upper_pool", "rect": [211, 40, 292, 120], "level": 10.0, "biome": "forest"},   # the wide swan pond
 	{"name": "frost_open_pool", "rect": [690, -56, 722, -24], "level": 6.4, "biome": "frost"},
 	{"name": "plains_watering_hole", "rect": [880, 40, 920, 80], "level": 9.0, "biome": "plains"},
 	{"name": "swamp_water", "rect": [1010, -256, 1280, 256], "level": 1.75, "biome": "swamp"}
@@ -156,6 +156,12 @@ func h_forest(x: float, z: float) -> float:
 	return h
 
 
+## The swan pond's shape: 1.0 on its shore, less inside (an ellipse 32 x 40 m round x 235 on the river, noisy edge;
+## J00BA asked for it bigger twice, 2026-11-15).
+func swan_pond(x: float, z: float) -> float:
+	return Vector2((x - 250.0) / 32.0, (z - river_z(232.0) - 4.0) / 20.0).length()   # 64 x 40 m, x 218..282   # 4 m north: inside the pool's water rect + n_detail.get_noise_2d(x * 2.0, z * 2.0) * 0.12
+
+
 func h_mountain(x: float, z: float) -> float:
 	var h := 18.0 + (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 34.0 + n_detail.get_noise_2d(x, z) * 0.5
 	h += g2(x, z, landmarks["highest_peak"], 70.0) * 70.0
@@ -216,6 +222,17 @@ func height_at(x: float, z: float, s: float, d_path: float) -> float:
 	h = lerp(6.0, h, smoothstep(12.0, 26.0, Vector2(x, z).distance_to(landmarks["portal_clearing"])))
 	# foothills that level off along the border; the cliffs and mountains beyond it are the skirt (_bake_skirt)
 	h += _edge_ring(x, z)
+	# the swan pond (J00BA, 2026-11-15): the upper pool opens into a wide rounded pond, clear of the waterfall
+	# notch (x <= 218) and inside the forest band, with a slightly irregular shore; cut last, after the biome
+	# blend and the path levelling, so nothing raises it again; it only ever lowers the ground
+	var e := swan_pond(x, z)
+	# on the mountain side a flat ledge round the pond: the ground is raised (or cut) to a level shelf 1.4 m above
+	# the water, easing back into the natural ground further out
+	if e < 3.4 and x > 246.0:                     # kept off the main path, which climbs toward the pass there
+		h = lerp(h, 11.4, (1.0 - smoothstep(1.8, 3.4, e)) * smoothstep(246.0, 262.0, x) * smoothstep(8.0, 20.0, d_path))
+	if e < 1.6:
+		var pond: float = lerp(8.7, maxf(h, 11.2), smoothstep(0.7, 1.15, e))   # bed 1.3 under the 10 m water
+		h = minf(h, lerp(pond, h, smoothstep(1.15, 1.6, e)))
 	return h
 
 
@@ -306,6 +323,7 @@ func _bake_resource() -> void:
 			var dl := Vector2(x, z).distance_to(landmarks["frozen_lake"])
 			wet = maxf(wet, 1.0 - smoothstep(47.0, 56.0, dl + nd))   # still keeps the ice off the snow bank
 			wet = maxf(wet, 1.0 - smoothstep(8.0, 16.0, Vector2(x, z).distance_to(Vector2(706, -40)) + nd))
+			wet = maxf(wet, 1.0 - smoothstep(0.95, 1.35, swan_pond(x, z)))   # the swan pond's wet shore
 			if x > 760.0 and x < 1030.0:
 				wet = maxf(wet, 1.0 - smoothstep(3.0, 9.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0))) + nd))
 				special = 1.0 - smoothstep(16.0, 34.0, Vector2(x, z).distance_to(Vector2(900, 60)) + nd)

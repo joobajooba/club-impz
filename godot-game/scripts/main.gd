@@ -14,6 +14,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
+##   --skill_tree=mining         open the Profile menu and that skill's tree popup
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
 ##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it   --look_at  a free camera on it
@@ -32,6 +33,12 @@ const WORLDS := {
 	"resource": "res://scenes/resource/resource_world.tscn",
 	"test": "res://scenes/test/flat_test_world.tscn",
 	"lineup": "res://scenes/test/model_lineup.tscn",
+	# one world per biome (J00BA, 2026-11-15): the resource bake cut to that biome, ringed by peaks
+	"wilds_forest": "res://scenes/resource/wilds_forest.tscn",
+	"wilds_mountain": "res://scenes/resource/wilds_mountain.tscn",
+	"wilds_frost": "res://scenes/resource/wilds_frost.tscn",
+	"wilds_plains": "res://scenes/resource/wilds_plains.tscn",
+	"wilds_swamp": "res://scenes/resource/wilds_swamp.tscn",
 }
 
 @onready var world_holder: Node3D = $world_holder
@@ -52,7 +59,9 @@ var joined_world := ""
 var busy := false
 var args := {}
 const LOAD_BUDGET_USEC := 25000           # world building per frame on the loading screen (the bar still moves)
-const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering The Wilds"}
+const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering The Wilds", "wilds_forest": "Entering the Forest",
+		"wilds_mountain": "Entering the Mountains", "wilds_frost": "Entering the Frost", "wilds_plains": "Entering the Plains",
+		"wilds_swamp": "Entering the Swamp"}
 var loading: CanvasLayer                  # ui/loading_screen.gd
 var inventory_ui: CanvasLayer             # ui/inventory_ui.tscn, I
 
@@ -76,12 +85,16 @@ func _ready() -> void:
 	inventory_ui.visible = false
 	inventory_ui.add_to_group("modal")                 # the Imp stands still while it is open
 	add_child(inventory_ui)
+	var merchant_menu: CanvasLayer = preload("res://ui/merchant_menu.gd").new()   # the merchant's shop: E at the stall
+	merchant_menu.name = "merchant_menu"
+	add_child(merchant_menu)
 	var start: String = args.get("world", "hub")
 	busy = true
 	player.frozen = true
 	await _enter_world(start, "spawn_point")
 	if args.has("biome") and current_world.has_method("biome_centre"):
 		player.place_at(current_world.biome_centre(args["biome"]))
+		Net.teleported()                                   # so the server doesn't pull the Imp back to the spawn
 	if args.has("ore_event"):                              # testing: --ore_event=void starts an event here
 		OreEvents.start_local(args["ore_event"])
 		await get_tree().process_frame
@@ -170,6 +183,27 @@ func _ready() -> void:
 			print("DROP after walking onto it: ", Inventory.count("pine_log")))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
+	if args.has("skill_tree"):                             # testing: open the Profile menu and that skill's tree popup
+		get_tree().create_timer(2.0).timeout.connect(func():
+			ProfileMenu.open()
+			if str(args["skill_tree"]) != "none":       # --skill_tree=none: just the Stats tab
+				ProfileMenu.call("_open_tree", str(args["skill_tree"])))
+	if args.has("teleport"):                               # testing: --teleport=frost (or hub; menu opens it; player goes to the first other player)
+		get_tree().create_timer(1.0).timeout.connect(func():
+			if str(args["teleport"]) == "menu":
+				TeleportMenu.open_menu()
+			elif str(args["teleport"]) == "player":            # the first other player online
+				for i in 100:
+					if not Net.others().is_empty():
+						break
+					await get_tree().create_timer(0.2).timeout
+				if not Net.others().is_empty():
+					var o: Dictionary = Net.others()[0]
+					print("TP to ", o.name, " in ", o.world, " at ", o.pos)
+					await TeleportMenu.call("_go_player", int(o.id))
+					print("TP now in ", current_world_name, " at ", player.global_position, " them ", Net.other(int(o.id)).get("pos"))
+			else:
+				TeleportMenu.call("_go_place", str(args["teleport"])))
 	if args.has("shot"):
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
 	if args.has("perf"):

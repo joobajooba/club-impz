@@ -87,6 +87,12 @@
    "height": 3.625,
    "animated": false
   },
+  "stall_merchant": {
+   "path": "res://assets/models/buildings/stalls/market_stall_merchant.glb",
+   "glow": true,
+   "height": 4.875,
+   "animated": false
+  },
   "furnace": {
    "path": "res://assets/models/props/stations/furnace.glb",
    "glow": true,
@@ -2418,12 +2424,12 @@
    1.0
   ],
   [
-   "blossom_tree_planter",
-   69.5,
+   "stall_merchant",
+   62.5,
    0.0,
    -16.0,
-   0,
-   1.6
+   90.0,
+   1.0
   ],
   [
    "urn_planter",
@@ -2710,14 +2716,6 @@
    -37.8,
    0.0,
    -3.4,
-   0.0,
-   1.0
-  ],
-  [
-   "stall_potion",
-   -37.7,
-   0.0,
-   -9.5,
    0.0,
    1.0
   ],
@@ -6781,13 +6779,13 @@
    180.0
   ],
   [
-   69.5,
-   2.31,
-   -16.0,
-   2.8,
-   4.619,
-   2.8,
-   0
+   62.5,
+   2.438,
+   -16.032,
+   5.625,
+   4.875,
+   2.0,
+   90.0
   ],
   [
    66.5,
@@ -7435,15 +7433,6 @@
    2.812,
    2.406,
    0.812,
-   0.0
-  ],
-  [
-   -37.653,
-   2.203,
-   -9.5,
-   3.218,
-   4.406,
-   1.624,
    0.0
   ],
   [
@@ -10917,6 +10906,16 @@
    "role": "market vendor (pie seller)"
   },
   {
+   "name": "vendor_merchant",
+   "pos": [
+    62.56,
+    0.0,
+    -16.0
+   ],
+   "yaw": 90.0,
+   "role": "market vendor (merchant)"
+  },
+  {
    "name": "crafter_smelter",
    "pos": [
     -61.0,
@@ -10985,16 +10984,6 @@
    ],
    "yaw": 180.0,
    "role": "crafting station (brewer)"
-  },
-  {
-   "name": "vendor_potion_brewer",
-   "pos": [
-    -35.49,
-    0.0,
-    -9.95
-   ],
-   "yaw": 0.0,
-   "role": "potion seller at the brewery"
   },
   {
    "name": "wizard",
@@ -12703,10 +12692,10 @@
    -29.86
   ],
   [
-   67.8,
-   -17.7,
-   71.2,
-   -14.3
+   60.42,
+   -19.14,
+   63.99,
+   -12.92
   ],
   [
    65.75,
@@ -12923,12 +12912,6 @@
    -4.26,
    -36.09,
    -2.85
-  ],
-  [
-   -39.72,
-   -10.8,
-   -35.74,
-   -8.39
   ],
   [
    -62.36,

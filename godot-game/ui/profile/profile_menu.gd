@@ -7,8 +7,8 @@ extends CanvasLayer
 ## is worn (a turning 3D view like the customizer's: drag to turn, wheel to zoom), and the equipped emblem and title.
 ## Clicking the emblem or the title opens its picker where the tabs' content goes: slots like the trophies (titles two
 ## to a row), None first; locked ones say which challenge gives them. Picking equips it at once (Save.profile).
-## Tabs (Decided, section 9), clicked (no number keys, J00BA): Stats (the five skills, each with an XP bar, and the
-## selected skill's tree), Trophies, Collection (the pictures of the Impz in the linked wallet, J00BA) and Information.
+## Tabs (Decided, section 9), clicked (no number keys, J00BA): Stats (the five skills, each with an XP bar and a
+## Skill Tree button that opens that skill's tree in a popup, J00BA 2026-11-14), Trophies, Collection (the pictures of the Impz in the linked wallet, J00BA) and Information.
 ##
 ## Real today: the username, joined date, Imp Coins and wallet (AccountPanel), the worn look and the traits the player
 ## can use (Look), the Impz in the wallet (impz.club), the skill names (GameData.SKILLS). Everything else (player level,
@@ -39,13 +39,16 @@ const LOCAL_PICTURES := "res://assets/sprites/implingz_generations/%d.png"
 const LOADERS := 4
 const IMP_PICTURE := 128                # the 640 px NFT picture at 1/5: each of its pixels stays whole
 const LOCK := ["..kkkk..", ".k....k.", ".k....k.", "kkkkkkkk", "kYyyyyok", "kyyooyok", "kyyyyyok", "kkkkkkkk"]
-const TREE_ROW := 2                     # skill tree nodes per row: 2 x 5 rows (J00BA)
-const TREE_NODE := Vector2(136, 56)     # skill tree node size (px), big enough to fill the half
+const TREE_ROW := 5                     # skill tree popup: five nodes to a row, read left to right (J00BA, 2026-11-14)
+const TREE_NODE := Vector2(150, 56)     # skill tree node size (px)
 const ARROW_SMALL := ["k....", "kk...", "kYk..", "kyyk.", "kok..", "kk...", "k...."]
 const ARROW := ["....k...", "....kk..", "kkkkkYk.", "kYYYYYyk", "kyyyyyok", "kkkkkok.", "....kk..", "....k..."]
 
 var tab := "stats"                      # remembered between openings
 var skill := "mining"
+var _tree_skill := ""                   # the skill whose tree popup is open, "" = none
+var _tree_layer: Control
+var _tree_detail := ""
 var profile := {}                       # what the window shows (see _self_profile)
 var is_self := true
 var spin := true
@@ -127,6 +130,7 @@ func request_player_profile(player_id: int) -> void:
 
 
 func close() -> void:
+	_close_tree()
 	visible = false
 	_dragging = false
 	_picker = ""
@@ -163,7 +167,9 @@ func _input(event: InputEvent) -> void:
 	if not visible or k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed:
 		return
 	if k.keycode == KEY_ESCAPE:
-		if _picker != "":
+		if _tree_skill != "":
+			_close_tree()
+		elif _picker != "":
 			_close_picker()
 		else:
 			close()
@@ -375,60 +381,180 @@ func _emblem_art(id: String, size: int) -> Control:
 # --- Stats -----------------------------------------------------------------------------------
 
 func _render_stats() -> void:
-	var row := HBoxContainer.new()
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", 14)
-	_content.add_child(row)
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 280
-	left.add_theme_constant_override("separation", 6)
-	row.add_child(left)
-	left.add_child(UIKit.label("Skill Levels", Color.WHITE, 18))
+	# the five skills, each with its XP bar and a button opening its skill tree in a popup (J00BA, 2026-11-14:
+	# the tree no longer sits beside the list)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 8)
+	_content.add_child(list)
+	list.add_child(UIKit.label("Skill Levels", Color.WHITE, 18))
 	var skills: Dictionary = profile.get("skills", {})
 	for key in SKILL_ORDER:
-		left.add_child(_skill_row(key, skills.get(key, {})))
-	row.add_child(_vline())
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 10)
+		list.add_child(line)
+		var row := _skill_row(key, skills.get(key, {}))
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(row)
+		var tree := UIKit.button("Skill Tree", true, _open_tree.bind(key))
+		tree.custom_minimum_size = Vector2(130, MIN_TAP)
+		tree.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(tree)
 
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 10)
-	row.add_child(right)
-	right.add_child(UIKit.label("Skill Tree: " + GameData.SKILLS[skill].label, Color.WHITE, 18))
-	var nodes: Array = _test.get("skill_trees", {}).get(skill, [])
-	if nodes.is_empty():
-		right.add_child(UIKit.label(NOT_BUILT, UIKit.MUTED, 14))
-		return
-	# a node every 5 levels up to 50 (J00BA): two to a row, five rows, read left to right like text, so the
-	# whole tree fits without scrolling
+
+# --- the skill tree popup --------------------------------------------------------------------
+
+## The nodes of a skill's tree: one every 5 levels up to 100. Each is {level, name, buff, recipe (tool or {})}.
+## The buffs are TEST (skill_trees.md isn't written: data/profile_test.json in debug builds); the recipe unlocks
+## are real (GameData.recipe_at).
+func _tree_nodes(key: String) -> Array:
+	var test: Array = _test.get("skill_trees", {}).get(key, [])
+	var out := []
+	for level in range(GameData.RECIPE_EVERY, GameData.SKILL_TREE_MAX + 1, GameData.RECIPE_EVERY):
+		var n := {level = level, name = "", buff = "", recipe = GameData.recipe_at(key, level)}
+		for t in test:
+			if int(t.level) == level:
+				n.name = t.name
+				n.buff = t.buff
+		if n.name == "":
+			n.name = "TEST Level %d" % level if _testing() else "Level %d" % level
+			n.buff = "TEST: +2% speed" if _testing() else "Buff: " + NOT_BUILT
+		out.append(n)
+	return out
+
+
+func _open_tree(key: String) -> void:
+	_tree_skill = key
+	_tree_detail = ""
+	_render_tree()
+
+
+func _close_tree() -> void:
+	_tree_skill = ""
+	if is_instance_valid(_tree_layer):
+		_tree_layer.queue_free()
+	_tree_layer = null
+
+
+## The popup over the Profile window: the skill's tree read left to right like text, five nodes to a row, with an
+## arrow between nodes; a node every 5 levels. Locked nodes are greyed with a lock. Nodes that unlock a recipe
+## show the tool. Clicking a node shows what it gives under the tree.
+func _render_tree() -> void:
+	if is_instance_valid(_tree_layer):
+		_tree_layer.queue_free()
+	var key := _tree_skill
+	var label: String = GameData.SKILLS[key].label
+	var s: Dictionary = profile.get("skills", {}).get(key, {})
+	var level := int(s.get("level", -1)) if not s.is_empty() else -1
+	_tree_layer = Control.new()
+	_tree_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_tree_layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.45)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(e: InputEvent):   # a click outside the popup closes it
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			_close_tree())
+	_tree_layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tree_layer.add_child(center)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", UIKit.panel())
+	center.add_child(panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	panel.add_child(vbox)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	vbox.add_child(head)
+	head.add_child(UIKit.title(label + " Skill Tree", 24))
+	var lv := UIKit.label(("Level %d" % level) if level >= 0 else "Level: " + NOT_BUILT, UIKit.RARE if level >= 0 else UIKit.MUTED, 16)
+	lv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(lv)
+	if _testing():
+		head.add_child(UIKit.label("TEST data", UIKit.SHORT, 13))
+	head.add_child(UIKit.spacer())
+	var close_button := UIKit.button("Close", true, _close_tree)
+	close_button.custom_minimum_size = Vector2(90, MIN_TAP)
+	head.add_child(close_button)
+	vbox.add_child(UIKit.divider())
+	var nodes := _tree_nodes(key)
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 8)
-	right.add_child(rows)
+	rows.add_theme_constant_override("separation", 10)
+	vbox.add_child(rows)
 	var chain: HBoxContainer
-	var level := int(skills.get(skill, {}).get("level", 0))
 	for i in nodes.size():
 		var n: Dictionary = nodes[i]
 		if i % TREE_ROW == 0:
 			chain = HBoxContainer.new()
-			chain.add_theme_constant_override("separation", 10)
-			chain.alignment = BoxContainer.ALIGNMENT_CENTER
+			chain.add_theme_constant_override("separation", 8)
 			rows.add_child(chain)
+			var span := UIKit.label("Lv %d-%d" % [int(n.level), int(n.level) + GameData.RECIPE_EVERY * (TREE_ROW - 1)], UIKit.MUTED, 12)
+			span.custom_minimum_size.x = 64
+			span.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			chain.add_child(span)
 		else:
-			chain.add_child(UIKit.pixel_icon(ARROW_SMALL, Color.WHITE))
-		var open := level >= int(n.level)
-		var tip := "%s\n%s\n%s" % [n.name, n.buff, "Unlocked" if open else "Unlocks at %s %d" % [GameData.SKILLS[skill].label, int(n.level)]]
-		chain.add_child(_slot_button("Lv %d" % int(n.level), not open, "Lv %d" % int(n.level), tip,
-			func(): _detail["stats"] = tip.replace("\n", "  ·  "); _refresh(), TREE_NODE))
-	right.add_child(_vspace())
-	right.add_child(UIKit.divider())
-	var info := UIKit.label(_detail.get("stats", "Click a node to see its buff."), UIKit.MUTED if not _detail.has("stats") else Color.WHITE, 14)
+			var arrow := UIKit.pixel_icon(ARROW_SMALL, Color.WHITE)
+			arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			chain.add_child(arrow)
+		chain.add_child(_tree_node(key, n, level >= 0 and level >= int(n.level)))
+	vbox.add_child(UIKit.divider())
+	var info := UIKit.label(_tree_detail if _tree_detail != "" else "Click a node to see what it gives. Read left to right: a new node every %d levels." % GameData.RECIPE_EVERY,
+		Color.WHITE if _tree_detail != "" else UIKit.MUTED, 14)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.custom_minimum_size.y = 44
-	right.add_child(info)
+	info.custom_minimum_size = Vector2(0, 44)
+	vbox.add_child(info)
+
+
+func _tree_node(key: String, n: Dictionary, open: bool) -> Button:
+	var recipe: Dictionary = n.recipe
+	var lines := [n.name, n.buff]
+	if not recipe.is_empty():
+		lines.append("Unlocks the %s recipe" % recipe.label)
+	lines.append("Unlocked" if open else "Unlocks at %s %d" % [GameData.SKILLS[key].label, int(n.level)])
+	var tip := "\n".join(lines)
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = TREE_NODE
+	b.tooltip_text = tip
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var fill := UIKit.SLOT.lightened(0.08) if state == "hover" else UIKit.SLOT
+		var edge := UIKit.GOLD if open and not recipe.is_empty() else UIKit.OUTLINE
+		b.add_theme_stylebox_override(state, UIKit.slot(fill, edge, 2 if edge == UIKit.GOLD else 1, 4.0))
+	b.pressed.connect(func(): _tree_detail = "  ·  ".join(lines); _render_tree())
+	var box := HBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 6
+	box.offset_right = -6
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 6)
+	b.add_child(box)
+	if not recipe.is_empty():
+		var ic := UIKit.icon(GameData.tool_icon(recipe.id), 32)
+		ic.modulate = Color.WHITE if open else Color(0.45, 0.45, 0.5)
+		box.add_child(ic)
+	elif not open:
+		box.add_child(UIKit.pixel_icon(LOCK, UIKit.MUTED))
+	var text := VBoxContainer.new()
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.add_theme_constant_override("separation", 0)
+	box.add_child(text)
+	text.add_child(UIKit.label("Lv %d" % int(n.level), UIKit.RARE if open else UIKit.MUTED, 16))
+	var sub: String = recipe.label if not recipe.is_empty() else str(n.name).trim_prefix("TEST ")
+	var sl := UIKit.label(sub, Color.WHITE if open else UIKit.MUTED, 11)
+	sl.clip_text = true
+	sl.custom_minimum_size.x = TREE_NODE.x - (52 if not recipe.is_empty() else 34)
+	text.add_child(sl)
+	for c in b.find_children("*", "Control", true, false):
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return b
 
 
 func _skill_row(key: String, s: Dictionary) -> Button:
 	var selected := key == skill
-	var b := _plain_button(func(): skill = key; _detail.erase("stats"); _refresh())
+	var b := _plain_button(func(): skill = key; _open_tree(key))
 	b.custom_minimum_size = Vector2(0, 70 if selected else 52)
 	b.add_theme_stylebox_override("normal", UIKit.slot(UIKit.SLOT, UIKit.GOLD, 2, 6.0) if selected else UIKit.button_box("normal", UIKit.SLOT, 6.0))
 	var box := VBoxContainer.new()

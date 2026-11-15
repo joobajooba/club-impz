@@ -312,7 +312,20 @@ func tool_cost(t: Dictionary) -> Dictionary:
 
 
 func can_craft_tool(t: Dictionary) -> bool:
-	return not t.cost.is_empty() and not owns(t.id) and has_all(tool_cost(t)) and has_room(t.id)
+	return not t.cost.is_empty() and not owns(t.id) and recipe_lock(t) == "" and has_all(tool_cost(t)) and has_room(t.id)
+
+
+## Why the recipe is still locked ("Unlocks at Mining 15"), or "". A pickaxe needs mining level 5 per tier above
+## stone and an axe lumbering level 5 per tier (GameData.recipe_level); nothing is locked while levels aren't built.
+func recipe_lock(t: Dictionary) -> String:
+	var need := GameData.recipe_level(t)
+	if need <= 0:
+		return ""
+	var skill: String = GameData.RECIPE_SKILL[t.kind]
+	var have := GameData.skill_level(skill)
+	if have < 0 or have >= need:
+		return ""
+	return "Unlocks at %s %d" % [GameData.SKILLS[skill].label, need]
 
 
 func craft_tool(t: Dictionary) -> void:
@@ -340,6 +353,21 @@ func sell(id: String, n: int) -> void:
 		return
 	remove(id, n)
 	_set_coins(coins + price * n)
+
+
+## Buys n of an item from the merchant at GameData.buy_price (J00BA, 2026-11-15). False (with a message)
+## if it costs more than the coins held or a new item has no free slot.
+func buy(id: String, n: int) -> bool:
+	var price := GameData.buy_price(id)
+	if n < 1 or price <= 0:
+		return false
+	if coins < price * n:
+		message.emit("Not enough coins")
+		return false
+	if not add(id, n):
+		return false
+	_set_coins(coins - price * n)
+	return true
 
 
 func row_price() -> int:

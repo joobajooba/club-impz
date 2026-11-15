@@ -31,6 +31,7 @@ const CONTROLS := [
 	["Turn the camera (hold and drag)", ["camera_orbit"]],
 	["Zoom in / out", ["camera_zoom_in", "camera_zoom_out"]],
 	["Customize your Imp", ["customize"]],
+	["Teleport menu (tames an animal you look at)", ["teleport"]],
 ]
 const TEST_KEYS := [
 	["Show FPS and position", ["toggle_debug"]],

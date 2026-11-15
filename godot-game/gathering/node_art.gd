@@ -8,7 +8,7 @@ class_name NodeArt
 ## - fishing spots: rings on the water with the fish circling underneath.
 ## Every model stands on y = 0 and faces +Z.
 
-const VEIN_MODEL := "res://models/mining/copper_vein.glb"
+const VEIN_MODEL := "res://assets/models/ores/copper_vein.glb"   # the game's copper vein (the old test vein is removed)
 const TINT := preload("res://gathering/tint.gdshader")
 
 
