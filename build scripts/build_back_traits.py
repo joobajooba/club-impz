@@ -392,7 +392,7 @@ def _light(N):
 STEEL = ['#0f1316', '#1d2328', '#2e363d', '#465058', '#66727b', '#8c98a0', '#b9c3c9', '#e4ebee', '#ffffff']
 EDGE = ['#3a454c', '#6e7c85', '#a6b3ba', '#d6dfe3', '#f4f8f9', '#ffffff']
 WOOD = ['#0d0d0e', '#151516', '#1d1d1f', '#262628', '#303032', '#3b3b3d', '#48484a']   # charcoal (J00BA, 2026-11-15)
-LEATHER = ['#120a07', '#20120b', '#311c11', '#462919', '#5c3822', '#74492d']
+LEATHER = ['#4a4c4f', '#66686b', '#818386', '#9c9ea1', '#b6b8bb', '#cfd1d3']   # light grey wraps (J00BA, 2026-11-15)
 DARK = ['#121314', '#1b1c1e', '#242628', '#2e3033', '#383b3e', '#44474b', '#53575b', '#686c70', '#83878b']   # the blade: dark grey steel (J00BA, 2026-11-15)
 DARK_EDGE = ['#3a3d41', '#4c5055', '#62666b', '#7a7e83', '#93979b', '#a8abaf']
 BRASS = ['#2e1d06', '#55380c', '#806018', '#ab8a30', '#d6b65a', '#f4e08e', '#fff6cc']
@@ -465,7 +465,7 @@ def leather_shader():
         gap = (ph < .08) | (ph > .95)
         rgb = np.where(gap[..., None], ramp(np.full(t.shape, .02), LEATHER), rgb)
         stitch = (np.abs(ph - .5) < .05) & (((v * 4) % 1) < .5)
-        rgb = np.where(stitch[..., None], np.array([196, 172, 130], float) * (.75 + .25 * _light(N))[..., None], rgb)
+        rgb = np.where(stitch[..., None], np.array([52, 54, 58], float) * (.75 + .25 * _light(N))[..., None], rgb)
         return rgb, np.full(t.shape, 255.)
     return shader
 
@@ -512,6 +512,7 @@ def seg_off(t, name, A, B, u0, u1, z0, z1, sh, extra=0):
 def scythe():
     t = Back('back_scythe')
     t.PPU = 8
+    t.HIDE_IN_BODY = False       # every fitting stays a closed ring when the scythe is viewed on its own
     p = Prop(t, (29, 8), 37)
     wood, grip, ring = wood_shader(), leather_shader(), fitting_shader()
     # the snath, butt to socket, with a spiked steel butt cap
