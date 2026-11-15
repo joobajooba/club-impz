@@ -398,5 +398,14 @@ func test_unlock_tools() -> void:
 	sync_tools()
 
 
+## Empties the whole inventory grid: every item and every spare tool. Only the tools equipped on the tool
+## bar are kept (one per kind), so the player can keep gathering with the grid free.
+func test_clear_items() -> void:
+	items.clear()
+	for kind in owned:
+		owned[kind] = [held[kind]]
+	sync_tools()
+
+
 func test_add_coins(n := 1000) -> void:
 	_set_coins(coins + n)

@@ -6,9 +6,9 @@ fragments on the ground, the tier's gem as a small accent and the home biome's e
 Each ore varies in size, stone, the shape of its ore (lumps, nuggets, crystal columns, glass shards,
 jagged spikes), its signature stone detail and its biome extras (game_worlds.md 4.4 / 4.6):
 
-  coal       T1 forest    low wide mound, matte black lumps with a blue sheen, sooty streaks, moss, grass
+  coal       T1 forest    low wide mound, matte black lumps with a dark grey sheen, sooty streaks, moss, grass
   tin        T2 forest    light grey stone, dull silver nuggets, pale speckles, moss, grass
-  iron       T4 mountain  grey brown stone, rusty chunks with bare grey metal, rust stains running down, lichen
+  iron       T4 mountain  grey brown stone, silver steel chunks with bright bare metal, dark stains running down, lichen
   gold       T5 frost     warm grey stone, bright nuggets, glittering flecks, snow cap and drift
   obsidian   T6 mountain  dark basalt columns, glassy black purple shards with bright edges, scorched ash
   titanite   T7 plains    pale stone, tall steel blue crystal columns, dry grass
@@ -46,7 +46,7 @@ STONES = {  # 12 shades, dark -> light
 ORE = {  # ore ramps from the doc table, widened to 8 to 10 shades with hue shifted ends
     "coal":       R("#0e0e14 #14141b #1a1a22 #22232c #2a2c36 #343742 #3e4250 #4a4e5c #5a6070"),
     "tin":        R("#3a3e44 #4a4f56 #5c6268 #6e757c #828990 #969ca3 #aab0b6 #c0c6cb #d6dbe0 #e8ecef"),
-    "iron":       R("#24100b #3e1c14 #56281a #6e3622 #86462c #9c5838 #b06a48 #c47a5a #d49678"),
+    "iron":       R("#1c1f24 #2a2e34 #3a3f46 #4c525a #60676f #767e87 #8e969f #aab1b9 #ccd2d8"),   # silver steel (J00BA, 2026-11-14; was rusty orange)
     "gold":       R("#3e2400 #6b4100 #8c5a06 #ad760e #cc9418 #e6b22a #f5cc48 #ffe27a #fff2b8"),
     "obsidian":   R("#07040c #0d0814 #150e20 #1f162e #2b1f40 #3a2a55 #4c376e #5e4486 #6a4c9c #8a6cc0"),
     "titanite":   R("#121e2e #1e3248 #28425e #345474 #42688a #547ea2 #6896ba #82b0d2 #a8d4f0 #d2ecfa"),
@@ -62,10 +62,10 @@ EXTRA = {
     "grass":   R("#1a3412 #264c18 #33661e #447f26 #5a9a30 #78b440"),
     "dry":     R("#4a3a1a #64502a #806838 #9c8248 #b89e5c #d0b874"),
     "ash":     R("#141214 #1e1a1c #2a2426 #383032 #4a4042"),
-    "rust":    R("#3a160a #5a2410 #7a3416 #98481e #b05e28"),
+    "rust":    R("#26282c #303338 #3b3f45 #474b52 #53585f"),   # iron: dark steel-grey stains (was orange rust)
     "metal":   R("#2c323a #444c56 #606a76 #848e9a #b0b8c2 #dfe4ea"),
     "patina":  R("#163a34 #1f5246 #2c6c58 #3f8a6c #5ca684 #84c2a0"),
-    "sheen":   R("#2a3a5a #3e5480 #5a78aa"),
+    "sheen":   R("#1c1c1e #242426 #2c2c2f"),       # coal: a very dark grey graphite sheen (J00BA, 2026-11-14; was blue)
     "glow_red":  R("#5a0c0c #8c1414 #c42a1a #f05a28 #ff9a4a #ffd08a"),
     "glow_star": R("#c8b080 #f0d890 #fff6c8 #fffbe8"),
     "nebula_void": R("#1c0a30 #2c1048 #3e1660 #561e7c #722a98 #8e3cb4"),
@@ -649,11 +649,11 @@ def build(ore):
             cx, cy, rr = r.uniform(0.2, 0.8), r.uniform(0.2, 0.8), r.uniform(0.15, 0.3)
             v += np.clip(1.0 - np.hypot(U - cx, V - cy) / rr, 0, 1) * r.choice([-0.6, 0.5])
         rgb = ramp_colour("ore", dither(v, w, h))
-        if p == "rusty":                                      # bare polished steel showing through the rust
+        if p == "rusty":                                      # bright polished steel patches on the silver chunks
             mp = np.hypot(U - r.uniform(0.3, 0.7), V - r.uniform(0.2, 0.5)) < 0.3
             mt = t * 5.0
             rgb[mp] = ramp_colour("metal", dither(mt, w, h))[mp]
-        if p == "matte":                                      # coal: a blue-black graphite sheen where it is lit
+        if p == "matte":                                      # coal: a very dark grey graphite sheen where it is lit
             sh = (t > 0.62) & (r.random((h, w)) < 0.5)
             rgb[sh] = ramp_colour("sheen", np.clip((t - 0.62) * 8, 0, 2))[sh]
         if p in ("shiny", "dull", "rusty") and face in ("up", "west", "north"):

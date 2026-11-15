@@ -50,6 +50,30 @@ var fall_z := 1e9
 var _ns_grid := PackedByteArray()
 var _ns_w := 0
 var _ns_h := 0
+## Small round spots where trees and rocks may not grow (the ore veins, resource_landmarks.gd), bucketed on an
+## 8 m grid so a candidate point only checks its own bucket.
+const BLOCK_CELL := 8.0
+var _blockers := {}            # Vector2i -> Array of Vector3(x, z, radius)
+
+
+func add_blockers(points: Array, radius: float) -> void:
+	for p: Vector2 in points:
+		var lo := Vector2i(floori((p.x - radius) / BLOCK_CELL), floori((p.y - radius) / BLOCK_CELL))
+		var hi := Vector2i(floori((p.x + radius) / BLOCK_CELL), floori((p.y + radius) / BLOCK_CELL))
+		for bz in range(lo.y, hi.y + 1):
+			for bx in range(lo.x, hi.x + 1):
+				var k := Vector2i(bx, bz)
+				if not _blockers.has(k):
+					_blockers[k] = []
+				_blockers[k].append(Vector3(p.x, p.y, radius))
+
+
+func _blocked(x: float, z: float) -> bool:
+	var list: Array = _blockers.get(Vector2i(floori(x / BLOCK_CELL), floori(z / BLOCK_CELL)), [])
+	for b: Vector3 in list:
+		if (x - b.x) * (x - b.x) + (z - b.y) * (z - b.y) < b.z * b.z:
+			return true
+	return false
 
 
 func setup(w: Node, d: WorldData) -> void:
@@ -357,6 +381,7 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 				var dl := Vector2(x, z).distance_to(near_lm)
 				if dl > near_r or dl < near_min: continue
 			elif _in_clearing(clears, x, z): continue
+			if trees and not _blockers.is_empty() and _blocked(x, z): continue
 			var alias: String = aliases[0][0]
 			var acc := 0.0
 			for a in aliases:
