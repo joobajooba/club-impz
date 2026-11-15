@@ -95,10 +95,48 @@ vec3 tri_sample(float layer, float jit) {
 	return texture(layers, vec3(wpos.xy / 4.0, layer)).rgb;
 }
 
-void fragment() {
-	if (near_cut > 0.0 && in_detail(wpos.xz) && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
-		discard;
+// ordered dither on the texel grid: a 4x4 Bayer matrix ((i + 0.5) / 16), shifted per 4x4 block by a slow hash so
+// the pattern never shows its repeat (J00BA, 2026-11-15: gradual texture blending)
+float bayer4(vec2 p) {
+	const float B[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+	vec2 shift = floor(vec2(hash(floor(p / 4.0) * 0.173), hash(floor(p / 4.0) * 0.311 + 5.7)) * 4.0);
+	ivec2 q = ivec2(mod(p + shift, 4.0));
+	return (B[q.y * 4 + q.x] + 0.5) / 16.0;
+}
+
+float lum(vec3 c) {
+	return dot(c, vec3(0.3, 0.59, 0.11));
+}
+
+// two-layer blending: every rule is a soft weight; a full weight replaces both layers, a partial one collapses the
+// result so far to its dominant layer (under) and blends the rule's layer over it with that weight
+void apply_rule(inout int under, inout int over, inout float w_over, int lay, float w) {
+	if (lay < 0 || w <= 0.0) {
+		return;
 	}
+	if (w >= 0.999) {
+		under = lay;
+		over = lay;
+		w_over = 0.0;
+		return;
+	}
+	under = (w_over >= 0.5) ? over : under;
+	over = lay;
+	w_over = w;
+}
+
+// the height blend: each texel's height is its brightness, so the incoming layer's tall bright texels (blade tips,
+// stones) poke through first; pixel steps keep the art crisp, a little colour mix mid-band makes the fade gradual
+vec3 height_blend(vec3 cu, vec3 co, float w, float dither) {
+	float ha = lum(cu) + (1.0 - w);
+	float hb = lum(co) + w;
+	float pick = clamp((hb - ha) / 0.35 + 0.5 + (dither - 0.5) * 0.6, 0.0, 1.0);
+	vec3 col = mix(cu, co, step(0.5, pick));
+	return mix(col, mix(cu, co, w), 0.35 * (1.0 - abs(2.0 * w - 1.0)));
+}
+
+// the hub keeps the original texture picking (J00BA, 2026-11-15: the gradual blending is for the Wilds only)
+vec3 hub_ground(out bool steep_out) {
 	vec2 px = floor(wpos.xz * px_per_m);       // the texel grid
 	// clumped dither: mostly smooth noise a few texels across with a little per texel grain, so layer and biome
 	// edges are ragged lines of whole texel clumps rather than scattered single pixels
@@ -154,14 +192,107 @@ void fragment() {
 		}
 	}
 	vec3 col = tri_sample(float(steep ? steep_layer : layer), d2);
+	steep_out = steep;
+	return col;
+}
+
+void fragment() {
+	if (near_cut > 0.0 && in_detail(wpos.xz) && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
+		discard;
+	}
+	vec3 col;
+	float steep_w;
+	if (fixed_biome == 0) {
+		bool hub_steep;
+		col = hub_ground(hub_steep);
+		steep_w = hub_steep ? 1.0 : 0.0;
+	} else {
+		vec2 px = floor(wpos.xz * px_per_m);       // the texel grid
+		float bayer = bayer4(px);
+		int b = fixed_biome;
+		float border = 0.0;
+		if (b < 0) {
+			float band = sdepth / band_depth;
+			int i = clamp(int(floor(band)), 0, 4);
+			float f = sdepth - float(i) * band_depth;
+			int j = i;
+			float w = 0.0;
+			if (f > band_depth - blend_half && i < 4) {
+				j = i + 1;
+				w = (f - (band_depth - blend_half)) / (2.0 * blend_half);
+			} else if (f < blend_half && i > 0) {
+				j = i - 1;
+				w = (blend_half - f) / (2.0 * blend_half);
+			}
+			w = smoothstep(0.0, 1.0, w);
+			b = 1 + i;
+			if (w > 0.0) {
+				// pick the biome per texel with the same Bayer + height trick, on each biome's base layer
+				float bi = float(r_base[1 + i]);
+				float bj = float(r_base[1 + j]);
+				float ha = lum(tri_sample(bi, bayer)) + (1.0 - w);
+				float hb = lum(tri_sample(bj, bayer)) + w;
+				if (clamp((hb - ha) / 0.35 + 0.5 + (bayer - 0.5) * 0.6, 0.0, 1.0) >= 0.5) {
+					b = 1 + j;
+				}
+			}
+			border = 1.0 - smoothstep(0.0, 60.0, min(f, band_depth - f));
+		}
+		vec2 muv = (wpos.xz - mask_rect.xy) / mask_rect.zw;
+		bool outside = muv.x < 0.0 || muv.y < 0.0 || muv.x > 1.0 || muv.y > 1.0;
+		vec4 m = outside ? vec4(0.0) : texture(mask_map, muv);
+		float slope = 1.0 - clamp(wnrm.y, 0.0, 1.0);
+		float n = (vnoise(wpos.xz / 14.0) * 0.65 + vnoise(wpos.xz / 5.0) * 0.35 + vnoise(wpos.xz / 2.0) * 0.15) / 1.15;
+
+		// every rule is a soft weight over a few metres, in the old order and with the old override meaning
+		int under = r_base[b];
+		int over = under;
+		float w_over = 0.0;
+		if (r_patch[b] >= 0) {
+			float thr = patch_threshold[b];
+			apply_rule(under, over, w_over, r_patch[b], smoothstep(thr - 0.12, thr + 0.12, n + border * border_patch[b] * 0.55));
+		}
+		apply_rule(under, over, w_over, r_litter[b], smoothstep(0.25, 0.75, m.a));
+		apply_rule(under, over, w_over, r_wet[b], smoothstep(0.1, 0.7, m.g));
+		if (r_high[b] >= 0) {
+			apply_rule(under, over, w_over, r_high[b], smoothstep(high_y[b] - 3.0, high_y[b] + 3.0, wpos.y + (n - 0.5) * 3.0));
+		}
+		float special_w = r_special[b] >= 0 ? smoothstep(0.1, 0.7, m.b) : 0.0;
+		apply_rule(under, over, w_over, r_special[b], special_w);
+		apply_rule(under, over, w_over, r_mid[b], smoothstep(mid_slope[b] - 0.06, mid_slope[b] + 0.06, slope));
+		steep_w = smoothstep(steep_slope[b] - 0.05, steep_slope[b] + 0.05, slope);
+		float path_w = r_path[b] >= 0 ? smoothstep(0.15, 0.6, m.r) : 0.0;
+		apply_rule(under, over, w_over, r_path[b], path_w);
+		steep_w *= 1.0 - path_w;                    // the path clears the steep layer where it wins
+		int steep_layer = (special_w > 0.5 && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
+		if (outside) {
+			// the skirt: rock cliffs, a snow (or grass) cap up high
+			if (r_cap[b] >= 0) {
+				apply_rule(under, over, w_over, r_cap[b], smoothstep(cap_y[b] - 3.0, cap_y[b] + 3.0, wpos.y + n * 6.0));
+			}
+			if (r_cliff[b] >= 0) {
+				steep_layer = r_cliff[b];
+				steep_w = smoothstep(0.19, 0.29, slope);
+			}
+		}
+		apply_rule(under, over, w_over, steep_layer, steep_w);
+
+		// at most two layer samples: one for flat single-layer ground, two only inside a transition
+		col = tri_sample(float(under), bayer);
+		if (w_over > 0.0 && over != under) {
+			vec3 co = tri_sample(float(over), bayer);
+			col = w_over >= 0.999 ? co : height_blend(col, co, w_over, bayer);
+		}
+	}
 	// gentle large scale light and dark so wide fields and cliff faces don't look flat or visibly tiled;
 	// cliffs also get faint horizontal strata
 	col *= 0.92 + 0.16 * (vnoise(wpos.xz / 23.0) * 0.6 + vnoise(wpos.xz / 7.0) * 0.4);
-	if (steep) {
+	if (steep_w > 0.0) {
 		// cliff faces: broad bedding layers a few metres tall and big light and dark sweeps across the face,
 		// in world space, so the smooth stone never shows its 4 m repeat
 		float along = (wpos.x + wpos.z);
-		col *= 0.9 + 0.16 * vnoise(vec2(along / 14.0, wpos.y / 3.5)) + 0.08 * vnoise(vec2(along / 40.0, wpos.y / 16.0));
+		float strata = 0.9 + 0.16 * vnoise(vec2(along / 14.0, wpos.y / 3.5)) + 0.08 * vnoise(vec2(along / 40.0, wpos.y / 16.0));
+		col *= mix(1.0, strata, steep_w);
 	}
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
