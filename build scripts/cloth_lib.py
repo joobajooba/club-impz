@@ -95,6 +95,7 @@ def bitmap(rows, cx, top, palette):
 
 class Cloth:
     KIND, FOLDER = 'clothing', OUT
+    PPU = 1          # texels per unit; a prop can paint finer (the Scythe, J00BA 2026-11-15). UVs stay in texels.
 
     def __init__(self, name):
         self.name, self.cubes, self.subs = name, [], {}
@@ -158,7 +159,7 @@ class Cloth:
             R = M[:3, :3]
             for fn in c['faces']:
                 a, b = FACE_SIZE[fn]
-                w, h = c['size'][a], c['size'][b]
+                w, h = c['size'][a] * self.PPU, c['size'][b] * self.PPU
                 tl, tr, bl, n = face_corners(c['fr'], c['to'])[fn]
                 tl, tr, bl = [np.array(p, float) for p in (tl, tr, bl)]
                 yy, xx = np.mgrid[0:h, 0:w]
@@ -174,7 +175,7 @@ class Cloth:
                     for sb in (-.45, 0, .45):
                         hidden &= self._inside(P + N * .06 + sa * du + sb * dv, i)
                 al = np.where(hidden, 0, al)
-                keys = np.round(P * 2).astype(int)
+                keys = np.round(P * 2 * self.PPU).astype(int)
                 wn = R @ np.array(n, float)
                 # a duplicate only if truly coplanar: same direction and same plane
                 nk = tuple(np.round(wn, 2)) + (round(float(P[0, 0] @ wn), 2),)
@@ -190,7 +191,7 @@ class Cloth:
                     continue
                 reqs.append((i, fn, w, h, rgb, al))
         reqs.sort(key=lambda q: (-q[3], -q[2]))
-        for size in (64, 128, 256, 512, 1024):
+        for size in (64, 128, 256, 512, 1024, 2048):
             atlas = np.zeros((size, size, 4), np.uint8)
             x = y = shelf = 0
             uvs, ok = {}, True

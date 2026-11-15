@@ -359,19 +359,227 @@ def samurai():
     t.save()
 
 
+# ---- the Scythe in HD (J00BA, 2026-11-15): painted at 8 texels per unit, a curved forged blade with a polished
+# edge and a spine, a wooden snath with leather grips and two nibs, steel fittings with brass rivets.
+def _hash(ix, iy, seed):
+    h = (ix * 374761393 + iy * 668265263 + seed * 2147483647) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
+    return (h & 0xffff) / 65535.0
+
+
+def vnoise(x, y, seed=0):
+    """Smooth value noise, about one feature per unit of x and y."""
+    ix, iy = np.floor(x).astype(np.int64), np.floor(y).astype(np.int64)
+    fx, fy = x - ix, y - iy
+    fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+    a, b = _hash(ix, iy, seed), _hash(ix + 1, iy, seed)
+    c, d = _hash(ix, iy + 1, seed), _hash(ix + 1, iy + 1, seed)
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+
+
+def _across(n):
+    """(u from -1 to 1 across the face, v along the cube's length in units). Across is depth on the side faces."""
+    p, fr, to = LOC['p'], np.array(LOC['fr']), np.array(LOC['to'])
+    k = 2 if abs(n[0]) > .5 else 0
+    c, hw = (fr[k] + to[k]) / 2, (to[k] - fr[k]) / 2
+    return (p[..., k] - c) / hw, p[..., 1]
+
+
+def _light(N):
+    return N @ L_KEY
+
+
+STEEL = ['#0f1316', '#1d2328', '#2e363d', '#465058', '#66727b', '#8c98a0', '#b9c3c9', '#e4ebee', '#ffffff']
+EDGE = ['#3a454c', '#6e7c85', '#a6b3ba', '#d6dfe3', '#f4f8f9', '#ffffff']
+WOOD = ['#1a0e08', '#2a160c', '#3d2212', '#55311a', '#6e4224', '#875632', '#a06c42']
+LEATHER = ['#120a07', '#20120b', '#311c11', '#462919', '#5c3822', '#74492d']
+BRASS = ['#2e1d06', '#55380c', '#806018', '#ab8a30', '#d6b65a', '#f4e08e', '#fff6cc']
+
+
+def steel_shader(edge_side=None, spine=False, etched=False, cube_tone=0.):
+    """Forged steel: brushed streaks along the length, a broad specular band, a bright polished edge with a fine
+    grind line on one side (edge_side -1: local -x), small scratches, an optional etched vine."""
+    def shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        big = abs(n[2]) > .5                                    # the blade's flat faces
+        lit = _light(N)
+        t = .46 + .16 * lit + cube_tone
+        t = t + .10 * (vnoise(u * 2.5 + 40, v * .15, 3) - .5)    # long soft tone drift
+        t = t + .07 * (vnoise(u * 9 + 7, v * .6, 5) - .5)        # brushed streaks along the length
+        t = t + .04 * (vnoise(u * 30, v * 2.5, 9) - .5)
+        if big:
+            t = t + .22 * np.exp(-((u - .15 * np.sin(v * .21)) / .32) ** 2)   # anisotropic highlight band
+            if spine:
+                t = t - .10 * np.clip(u, 0, 1)
+        else:
+            t = t + .18 * np.exp(-(u / .45) ** 2) - .08          # a rounded bevel catching the light
+        sx, sy = P[..., 0], P[..., 1]
+        scratch = np.abs(((sx * .83 + sy * .55 + vnoise(sx, sy, 21) * 2) % 7.3) - 3.6) < .05
+        t = t + np.where(scratch & (vnoise(sx * .4, sy * .4, 17) > .62), .14, 0)
+        rgb = ramp(np.clip(t, 0, 1), STEEL)
+        if big and edge_side is not None:
+            d = (1 + u * -edge_side) * (np.array(LOC['to'])[0] - np.array(LOC['fr'])[0]) / 2   # units from the edge
+            e = d < 1.4
+            grind = (d >= 1.4) & (d < 1.6)
+            te = .55 + .3 * np.clip(1 - d / 1.4, 0, 1) + .15 * lit + .12 * (vnoise(v * .8, d * 6, 31) - .5)
+            rgb = np.where(e[..., None], ramp(np.clip(te, 0, 1), EDGE), rgb)
+            rgb = np.where(grind[..., None], ramp(np.full(t.shape, .18), STEEL), rgb)
+        if big and etched:
+            line = .35 * np.sin(v * .9)
+            leaf = (np.abs(((v * .9) % (2 * np.pi)) - np.pi / 2) < .35) & (np.abs(u - line - .18) < .12)
+            m = (np.abs(u - line) < .07) | leaf
+            rgb = np.where(m[..., None], rgb * .62, rgb)
+        return rgb, np.full(t.shape, 255.)
+    return shader
+
+
+def wood_shader():
+    """The snath: a round-looking dark walnut pole. Wandering grain, pores, a few small knots, lit down the middle."""
+    def shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        round_ = np.sqrt(np.clip(1 - u * u, 0, 1))
+        t = .30 + .30 * round_ + .12 * _light(N) - (.12 if abs(n[1]) > .5 else 0)
+        g = u * 3 + .9 * vnoise(u * 2, v * .08, 41) + .25 * np.sin(v * .05)
+        t = t + .13 * np.sin(g * 6.3) * (vnoise(u * 3, v * .3, 43) * .6 + .4)
+        t = t - .10 * (vnoise(u * 20, v * 1.4, 47) > .78)
+        for kv in (24.0, 47.0, 76.0):
+            r = np.hypot((v - kv) * .55, (u - .2) * 2.2)
+            t = t - .22 * np.clip(1 - r, 0, 1) + .08 * np.sin(r * 9) * np.clip(1.6 - r, 0, 1)
+        return ramp(np.clip(t, 0, 1), WOOD), np.full(t.shape, 255.)
+    return shader
+
+
+def leather_shader():
+    """A leather grip wrapped on a slant: each turn rounded and lit, a dark gap between turns, pale stitches."""
+    def shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        ph = (v * .9 + u * .55) % 1.6 / 1.6
+        t = .22 + .22 * np.sin(ph * np.pi) + .12 * _light(N) + .2 * np.sqrt(np.clip(1 - u * u, 0, 1))
+        t = t + .06 * (vnoise(u * 14, v * 6, 51) - .5)
+        rgb = ramp(np.clip(t, 0, 1), LEATHER)
+        gap = (ph < .08) | (ph > .95)
+        rgb = np.where(gap[..., None], ramp(np.full(t.shape, .02), LEATHER), rgb)
+        stitch = (np.abs(ph - .5) < .05) & (((v * 4) % 1) < .5)
+        rgb = np.where(stitch[..., None], np.array([196, 172, 130], float) * (.75 + .25 * _light(N))[..., None], rgb)
+        return rgb, np.full(t.shape, 255.)
+    return shader
+
+
+def fitting_shader(rivets=0, band=True):
+    """Steel rings and caps: polished, a rolled lip at each end, brass rivets down the face."""
+    def shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        fr, to = np.array(LOC['fr']), np.array(LOC['to'])
+        tv = (v - fr[1]) / max(to[1] - fr[1], 1e-6)
+        t = .40 + .30 * np.sqrt(np.clip(1 - u * u, 0, 1)) + .16 * _light(N)
+        t = t + .05 * (vnoise(u * 12, v * 4, 61) - .5)
+        if band:
+            t = t + np.where((tv < .14) | (tv > .86), .14, 0) - np.where((np.abs(tv - .14) < .04) | (np.abs(tv - .86) < .04), .25, 0)
+        rgb = ramp(np.clip(t, 0, 1), STEEL)
+        if rivets and abs(n[1]) < .5:
+            hw = (to[2] - fr[2]) / 2 if abs(n[0]) > .5 else (to[0] - fr[0]) / 2
+            for k in range(rivets):
+                cv = fr[1] + (to[1] - fr[1]) * (k + .5) / rivets
+                r = np.hypot(u * hw, v - cv) / .6
+                tr = .4 + .5 * np.clip(1 - np.hypot(u * hw + .25, v - cv - .2) / .6, 0, 1)
+                rgb = np.where((r < 1)[..., None], ramp(np.clip(tr, 0, 1), BRASS), rgb)
+                rgb = np.where(((r >= 1) & (r < 1.3))[..., None], rgb * .45, rgb)
+        return rgb, np.full(t.shape, 255.)
+    return shader
+
+
+def arc_points(n=11):
+    """The blade's back curve: a cubic from the heel at the socket, out to the left and down to the tip."""
+    P0, P1, P2, P3 = np.array([-24., 86.]), np.array([-50., 94.]), np.array([-62., 64.]), np.array([-44., 36.])
+    ts = np.linspace(0, 1, n + 1)
+    return [tuple(float(c) for c in ((1 - s) ** 3) * P0 + 3 * ((1 - s) ** 2) * s * P1 + 3 * (1 - s) * s * s * P2 + s ** 3 * P3) for s in ts]
+
+
+def seg_off(t, name, A, B, u0, u1, z0, z1, sh, extra=0):
+    """A cube from A toward B (local +y toward B) spanning u0..u1 across it; `extra` units past B close the joints."""
+    dx, dy = B[0] - A[0], B[1] - A[1]
+    L = max(1, round(math.hypot(dx, dy) + extra))
+    th = round(math.degrees(math.atan2(-dx, dy)), 2)
+    t.box(name, (A[0] + u0, A[1], z0), (A[0] + u1, A[1] + L, z1), sh, rot=(0, 0, th), origin=(A[0], A[1], (z0 + z1) / 2))
+
+
 def scythe():
     t = Back('back_scythe')
-    gun = ['#1b2224', '#2c3639', '#41524f', '#4d5f5c', '#5c6f6c']
-    shaft = S(gun, base=.5, gain=.34)
+    t.PPU = 8
     p = Prop(t, (29, 8), 37)
-    p.b('butt', -2.5, -4, 2.5, 2, -20, -16, S(gun, base=.4, gain=.3))
-    p.b('shaft', -1.5, 2, 1.5, 96, -19, -16, shaft)
-    p.b('socket', -3, 88, 3, 96, -20, -16, S(gun, base=.62, gain=.3))
-    edge = lambda P, N: LOC['p'][..., 0] < LOC['fr'][0] + 1.2
-    bl = S(['#21292b', '#2c3639', '#434847', '#4d4f4f', '#5a5e5e'], base=.55, gain=.3, decals=[(edge, ['#5f6a6e', '#798488'], .8)])
-    arc = [(-26, 83), (-39, 83), (-47, 73), (-50, 60), (-47, 49), (-43, 43)]
-    for i, w in enumerate((7, 6, 5, 4, 2)):
-        seg(t, f'blade_{i + 1}', arc[i], arc[i + 1], w, -19, -17, bl)
+    wood, grip, ring = wood_shader(), leather_shader(), fitting_shader()
+    # the snath, butt to socket, with a spiked steel butt cap
+    p.b('butt_spike', -1, -10, 1, -7, -18.5, -16.5, steel_shader())
+    p.b('butt_cap', -2.5, -7, 2.5, 1, -20, -15, fitting_shader(rivets=1))
+    p.b('shaft', -1.5, 1, 1.5, 88, -19, -16, wood)
+    for i, v0 in enumerate((12, 52)):                           # two leather grips, a steel ring at each end
+        p.b(f'grip_{i + 1}', -2, v0, 2, v0 + 14, -19.5, -15.5, grip)
+        p.b(f'grip_ring_{i + 1}a', -2.5, v0 - 2, 2.5, v0, -20, -15, ring)
+        p.b(f'grip_ring_{i + 1}b', -2.5, v0 + 14, 2.5, v0 + 16, -20, -15, ring)
+    for i, v0 in enumerate((32, 70)):                           # the nibs: short pegs standing off the snath
+        p.b(f'nib_{i + 1}', -1, v0, 1, v0 + 2, -26, -19, wood)
+        p.b(f'nib_cap_{i + 1}', -1.5, v0 - .5, 1.5, v0 + 2.5, -28, -26, ring)
+    p.b('ferrule_mid', -2.5, 42, 2.5, 45, -20, -15, ring)
+    p.b('socket', -3, 84, 3, 94, -20.5, -14.5, fitting_shader(rivets=2))
+    p.b('socket_cap', -2, 94, 2, 97, -20, -15, fitting_shader(band=False))
+    # the blade: one plate cut to a smooth crescent (outline painted at 8 texels per unit, so the curve is clean),
+    # shaded along the curve: dark forged steel at the spine, a broad sheen, a polished inner edge and a grind line.
+    # A raised 3D spine runs along its back.
+    n = 18
+    pts = arc_points(n)
+    dense = np.array(arc_points(400))
+    seglen = np.hypot(*np.diff(dense, axis=0).T)
+    arclen = np.concatenate([[0], np.cumsum(seglen)])
+    width = lambda s: 2 + 10 * (1 - s) ** .8 - 2 * s ** 4            # 12 units at the heel to a point at the tip
+    d_ = np.diff(dense, axis=0)
+    d_ = np.vstack([d_, d_[-1:]])
+    d_ /= np.linalg.norm(d_, axis=1, keepdims=True)
+    inward = np.stack([-d_[:, 1], d_[:, 0]], 1)                      # local -x of a cube along the curve: the inner side
+    ss = np.linspace(0, 1, len(dense))
+    inner = dense + inward * np.array([width(s) for s in ss])[:, None]
+    poly = np.vstack([dense, inner[::-1]])
+
+    def blade_shader(P, N, cube):
+        xy = P[..., :2]
+        flat = xy.reshape(-1, 2)
+        best_d = np.full(len(flat), 1e9)
+        best_i = np.zeros(len(flat), int)
+        for k in range(0, len(dense), 4):                             # nearest point on the spine curve
+            dd = np.hypot(flat[:, 0] - dense[k, 0], flat[:, 1] - dense[k, 1])
+            m = dd < best_d
+            best_d[m], best_i[m] = dd[m], k
+        sh = xy.shape[:-1]
+        s = (best_i / (len(dense) - 1)).reshape(sh)
+        dist = best_d.reshape(sh)
+        v = arclen[best_i].reshape(sh)
+        w = width(s)
+        a = np.clip(dist / np.maximum(w, .5), 0, 1)                   # 0 at the spine, 1 at the edge
+        lit = _light(N)
+        band = a - .45 - .08 * np.sin(v * .12)
+        t = .32 + .12 * lit + .42 * np.exp(-(band / .2) ** 2) - .12 * np.clip(.25 - a, 0, 1) * 4
+        t = t + .22 * np.exp(-((band - .17) / .03) ** 2)                # a sharp reflected line beside the sheen
+        t = t + .08 * (vnoise(a * 3 + 40, v * .12, 3) - .5) + .06 * (vnoise(a * 14, v * .9, 5) - .5) + .03 * (vnoise(a * 40, v * 3, 9) - .5)
+        sx, sy = P[..., 0], P[..., 1]
+        scratch = np.abs(((sx * .83 + sy * .55 + vnoise(sx, sy, 21) * 2) % 7.3) - 3.6) < .05
+        t = t + np.where(scratch & (vnoise(sx * .4, sy * .4, 17) > .6), .12, 0)
+        rgb = ramp(np.clip(t, 0, 1), STEEL)
+        to_edge = w - dist
+        e = to_edge < 1.6
+        te = .5 + .35 * np.clip(1 - to_edge / 1.6, 0, 1) + .12 * lit + .1 * (vnoise(v * .7, to_edge * 5, 31) - .5)
+        rgb = np.where(e[..., None], ramp(np.clip(te, 0, 1), EDGE), rgb)
+        rgb = np.where(((to_edge >= 1.6) & (to_edge < 1.85))[..., None], ramp(np.full(t.shape, .16), STEEL), rgb)
+        keep = inpoly(sx, sy, [tuple(q) for q in poly])
+        return rgb, np.where(keep, 255., 0.)
+
+    x0, y0 = np.floor(poly.min(0)).astype(int)
+    x1, y1 = np.ceil(poly.max(0)).astype(int)
+    t.box('blade', (x0, y0, -18.5), (x1, y1, -17.5), blade_shader, faces=('north', 'south'), solid=False)
+    for i in range(n - 3):
+        seg_off(t, f'spine_{i + 1}', pts[i], pts[i + 1], 0, 1, -19.5, -16.5, steel_shader(cube_tone=-.08), extra=1)
     press_to_back(t)
     t.save()
 
