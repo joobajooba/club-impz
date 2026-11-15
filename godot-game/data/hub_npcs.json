@@ -1,0 +1,13 @@
+{
+ "_doc": "NPCs standing at the hub's stores (J00BA, 2026-11-14). spot = a name in hub_town.json npc_spots; offset = metres in the spot's own frame (x right, z back); turn = extra yaw in degrees (the Imp NPCs face +z in Blockbench, the others -z; the crafter spots face their station, so the crafters turn round to face the street and stand aside); scale: the Imp NPCs are Imp-body files (about 101 units = 1.15 m), the others are 18 units = the Imp's height. Placed by scripts/world/hub_town.gd.",
+ "npcs": [
+  {"spot": "vendor_potion_brewer", "model": "res://assets/models/npcs/potion_seller_imp_npc.glb", "scale": 0.1822, "turn": 180, "offset": [0, 0]},
+  {"spot": "crafter_sawyer", "model": "res://assets/models/npcs/lumberjack_imp_npc.glb", "scale": 0.1822, "turn": 0, "offset": [-2.4, 1.2]},
+  {"spot": "crafter_smelter", "model": "res://assets/models/npcs/miner_imp_npc.glb", "scale": 0.1822, "turn": 0, "offset": [-2.4, 0.8]},
+  {"spot": "vendor_apothecary", "model": "res://assets/models/npcs/hooded_merchant_npc.glb", "scale": 1.0222, "turn": 0, "offset": [0, 0]},
+  {"spot": "vendor_tailor", "model": "res://assets/models/npcs/princess_merchant_npc.glb", "scale": 1.0222, "turn": 0, "offset": [0, 0]},
+  {"spot": "castle_herald", "model": "res://assets/models/npcs/skeleton_king_npc.glb", "scale": 1.0222, "turn": 0, "offset": [0, 0]},
+  {"spot": "castle_herald", "model": "res://assets/models/npcs/jester_imp_npc.glb", "scale": 0.1822, "turn": 180, "offset": [2.6, 0.4]},
+  {"spot": "castle_herald", "model": "res://assets/models/npcs/princess_imp_npc.glb", "scale": 0.1822, "turn": 180, "offset": [-2.6, 0.4]}
+ ]
+}
