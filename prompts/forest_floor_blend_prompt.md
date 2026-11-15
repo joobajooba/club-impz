@@ -2,6 +2,8 @@
 
 Repo: `joobajooba/club-impz`. Follow the GitHub workflow in the root `CLAUDE.md`: branch `staging/forest-floor-blend` from the default branch and open a draft PR. Keep the change small.
 
+This is the short, forest-only version of `terrain_texture_blending_prompt.md`, written against the current shader (64 px per metre). Run one or the other, not both. If that one has already been merged, stop and say so.
+
 ## Problem
 
 `docs/images/forest_floor_blend/forest_floor_seam.png`: in the forest, the green `forest_grass` meets the `forest_leaf_litter` in a hard, almost straight line. It should fade from one to the other over a few metres.
