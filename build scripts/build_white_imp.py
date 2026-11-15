@@ -20,8 +20,9 @@ fx, fy = min(u[0], u[2]), min(u[1], u[3])
 import numpy as np
 box = (slice(fy + 22, fy + 26), slice(fx + 10, fx + 20))       # the mouth area, below the eyes and nose
 gL = src[box][..., :3].astype(float).mean(-1)
-k = np.clip((136.0 - gL) / 38.0, 0, 1) ** 0.8                   # 1 at the mouth's darkest pixel, 0 on the skin around it
-mouth = np.array([104, 108, 126], float)                        # cool blue-grey, well below the skin, never black
+k = np.clip((134.0 - gL) / 26.0, 0, 1) ** 0.6                   # 1 at the mouth's darkest pixel, 0 on the skin around it
+mouth = np.array([58, 60, 78], float)                           # deep cool charcoal: reads at play distance, never black
+# J00BA (2026-11-15): the mouth must be clearly visible, so the grey from 2026-11-14 is now a deep charcoal with a firmer edge
 patch = im[box][..., :3].astype(float)
 im[box[0], box[1], :3] = np.clip(patch * (1 - k[..., None]) + mouth * k[..., None], 0, 255).round().astype(np.uint8)
 fn = 'white_imp'
