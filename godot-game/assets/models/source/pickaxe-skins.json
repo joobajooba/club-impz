@@ -1,0 +1,133 @@
+{
+  "_comment": "Pickaxe skins. Each part of models/pickaxe.glb (by material name, without the Pick_ prefix) gets a colour (sRGB hex), metalness and roughness, or visible: false to hide it. Colours match the sprite in sprites/pickaxes/. Steel to Stellarite are TEST placeholders: their sprites are recoloured from the iron sprite.",
+  "stone": {
+    "label": "Stone",
+    "sprite": "sprites/pickaxes/stone_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#7f786c", "metalness": 0.0, "roughness": 0.95 },
+      "Collar":  { "color": "#8a6c3a", "metalness": 0.0, "roughness": 0.9 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#76644a", "metalness": 0.0, "roughness": 0.85 },
+      "Grip":    { "color": "#5a4a35", "metalness": 0.0, "roughness": 0.95 },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "bronze": {
+    "label": "Bronze",
+    "sprite": "sprites/pickaxes/bronze_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#c0703c", "metalness": 0.85, "roughness": 0.35 },
+      "Collar":  { "color": "#9a5230", "metalness": 0.8, "roughness": 0.45 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#8a6640", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "color": "#cf8a52", "metalness": 0.85, "roughness": 0.35 },
+      "Pommel":  { "color": "#cf8a52", "metalness": 0.85, "roughness": 0.35 }
+    }
+  },
+  "iron": {
+    "label": "Iron",
+    "sprite": "sprites/pickaxes/iron_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#a7abb4", "metalness": 0.9, "roughness": 0.3 },
+      "Collar":  { "color": "#6b6f78", "metalness": 0.8, "roughness": 0.45 },
+      "Rivets":  { "color": "#c3c7cf", "metalness": 0.9, "roughness": 0.3 },
+      "Handle":  { "color": "#5e4130", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "steel": {
+    "label": "Steel",
+    "sprite": "sprites/pickaxes/steel_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#9aa3b0", "metalness": 0.85, "roughness": 0.3 },
+      "Collar":  { "color": "#5d6571", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#5e4130", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "gold": {
+    "label": "Gold",
+    "sprite": "sprites/pickaxes/gold_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#e9a92f", "metalness": 0.95, "roughness": 0.25 },
+      "Collar":  { "color": "#b47a1d", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#5e4130", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "obsidian": {
+    "label": "Obsidian",
+    "sprite": "sprites/pickaxes/obsidian_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#2a2232", "metalness": 0.3, "roughness": 0.08 },
+      "Collar":  { "color": "#4a3d5a", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#4a2a17", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "mithril": {
+    "label": "Mithril",
+    "sprite": "sprites/pickaxes/mithril_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#cdbdf0", "metalness": 0.85, "roughness": 0.2 },
+      "Collar":  { "color": "#8f7fb3", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#4a2a17", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "adamantite": {
+    "label": "Adamantite",
+    "sprite": "sprites/pickaxes/adamantite_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#7c2b31", "metalness": 0.8, "roughness": 0.3 },
+      "Collar":  { "color": "#4b1d22", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#4a2a17", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "visible": false },
+      "Pommel":  { "visible": false }
+    }
+  },
+  "void": {
+    "label": "Void",
+    "sprite": "sprites/pickaxes/void_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#40276b", "metalness": 0.4, "roughness": 0.3 },
+      "Collar":  { "color": "#24163f", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#2f2149", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "color": "#6a45b5", "metalness": 0.8, "roughness": 0.35 },
+      "Pommel":  { "color": "#6a45b5", "metalness": 0.8, "roughness": 0.35 }
+    }
+  },
+  "stellarite": {
+    "label": "Stellarite",
+    "sprite": "sprites/pickaxes/stellarite_pickaxe.png",
+    "parts": {
+      "Head":    { "color": "#4f8fd8", "metalness": 0.6, "roughness": 0.2 },
+      "Collar":  { "color": "#2d4f8a", "metalness": 0.8, "roughness": 0.4 },
+      "Rivets":  { "visible": false },
+      "Handle":  { "color": "#3c6aa0", "metalness": 0.0, "roughness": 0.8 },
+      "Grip":    { "visible": false },
+      "Bands":   { "color": "#f2d466", "metalness": 0.8, "roughness": 0.35 },
+      "Pommel":  { "color": "#f2d466", "metalness": 0.8, "roughness": 0.35 }
+    }
+  }
+}

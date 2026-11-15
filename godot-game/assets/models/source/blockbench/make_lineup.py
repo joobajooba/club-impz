@@ -1,0 +1,63 @@
+"""Puts several Blockbench models side by side in one file, each with its own texture.
+python make_lineup.py <out.bbmodel> <spacing> <per_row> <model.bbmodel>..."""
+import json
+import sys
+import uuid
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parents[5] / "build scripts"))
+from fix_texture_bleed import pad_file  # noqa: E402  2 px gaps + 1 px own-colour border (uv_padding.py)
+
+
+def main():
+    out, spacing, per_row, paths = sys.argv[1], float(sys.argv[2]), int(sys.argv[3]), sys.argv[4:]
+    doc = None
+    elements, groups, outliner, textures = [], [], [], []
+    rows = (len(paths) + per_row - 1) // per_row
+    models = [json.load(open(p, encoding="utf-8")) for p in paths]
+    # rows sit one model height apart (the tallest model, plus a gap), so tall models never overlap
+    tall = max(max(max(e["from"][1], e["to"][1]) for e in m["elements"] if e.get("export", True)) -
+               min(min(e["from"][1], e["to"][1]) for e in m["elements"] if e.get("export", True)) for m in models)
+    row_h = max(spacing * 1.1, tall + spacing * 0.4)
+    for k, (p, m) in enumerate(zip(paths, models)):
+        doc = doc or m
+        dx = (k % per_row - (per_row - 1) / 2) * spacing
+        dy = (rows - 1 - k // per_row) * row_h
+        ti = len(textures)
+        for t in m["textures"]:
+            t = dict(t, uuid=str(uuid.uuid4()), id=str(len(textures)))
+            textures.append(t)
+        ids = []
+        for e in m["elements"]:
+            if not e.get("export", True):
+                continue
+            e = json.loads(json.dumps(e))
+            e["uuid"] = str(uuid.uuid4())
+            e["from"] = [e["from"][0] + dx, e["from"][1] + dy, e["from"][2]]
+            e["to"] = [e["to"][0] + dx, e["to"][1] + dy, e["to"][2]]
+            e["origin"] = [e["origin"][0] + dx, e["origin"][1] + dy, e["origin"][2]]
+            for f in e.get("faces", {}).values():
+                if f.get("texture") is not None:
+                    f["texture"] += ti
+            elements.append(e)
+            ids.append(e["uuid"])
+        name = p.replace("\\", "/").split("/")[-1][:-8]
+        g = {"name": name, "uuid": str(uuid.uuid4()), "export": True, "locked": False, "scope": 0, "selected": False,
+             "visibility": True, "origin": [dx, dy, 0], "rotation": [0, 0, 0], "color": 0, "children": [],
+             "reset": False, "shade": True, "mirror_uv": False, "autouv": 0, "isOpen": False}
+        groups.append(g)
+        outliner.append({"uuid": g["uuid"], "isOpen": False, "children": ids})
+    res = max(t.get("uv_width", 64) for t in textures)
+    lineup = {"meta": {"format_version": "5.0", "model_format": "free", "box_uv": False},
+              "name": out.replace("\\", "/").split("/")[-1][:-8], "model_identifier": "", "visible_box": [1, 1, 0],
+              "variable_placeholders": "", "variable_placeholder_buttons": [], "timeline_setups": [],
+              "unhandled_root_fields": {}, "resolution": {"width": res, "height": res}, "elements": elements,
+              "groups": groups, "outliner": outliner, "textures": textures}
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump(lineup, fh)
+    pad_file(out)
+    print(out, len(paths), "models,", len(elements), "boxes")
+
+
+if __name__ == "__main__":
+    main()
