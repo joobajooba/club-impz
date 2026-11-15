@@ -34,5 +34,6 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | The hub world and the resource world | [game_worlds.md](game_worlds.md) |
 | How every resource is gathered: tools, tiers, XP | [resource_gathering.md](resource_gathering.md) |
 | How a short request becomes a Blockbench build spec | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) |
+| How the menus and HUD should look and work, studied from other games | [game_menus.md](game_menus.md) |
 
 How to run the game, and the GitHub workflow, stay at the repo root: [README.md](../README.md) and [CLAUDE.md](../CLAUDE.md).
