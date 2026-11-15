@@ -1,8 +1,8 @@
 {
-  "_doc": "Seeded scatter rules (docs/world_build_notes.md). density = word from game_worlds.md 4.10 (spacing in biomes.json) or spacing = metres. meshes = [alias, weight]. avoid: path / wet / water / steep. recolor = [dark, light] gradient map on leaf cards. petal = colour for red petals (placeholder flowers). trunk_tint / tint multiply. patch = noise mask {freq, threshold}. require: mask channel minimum (wet, special, litter). height = [min, max] metres. near = [landmark, radius, min radius (optional)]. exclude = {landmark: radius} overrides exclusion_radius for this rule. kind tree gets a trunk collider and the tree view distance.",
+  "_doc": "Seeded scatter rules (docs/world_build_notes.md). density = word from game_worlds.md 4.10 (spacing in biomes.json) or spacing = metres. meshes = [alias, weight]. avoid: path / wet / water / steep. recolor = [dark, light] gradient map on leaf cards. petal = colour for red petals (placeholder flowers). trunk_tint / tint multiply. patch = noise mask {freq, threshold}. require: mask channel minimum (wet, special, litter). height = [min, max] metres. near = [landmark, radius, min radius (optional)]. exclude = {landmark: radius} overrides exclusion_radius for this rule. kind tree gets a trunk collider and the tree view distance. at = [[x, z, yaw]] fixed spots instead of a grid (the one worldbark). stump_tint = colour of a borrowed stump.",
   "exclusion_radius": {"castle": 22, "town_square": 4, "market": 4, "crafting_area": 4, "garden_east": 0, "garden_west": 0, "portal": 6, "spawn_point": 3,
     "portal_clearing": 16, "stone_ruin": 12, "waterfall": 4, "standing_stones": 23, "obsidian_cave": 16, "frozen_waterfall": 14,
-    "ice_spire": 14, "stone_arch": 22, "pillar_ring": 23, "giant_titanwood": 14, "hollow_tree": 20, "dreadstone_pit": 18, "sunken_ruins": 16},
+    "ice_spire": 14, "stone_arch": 22, "pillar_ring": 23, "giant_titanwood": 14, "worldbark_grove": 32, "hollow_tree": 20, "dreadstone_pit": 18, "sunken_ruins": 16},
   "meshes": {
     "carpet": "res://assets/models/foliage/forest_grass_carpet.glb",
     "tuft_s": "res://assets/models/foliage/forest_grass_tuft_small.glb",
@@ -19,6 +19,11 @@
     "maple": "res://assets/models/trees/maple_tree.glb",
     "maple_2": "res://assets/models/trees/maple_tree_2.glb",
     "maple_3": "res://assets/models/trees/maple_tree_3.glb",
+    "hickory": "res://assets/models/trees/hickory_tree.glb",
+    "titanwood": "res://assets/models/trees/titanwood_tree.glb",
+    "runewood": "res://assets/models/trees/runewood_tree.glb",
+    "gembark": "res://assets/models/trees/gembark_tree.glb",
+    "worldbark": "res://assets/models/trees/worldbark_tree.glb",
     "rock_forest_s": "res://assets/models/rocks/forest_rock_small.glb",
     "rock_forest_m": "res://assets/models/rocks/forest_rock_medium.glb",
     "rock_forest_l": "res://assets/models/rocks/forest_rock_large.glb",
@@ -55,7 +60,7 @@
     {"id": "waterfall_bank_plants", "spacing": 1.2, "biomes": ["forest"], "meshes": [["bush_s", 2], ["bush_l", 1], ["tuft_l", 2]], "scale": [0.8, 1.15], "recolor": ["#2c4a14", "#8aa83a"], "near": ["waterfall", 14, 4], "avoid": ["water", "path"]},
     {"id": "forest_reeds_placeholder", "spacing": 1.7, "biomes": ["forest"], "density": "dense", "meshes": [["tuft_l", 1]], "scale": [1.3, 1.6], "recolor": ["#2c4a14", "#8aa83a"], "require": {"wet": 0.25}, "avoid": ["path", "water"]},
     {"id": "forest_tree", "kind": "tree", "biomes": ["forest"], "spacing": 11.0, "meshes": [["pine", 3], ["oak", 2], ["birch", 2]], "scale": [0.85, 1.2], "avoid": ["path", "wet", "steep", "water"], "patch_mask": "litter", "clear": 20.0},
-    {"id": "worldbark_tree_placeholder", "kind": "tree", "biomes": ["forest"], "spacing": 34.0, "meshes": [["oak", 1]], "scale": [3.6, 4.4], "trunk_tint": "#b0a090", "recolor": ["#0e3a22", "#4aa060"], "near": ["worldbark_grove", 46.0], "avoid": ["path", "water"], "view": 900},
+    {"id": "worldbark_tree", "kind": "tree", "biomes": ["forest"], "at": [[150, 160, 20]], "meshes": [["worldbark", 1]], "scale": [2.0, 2.0], "collider": {"worldbark": [2.3, 40]}, "view": 2000},
 
     {"id": "mountain_grass_tuft", "spacing": 1.06, "biomes": ["mountain"], "density": "carpet", "meshes": [["carpet", 2], ["tuft_s", 2], ["tuft_m", 1]], "scale": [0.9, 1.1], "recolor": ["#3a4614", "#9aa44c"], "height": [-10, 66], "avoid": ["path", "steep", "wet"]},
     {"id": "heather_bush_placeholder", "spacing": 1.7, "biomes": ["mountain"], "density": "dense", "meshes": [["bush_s", 1]], "scale": [0.5, 0.7], "recolor": ["#3a1e4a", "#b878d0"], "height": [20, 70], "patch": {"freq": 0.03, "threshold": 0.3}, "avoid": ["path", "steep"]},
@@ -64,6 +69,7 @@
     {"id": "copper_autumn_bush_placeholder", "spacing": 1.7, "biomes": ["mountain"], "density": "dense", "meshes": [["bush_l", 1]], "scale": [0.8, 1.0], "recolor": ["#5e2622", "#d08a5c"], "height": [-10, 36], "patch": {"freq": 0.04, "threshold": 0.4}, "avoid": ["path", "steep"]},
     {"id": "maple_tree", "kind": "tree", "biomes": ["mountain"], "spacing": 13.0, "meshes": [["maple", 1], ["maple_2", 1], ["maple_3", 1]], "scale": [0.9, 1.15], "height": [-10, 42], "avoid": ["path", "steep", "water"], "clear": 18.0},
     {"id": "hickory_tree_placeholder", "kind": "tree", "biomes": ["mountain", "frost"], "spacing": 18.0, "meshes": [["oak", 1]], "scale": [0.9, 1.1], "trunk_tint": "#a8a4a0", "recolor": ["#2a2e10", "#7a8a3a"], "height": [36, 80], "avoid": ["path", "steep"], "clear": 18.0},
+    {"id": "hickory_tree", "kind": "tree", "seed": 41, "biomes": ["mountain", "frost"], "spacing": 18.0, "meshes": [["hickory", 1]], "scale": [0.9, 1.1], "stump_tint": "#a8a49c", "height": [36, 80], "avoid": ["path", "steep"], "clear": 18.0, "collider": {"hickory": [0.38, 5]}},
 
     {"id": "frost_grass_tuft", "spacing": 1.7, "biomes": ["frost"], "density": "dense", "meshes": [["tuft_l", 1], ["tuft_m", 1]], "scale": [0.8, 1.0], "recolor": ["#83a772", "#e4f4ec"], "patch": {"freq": 0.03, "threshold": 0.2}, "avoid": ["path", "wet", "steep"]},
     {"id": "tundra_grass_tuft", "spacing": 4.24, "biomes": ["frost"], "density": "scattered", "meshes": [["tuft_m", 1]], "scale": [0.9, 1.1], "recolor": ["#7a3e18", "#e8a050"], "avoid": ["path", "wet"]},
@@ -78,7 +84,9 @@
     {"id": "dry_bush_placeholder", "spacing": 4.24, "biomes": ["plains"], "density": "scattered", "meshes": [["bush_s", 1]], "scale": [0.7, 0.9], "recolor": ["#4a3e30", "#b8a890"], "avoid": ["path", "steep"]},
     {"id": "plains_wildflower", "spacing": 5.37, "biomes": ["plains"], "density": "scattered", "meshes": [["rose", 1]], "scale": [0.8, 0.95], "petal": "#f8e050", "avoid": ["path"]},
     {"id": "titanwood_tree_placeholder", "kind": "tree", "biomes": ["plains", "swamp"], "spacing": 46.0, "meshes": [["pine", 1]], "scale": [2.1, 2.6], "trunk_tint": "#8a929c", "recolor": ["#0e2e2e", "#3a8a80"], "avoid": ["path", "steep", "water"], "clear": 30.0, "view": 600},
+    {"id": "titanwood_tree", "kind": "tree", "seed": 43, "biomes": ["plains", "swamp"], "spacing": 46.0, "meshes": [["titanwood", 1]], "scale": [1.6, 2.0], "stump_tint": "#9aa2ac", "avoid": ["path", "steep", "water"], "clear": 30.0, "view": 600, "collider": {"titanwood": [0.5, 10]}},
     {"id": "gembark_tree_placeholder", "kind": "tree", "biomes": ["plains"], "spacing": 15.0, "meshes": [["maple", 1], ["maple_3", 1]], "scale": [1.0, 1.2], "trunk_tint": "#5a4a5a", "recolor": ["#0e4a2a", "#5ae09a"], "near": ["gembark_grove", 40.0], "avoid": ["path"]},
+    {"id": "gembark_tree", "kind": "tree", "seed": 47, "biomes": ["plains"], "spacing": 15.0, "meshes": [["gembark", 1]], "scale": [0.85, 1.05], "stump_tint": "#5a4a60", "near": ["gembark_grove", 40.0], "avoid": ["path"], "collider": {"gembark": [0.38, 6]}},
 
     {"id": "swamp_grass_tuft", "spacing": 1.06, "biomes": ["swamp"], "density": "carpet", "meshes": [["tuft_m", 2], ["tuft_s", 1]], "scale": [0.9, 1.1], "recolor": ["#1a2012", "#70783c"], "height": [2.3, 99], "avoid": ["path", "water"]},
     {"id": "swamp_reeds_placeholder", "spacing": 1.7, "biomes": ["swamp"], "density": "dense", "meshes": [["tuft_l", 1]], "scale": [1.4, 1.8], "recolor": ["#2a3a14", "#8a9a40"], "height": [1.5, 2.6], "avoid": ["path"]},
@@ -86,6 +94,7 @@
     {"id": "swamp_big_leaf_placeholder", "spacing": 4.24, "biomes": ["swamp"], "density": "scattered", "meshes": [["bush_l", 1]], "scale": [0.8, 1.0], "recolor": ["#1e2a14", "#5a6a2a"], "height": [2.4, 99], "avoid": ["path"]},
     {"id": "giant_mushroom_placeholder", "spacing": 15.56, "biomes": ["swamp"], "density": "rare", "meshes": [["mush_brown", 1], ["mush_red", 1]], "scale": [3.0, 4.2], "tint": "#9a80a8", "avoid": ["path", "water"], "view": 200},
     {"id": "runewood_tree_placeholder", "kind": "tree", "biomes": ["swamp"], "spacing": 15.0, "meshes": [["oak", 1]], "scale": [0.95, 1.2], "trunk_tint": "#4a3a4a", "recolor": ["#1a2418", "#6a6a8a"], "height": [2.2, 99], "avoid": ["path", "water"], "clear": 16.0},
+    {"id": "runewood_tree", "kind": "tree", "seed": 53, "biomes": ["swamp"], "spacing": 15.0, "meshes": [["runewood", 1]], "scale": [1.0, 1.2], "stump_tint": "#5a4a66", "height": [2.2, 99], "avoid": ["path", "water"], "clear": 16.0, "collider": {"runewood": [0.4, 5]}},
 
     {"id": "forest_rock", "kind": "tree", "still": true, "biomes": ["forest"], "spacing": 17.0, "meshes": [["rock_forest_s", 5], ["rock_forest_m", 3], ["rock_forest_l", 1]], "scale": [1.3, 2.0], "avoid": ["path", "water"], "patch": {"freq": 0.035, "threshold": 0.15}, "clear": 8.0, "seed": 31, "collider": {"rock_forest_m": [0.21, 0.4], "rock_forest_l": [0.4, 0.58]}},
     {"id": "mountain_rock", "kind": "tree", "still": true, "biomes": ["mountain"], "spacing": 11.0, "meshes": [["rock_mountain_s", 4], ["rock_mountain_m", 3], ["rock_mountain_l", 2]], "scale": [1.3, 2.0], "avoid": ["path", "water"], "patch": {"freq": 0.035, "threshold": 0.05}, "clear": 8.0, "seed": 31, "collider": {"rock_mountain_m": [0.22, 0.4], "rock_mountain_l": [0.39, 0.72]}},

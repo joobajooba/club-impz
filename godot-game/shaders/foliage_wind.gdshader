@@ -16,6 +16,7 @@ uniform vec4 recolor_light : source_color = vec4(0.6, 0.8, 0.3, 1.0);
 uniform float petal = 0.0;             // 1 = recolour strongly red pixels (rose petals) to petal_color
 uniform vec4 petal_color : source_color = vec4(0.4, 0.5, 0.9, 1.0);
 uniform vec4 tint : source_color = vec4(1.0);
+uniform float glow = 0.0;              // > 0: the surface glows (the model's `_glow` parts, scatter.gd)
 
 void vertex() {
 	vec3 origin = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -45,6 +46,7 @@ void fragment() {
 		col = mix(col, petal_color.rgb * (0.45 + l * 0.75), petal);
 	}
 	ALBEDO = col * tint.rgb;
+	EMISSION = col * glow;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

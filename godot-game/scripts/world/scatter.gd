@@ -14,6 +14,7 @@ extends Node3D
 ##   its trunk collider is switched off and its stump stands in its place until it grows back.
 
 const FOLIAGE_CELL := 64.0
+const GLOW_ENERGY := 0.6       # emission of the trees' `_glow` parts
 const TREE_CELL := 128.0
 
 var world: Node
@@ -301,6 +302,16 @@ func _place(rule: Dictionary, ri: int, c: Vector2i, cell: float) -> Dictionary:
 	var out := {}
 	for a in aliases:
 		out[a[0]] = []
+	if rule.has("at"):                 # fixed spots [x, z, yaw degrees], not a grid (the one world tree)
+		for p in rule["at"]:
+			var px := float(p[0])
+			var pz := float(p[1])
+			if px < c.x * cell or px >= c.x * cell + cell or pz < c.y * cell or pz >= c.y * cell + cell:
+				continue
+			var ps := float(rule.get("scale", [1.0, 1.0])[0])
+			var basis_at := Basis(Vector3.UP, deg_to_rad(float(p[2]) if p.size() > 2 else 0.0)).scaled(Vector3.ONE * ps)
+			out[aliases[0][0]].append(Transform3D(basis_at, Vector3(px, data.height(px, pz) - 0.06, pz)))
+		return out
 	if not _cell_biomes(c, cell).has(rule["biomes"]):
 		return out                     # none of the rule's biomes reach this cell: every spot would fail
 	var sc: Array = rule.get("scale", [1.0, 1.0])
@@ -524,25 +535,38 @@ func _base_mesh(alias: String) -> Dictionary:
 	var inst := scene.instantiate() as Node3D
 	var found := inst.find_children("*", "MeshInstance3D", true, false)
 	var mesh: Mesh = (found[0] as MeshInstance3D).mesh
-	if found.size() > 1:                       # one mesh per cube (the rocks): merge them, one surface per material
-		var tools := {}                        # material -> SurfaceTool
+	var glow_surfaces: Array[int] = []
+	if found.size() > 1:                       # one mesh per cube (rocks, trees): merge them, one surface per material
+		var tools := {}                        # [material, glow] -> SurfaceTool; parts named *_glow get their own surface
 		for m: MeshInstance3D in found:
 			var xf := _local_xf(inst, m)
+			var glow := _is_glow(m, inst)
 			for si in m.mesh.get_surface_count():
 				var mat := m.get_active_material(si)
-				if not tools.has(mat):
-					tools[mat] = SurfaceTool.new()
-					(tools[mat] as SurfaceTool).begin(Mesh.PRIMITIVE_TRIANGLES)
-					(tools[mat] as SurfaceTool).set_material(mat)
-				(tools[mat] as SurfaceTool).append_from(m.mesh, si, xf)
+				var k := [mat, glow]
+				if not tools.has(k):
+					tools[k] = SurfaceTool.new()
+					(tools[k] as SurfaceTool).begin(Mesh.PRIMITIVE_TRIANGLES)
+					(tools[k] as SurfaceTool).set_material(mat)
+				(tools[k] as SurfaceTool).append_from(m.mesh, si, xf)
 		var merged := ArrayMesh.new()
-		for mat in tools:
-			merged = (tools[mat] as SurfaceTool).commit(merged)
+		for k in tools:
+			merged = (tools[k] as SurfaceTool).commit(merged)
+			if k[1]:
+				glow_surfaces.append(merged.get_surface_count() - 1)
 		mesh = merged
-	var info := {"mesh": mesh, "height": mesh.get_aabb().end.y}
+	var info := {"mesh": mesh, "height": mesh.get_aabb().end.y, "glow": glow_surfaces}
 	inst.free()
 	base_meshes[alias] = info
 	return info
+
+
+static func _is_glow(n: Node, root: Node) -> bool:
+	while n != null and n != root:
+		if String(n.name).ends_with("_glow"):
+			return true
+		n = n.get_parent()
+	return false
 
 
 static func _local_xf(root: Node3D, n: Node3D) -> Transform3D:
@@ -606,6 +630,8 @@ func _prepared_mesh(rule: Dictionary, alias: String) -> Mesh:
 			mat.set_shader_parameter("tint", Color(rule["tint"]))
 		if rule.has("trunk_tint") and not card:
 			mat.set_shader_parameter("tint", Color(rule["trunk_tint"]))
+		if i in info.get("glow", []):           # runes, gem crystals, sap cracks, gold leaves
+			mat.set_shader_parameter("glow", GLOW_ENERGY)
 		mesh.surface_set_material(i, mat)
 	prepared[key] = mesh
 	return mesh
@@ -696,11 +722,13 @@ func _add_stump(key: String, rule: Dictionary, alias: String, xf: Transform3D) -
 	var stump: Node3D = (stump_scenes[stump_name] as PackedScene).instantiate()
 	stump.name = "stump_" + key.replace("|", "_")
 	add_child(stump)
-	stump.global_transform = xf
-	# placeholder trees (a recoloured oak, pine or maple) get their trunk colour on the stump too
+	stump.global_transform = xf.scaled_local(Vector3.ONE * float(Lumbering.MESHES.get(alias, {}).get("stump_scale", 1.0)))
+	# trees borrowing another tree's stump get their own bark colour on it
 	var tint := Color.WHITE
 	if rule.has("trunk_tint") and not Lumbering.OWN_STUMP.has(tree):
 		tint = Color(rule["trunk_tint"])
+	if rule.has("stump_tint"):
+		tint = Color(rule["stump_tint"])
 	for mi: MeshInstance3D in stump.find_children("*", "MeshInstance3D", true, false):
 		if tint == Color.WHITE:
 			continue
