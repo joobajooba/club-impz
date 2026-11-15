@@ -56,6 +56,7 @@ Every Markdown file in the repo, most important first. The order is **Proposed**
 | 23 | [game_worlds.md](game_worlds.md) | J00BA's hub world and resource world, biomes and art style. | J00BA's |
 | 24 | [resource_gathering.md](resource_gathering.md) | J00BA's gathering rules, tools, tiers, XP. | J00BA's |
 | 25 | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) | J00BA's guide for turning a short request into a Blockbench build. | J00BA's |
+| 26 | [xp_system.md](xp_system.md) | XP sources, skill levels, the player level curve, prestige, how XP is shown and kept safe. Written in J00BA's doc style, on top of `game_direction.md`. | Draft |
 
 **Why this order:** decisions and the overview come first because every other doc must agree with them. The two roadmaps come next because they say what to work on. Then come the system docs, in the order they will be worked on. The art direction sits after Resources because every 3D asset already being built (veins, furnace, anvil, cave) must follow it. Resources is first because every other system makes or spends resources. The two `CLAUDE.md` files and the README tell people and Claude how to work in the repo, but they don't define the game. Reports are history.
 
