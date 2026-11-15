@@ -95,6 +95,7 @@ def bitmap(rows, cx, top, palette):
 
 class Cloth:
     KIND, FOLDER = 'clothing', OUT
+    HIDE_IN_BODY = True   # cut texels buried in the torso; a prop seen on its own in Blockbench keeps them (the Scythe)
     PPU = 1          # texels per unit; a prop can paint finer (the Scythe, J00BA 2026-11-15). UVs stay in texels.
 
     def __init__(self, name):
@@ -137,7 +138,7 @@ class Cloth:
     def _inside(self, pts, skip):
         pts4 = np.concatenate([pts, np.ones(pts.shape[:-1] + (1,))], -1)
         inside = np.zeros(pts.shape[:-1], bool)
-        for M, e in (() if self.cubes[skip].get('sub') else BODY_SOLIDS):
+        for M, e in (() if self.cubes[skip].get('sub') or not self.HIDE_IN_BODY else BODY_SOLIDS):
             lp = (pts4 @ np.linalg.inv(M).T)[..., :3]
             fr, to = np.array(e['from']), np.array(e['to'])
             c, h = (fr + to) / 2, (to - fr) / 2 * np.abs(np.array(e.get('stretch') or [1, 1, 1]))
