@@ -87,6 +87,12 @@
    "height": 3.625,
    "animated": false
   },
+  "stall_merchant": {
+   "path": "res://assets/models/buildings/stalls/market_stall_merchant.glb",
+   "glow": true,
+   "height": 4.875,
+   "animated": false
+  },
   "furnace": {
    "path": "res://assets/models/props/stations/furnace.glb",
    "glow": true,
@@ -1763,14 +1769,6 @@
   ],
   [
    "wall_lantern",
-   74.05,
-   1.6,
-   -15.0,
-   90,
-   1.6
-  ],
-  [
-   "wall_lantern",
    -74.05,
    1.6,
    -15.0,
@@ -2418,12 +2416,12 @@
    1.0
   ],
   [
-   "blossom_tree_planter",
-   69.5,
+   "stall_merchant",
+   72.75,
    0.0,
    -16.0,
-   0,
-   1.6
+   90.0,
+   1.0
   ],
   [
    "urn_planter",
@@ -6781,13 +6779,13 @@
    180.0
   ],
   [
-   69.5,
-   2.31,
-   -16.0,
-   2.8,
-   4.619,
-   2.8,
-   0
+   72.75,
+   2.438,
+   -16.032,
+   5.625,
+   4.875,
+   2.0,
+   90.0
   ],
   [
    66.5,
@@ -10917,6 +10915,16 @@
    "role": "market vendor (pie seller)"
   },
   {
+   "name": "vendor_merchant",
+   "pos": [
+    72.65,
+    0.0,
+    -16.0
+   ],
+   "yaw": 90.0,
+   "role": "market vendor (merchant)"
+  },
+  {
    "name": "crafter_smelter",
    "pos": [
     -61.0,
@@ -12703,10 +12711,10 @@
    -29.86
   ],
   [
-   67.8,
-   -17.7,
-   71.2,
-   -14.3
+   70.67,
+   -19.14,
+   74.24,
+   -12.92
   ],
   [
    65.75,

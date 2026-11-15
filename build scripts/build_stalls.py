@@ -10,6 +10,9 @@ with folds, patterns and hard alpha edges), 2 px per unit, Imp 18 tall, front = 
                        emblem, shelves of glowing potions, bubbling cauldron, crystal ball, herb bundles, mushrooms
   market_stall_cloth   grand cloth merchant: teal / gold peaked tent on a deck, flag poles, bunting, tied curtains,
                        folded fabric stacks, bolts, rolled rugs, hanging fabrics, a dress form
+  market_stall_merchant the merchant's stall at the end of Market Street: walnut and cream plaster booth, red clay
+                       tile roof, a cross gable with a round coin sign, three-part indigo / cream awning; it buys
+                       ore, ingots, gems, hides, logs and herbs, and sells bags, energy refills, hilts and cosmetics
 Usage: py build_stalls.py [name ...]"""
 import os, sys, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -626,7 +629,337 @@ def market_stall_cloth():
     return H
 
 
-BUILDERS = {f.__name__: f for f in (market_stall_fruit, market_stall_bakery, market_stall_potion, market_stall_cloth)}
+# ==================================================================== 5. the merchant's stall (the market's focal piece)
+def market_stall_merchant():
+    """The merchant's stall at the east end of Market Street (J00BA, 2026-11-15; prompts/merchant_stall_blockbench_prompt.md):
+    walnut and cream plaster timber booth on a cobble plinth, red clay tile roof with a front cross gable holding a round
+    coin sign, a three-part indigo and cream awning, three bays. Customer's left (+x) bay_buy shows what the merchant buys
+    (ore, ingots, gems, hides, logs, herbs, leather, seeds, trophies), the centre bay_coin is the merchant's desk (scale,
+    coins, ledger) with room behind it for the merchant NPC, and the customer's right (-x) bay_sell shows what the
+    merchant sells (bags, energy refills, wood hilts, cosmetics), as in docs/02-resources.md D-073 to D-077."""
+    from stall_lib import DIMS
+    A, B = R["awn_indigo"], R["canvas"]
+    mats = stall_mats(post="walnut", plank="oak", top="walnut", trim="gold",
+              trim_kind="carved", extra={
+                  "plinth": {"kind": "cobble", "ramp": R["cobble"], "side": (80, 8), "top": (80, 64), "no_lit2": True},
+                  "roof": {"kind": "shingle", "ramp": R["tile_red"], "side": (96, 40), "top": (96, 48), "under": (96, 48),
+                           "no_lit2": True, "extra": {"style": "clay_curved"}},
+                  "wall": {"kind": "plaster", "ramp": R["plaster"], "side": (64, 24), "top": (16, 16), "no_lit2": True},
+                  "plain": flat_mat("plaster", (72, 48)),
+                  "cloth_a": flat_mat("awn_indigo"),
+                  "moss": flat_mat("moss", (24, 8)),
+              })
+    del mats["stone"]                                            # the post bases use the plinth's cobble instead
+    H = Stall("market_stall_merchant", 3505, mats)
+    g = {k: H.group(k, [0, 0, 0]) for k in ("booth", "roofs", "awning", "counter", "bay_buy", "bay_coin", "bay_sell", "sign",
+                                            "details")}
+    bo, ro, aw, cn, bb, bc, bs, sg, dt = (g[k] for k in ("booth", "roofs", "awning", "counter", "bay_buy", "bay_coin", "bay_sell",
+                                                          "sign", "details"))
+    FACES6 = ("north", "east", "south", "west", "up", "down")
+
+    def panel(name, grp, frm, to, painted, plain=()):
+        """A cream plaster panel set between timbers: painted faces darken toward the frame; `plain` faces get the
+        back swatch; every other face is pressed against a timber and hidden."""
+        frm = [float(v) for v in frm]; to = [float(v) for v in to]
+        fs = {f: None for f in FACES6}
+        for f, cat in painted.items():
+            a, b = DIMS[f]; w, h = px(to[a] - frm[a]), px(to[b] - frm[b])
+            fs[f] = F(H.rect(f"panel_{cat}_{w}x{h}", w, h, lambda W, Hh, c=cat: H.P.panel(R["plaster"], W, Hh, c)))
+        for f in plain:
+            a, b = DIMS[f]; fs[f] = H.crop("plain_shade", px(to[a] - frm[a]), px(to[b] - frm[b]))
+        return H.m.cube(name, grp, frm, to, fs)
+
+    def form_item(name, grp, frm, to, rm, base=3.4, hl=False, hide=("down",), rot=(0, 0, 0), origin=None, tag=None):
+        return H.item(name, grp, frm, to, tag or f"form_{rm}_{base}", lambda W, Hh, c: H.P.form(R[rm], W, Hh, c, base, hl=hl),
+                      hide=hide, rot=rot, origin=origin)
+
+    def rod(name, grp, p, q, mat="iron", wdt=0.5):
+        """A thin bar from p to q (both (x, y, z) with the same x): a box along -z rotated about x."""
+        dy, dz = q[1] - p[1], q[2] - p[2]
+        L = h2(math.hypot(dy, dz)); ang = math.degrees(math.atan2(dy, -dz))
+        H.box(name, grp, [p[0] - wdt / 2, p[1] - wdt / 2, p[2] - L], [p[0] + wdt / 2, p[1] + wdt / 2, p[2]], mat, (), f"rod_{name}",
+              rot=(ang, 0, 0), origin=list(p))
+
+    # ---------------------------------------------------------------- booth: plinth, timber frame, plaster panels
+    for k, (x1, x2) in enumerate(((-39, -13), (-13, 13), (13, 39))):
+        H.box(f"plinth_{k + 1}", bo, [x1, 0, -14], [x2, 2, 16], "plinth", ("down",), f"plinth{k}", place="ground")
+    H.box("plinth_step", bo, [-20, 0, -16], [20, 1, -14], "plinth", ("down", "south"), "pstep", place="ground")
+    # back wall: three walnut posts, a sill, a mid rail at y 24, a top beam; plaster panels 0.5 back between them
+    back = {"south": "plain"}
+    H.box("back_sill", bo, [-37, 2, 12], [37, 4, 16], "top", ("down",), "bsill", over=back)
+    for s, (x1, x2) in (("right", (-37, -34)), ("centre", (-1.5, 1.5)), ("left", (34, 37))):
+        H.box(f"back_post_{s}", bo, [x1, 4, 12], [x2, 42, 16], "post", ("down", "up"), f"bp{s}", over=back)
+    for s, (x1, x2) in (("right", (-34, -1.5)), ("left", (1.5, 34))):
+        H.box(f"back_rail_{s}", bo, [x1, 23, 12], [x2, 25, 16], "top", (), f"br{s}", over=back)
+        for r_, (y1, y2) in (("low", (4, 23)), ("high", (25, 42))):
+            panel(f"back_panel_{s}_{r_}", bo, [x1, y1, 12.5], [x2, y2, 16], {"north": "lit"}, plain=("south",))
+    H.box("back_beam", bo, [-37, 42, 12], [37, 46, 16], "top", (), "bbeam", over=back)
+    # side walls (x 35..37 and -37..-35, z -4..12): a front corner post, sill, rail, top beam, panels, an arched window
+    for s, sx in (("left", 1), ("right", -1)):
+        out_lo, out_hi = (34.5, 37.5) if sx > 0 else (-37.5, -34.5)
+        outer, inner = ("east", "west") if sx > 0 else ("west", "east")
+        H.box(f"side_post_{s}", bo, [out_lo, 2, -4.5], [out_hi, 46, -1.5], "post", ("down",), f"sp{s}")
+        H.box(f"side_sill_{s}", bo, [out_lo, 2, -1.5], [out_hi, 4, 12], "top", ("down",), f"ss{s}")
+        H.box(f"side_rail_{s}", bo, [out_lo + 0.25, 23, -1.5], [out_hi - 0.25, 25, 12], "top", (), f"sr{s}")
+        H.box(f"side_beam_{s}", bo, [out_lo, 42, -1.5], [out_hi, 46, 12], "top", (), f"sb{s}")
+        pl_lo, pl_hi = (35, 37) if sx > 0 else (-37, -35)
+        for r_, (y1, y2) in (("low", (4, 23)), ("high", (25, 42))):
+            panel(f"side_panel_{s}_{r_}", bo, [pl_lo, y1, -1.5], [pl_hi, y2, 12], {outer: "lit", inner: "shade"})
+        H.window(f"side_window_{s}", bo, outer, 37 * sx, 5.25, 28, 6, 10, frame_ramp=R["paint_cream"], style="leaded",
+                 arch=True, sill="trim", lintel="trim", shutters="awn_indigo", glow=True)
+    # four front posts on stone bases with gold carved capitals: they split the front into three bays
+    for s, x in (("right_outer", -36), ("right_inner", -13), ("left_inner", 13), ("left_outer", 36)):
+        H.box(f"front_post_{s}", bo, [x - 1.5, 2, -12], [x + 1.5, 44, -9], "post", ("down",), f"fp{s}")
+        H.box(f"front_post_{s}_base", bo, [x - 2, 2, -12.5], [x + 2, 4, -8.5], "plinth", ("down",), "fpb")
+        H.box(f"front_post_{s}_capital", bo, [x - 2, 40, -12.5], [x + 2, 41.5, -8.5], "trim", (), "fpc")
+    H.box("front_beam", bo, [-38, 42, -12.5], [38, 46, -8.5], "top", (), "fbeam")
+    H.box("front_beam_band", bo, [-38, 43, -13], [38, 45, -12.5], "trim", ("south", "down"), "fband")
+
+    # ---------------------------------------------------------------- roofs: red clay tiles, a front cross gable, the crest
+    prof = [(0, 2)] + [(2.5, 2.5)] * 6
+    H.roof("roof_main", ro, -40, 40, -12.5, 16, 46, prof, "roof", "post", axis="x", eave=3, ridge=("gold", 3, 1.5),
+           finials=("gold", 4))
+    for e in H.m.elements:                                       # the back slope against the town wall: the plain swatch
+        if e["name"].startswith("roof_main_layer") and e["faces"]["south"].get("_spec"):
+            w, h = px(e["to"][0] - e["from"][0]), px(e["to"][1] - e["from"][1])
+            e["faces"]["south"]["_spec"] = H.crop("plain_shade", w, h)
+    H.box("roof_moss_patch_1", ro, [28, 48, -15.5], [34, 48.5, -13], "moss", ("down",), "rmoss")         # moss on two
+    H.box("roof_moss_patch_2", ro, [29, 50.5, -13], [32.5, 51, -10.5], "moss", ("down",), "rmoss")       # steps near one eave
+    gprof = [(0, 3)] + [(2, 3)] * 7
+    top = H.roof("roof_gable", ro, -14, 14, -15.5, 2, 46, gprof, "roof", "wall", axis="z", eave=1.5, ridge=("gold", 2, 1.5),
+                 crest=("gold", 4))
+    H.box("crest_finial", ro, [-0.5, top, -16.25], [0.5, top + 4.5, -15.25], "gold", ("down",), "cfin")
+    ck = H.rect("crest_coin", 8, 8, lambda W, Hh: H.P.coin_face(W, Hh))
+    H.card("crest_coin", ro, [-2, 74, -16.5], [2, 78, -16.5], ck)
+
+    # ---------------------------------------------------------------- the round coin sign on the cross gable's plaster face
+    sy = 53
+    H.card("coin_sign_backing", sg, [-7.5, sy - 7.5, -15.75], [7.5, sy + 7.5, -15.75],
+           H.rect("coin_sign_ring", 30, 30, lambda W, Hh: H.P.coin_badge(W, Hh, ring=True)), faces=("north",))
+    H.card("coin_sign_board", sg, [-7, sy - 7, -16], [7, sy + 7, -16],
+           H.rect("coin_sign_face", 28, 28, lambda W, Hh: H.P.coin_badge(W, Hh)), faces=("north",))
+    H.card("coin_sign_coin", sg, [-3.5, sy - 3.5, -16.5], [3.5, sy + 3.5, -16.5],
+           H.rect("coin_sign_coin", 14, 14, lambda W, Hh: H.P.coin_face(W, Hh)), faces=("north",))
+
+    # ---------------------------------------------------------------- awning: three indigo / cream panels, one per bay
+    y0, z0, t, ang, L = 42, -12.5, 0.5, 30.0, 16
+    top_k, und_k = awning_rects(H, "awn", A, B, 49, px(L), 6, pin=R["gold"])
+    vk = H.rect("valance_front", 49, 8, lambda Ww, Hh: H.P.valance(A, B, Ww, Hh, 6, 0, "scallop", trim=R["gold"]))
+    sk = H.rect("valance_side", px(L), 5, lambda Ww, Hh: H.P.valance(A, B, Ww, Hh, 6, 0, "scallop", trim=R["gold"], cut=2))
+    for s, (x1, x2) in (("right", (-38, -13.5)), ("centre", (-12.25, 12.25)), ("left", (13.5, 38))):
+        yf, zf = H.slab(f"awning_{s}", aw, x1, x2, y0, z0, L, ang, t, top_k, und_k, "cloth_a")
+        H.card(f"awning_{s}_valance", aw, [x1, yf - 4, zf - 0.05], [x2, yf, zf - 0.05], vk)
+        for e_, x in (("a", x1 - 0.05), ("b", x2 + 0.05)):
+            H.card(f"awning_{s}_cheek_{e_}", aw, [x, y0 - t - 2.5, z0 - L], [x, y0 - t, z0], sk, faces=("east", "west"),
+                   rot=(-ang, 0, 0), origin=[x, y0, z0])
+    for s, x in (("right", -12.875), ("left", 12.875)):                          # iron rods from the posts up to the edge
+        rod(f"awning_rod_{s}", aw, (x, 30, -12), (x, 34.0, -24.5))
+
+    # ---------------------------------------------------------------- counter: oak boards in three sections, walnut tops
+    for s, (x1, x2, t1, t2) in (("sell", (-35, -14.5, -36, -14.5)), ("coin", (-11.5, 11.5, -11.5, 11.5)),
+                                ("buy", (14.5, 35, 14.5, 36))):
+        H.box(f"counter_{s}_body", cn, [x1, 2, -11], [x2, 13, -6], "plank", ("down", "up"), f"cb{s}", place="ground")
+        H.box(f"counter_{s}_top", cn, [t1, 13, -12], [t2, 14, -5], "top", (), f"ct{s}")
+        H.box(f"counter_{s}_band", cn, [x1, 9.5, -11.5], [x2, 11, -11], "trim", ("south", "down"), f"cband{s}")
+        H.box(f"counter_{s}_base", cn, [x1, 2, -11.5], [x2, 3.5, -11], "trim", ("south",), f"cbase{s}")
+    pk = H.rect("coin_panel", px(8), px(6), lambda W, Hh: H.P.sign(R["walnut"], W, Hh, "lit", "coin", frame=R["gold"]))
+    fs = H.faces([-4, 3.5, -12], [4, 9.5, -11], "trim", ("south", "down"), "cpan"); fs["north"] = F(pk)
+    H.m.cube("counter_coin_panel", cn, [-4, 3.5, -12], [4, 9.5, -11], fs)
+    # back shelves on iron brackets: two rows (y 22, y 32) in bay_buy and in bay_sell (the mirror shares bay_sell's wall)
+    for bay, grp, (x1, x2) in (("buy", bb, (16, 33)), ("sell", bs, (-33, -24))):
+        for r_, ys in (("low", 22), ("high", 32)):
+            H.box(f"shelf_{bay}_{r_}", grp, [x1, ys - 1, 9], [x2, ys, 12], "top", (), f"sh{bay}")
+            for e_, x in (("a", x1 + 1.5), ("b", x2 - 1.5)):
+                H.box(f"shelf_{bay}_{r_}_bracket_{e_}", grp, [x - 0.5, ys - 3, 11], [x + 0.5, ys - 1, 12], "iron", (), "sbr")
+
+    # ---------------------------------------------------------------- bay_buy (+x): what the merchant buys
+    # an open crate of ore nuggets: copper, tin and iron side by side, a few loose nuggets on top
+    H.item("ore_crate", bb, [15.5, 14, -11], [22.5, 17, -6], "crate_oak", lambda W, Hh, c: H.P.crate(R["oak"], W, Hh, c))
+    for i, (rm, x) in enumerate((("ore_copper", 16), ("ore_tin", 18.5), ("iron", 20))):
+        H.item(f"ore_pile_{i + 1}", bb, [x, 16, -10.5], [x + 2.5 if i < 2 else 22, 17.5, -6.5], f"pile_{rm}",
+               lambda W, Hh, c, r_=rm: H.P.pile(R[r_], W, Hh, c, r=1.0, stem=False, gap=R["oak"]))
+    for i, (rm, x, z, yaw) in enumerate((("ore_copper", 17, -9, 22.5), ("ore_tin", 19.25, -7.5, -22.5), ("iron", 21, -9.5, 45))):
+        form_item(f"ore_nugget_{i + 1}", bb, [x - 0.75, 17.5, z - 0.75], [x + 0.75, 18.5, z + 0.75], rm, 3.6, hl=True,
+                  rot=(0, yaw, 0), origin=[x, 17.5, z])
+    # a criss-cross stack of seven ingots: copper, iron and gold (light top bevel)
+    ingot = lambda rm: (lambda W, Hh, c: H.P.ingot(R[rm], W, Hh, c))
+    stack = [("x", 24, 30, -10.5, -8.5, 14, "ingot_copper"), ("x", 24, 30, -8, -6, 14, "ingot_iron"),
+             ("z", 24.5, 26.5, -10.75, -5.75, 15.5, "ingot_gold"), ("z", 27.5, 29.5, -10.75, -5.75, 15.5, "ingot_copper"),
+             ("x", 24, 30, -10.25, -8.25, 17, "ingot_iron"), ("x", 24, 30, -8.25, -6.25, 17, "ingot_gold"),
+             ("z", 26, 28, -10.5, -5.5, 18.5, "ingot_gold")]
+    for i, (_, x1, x2, z1, z2, y, rm) in enumerate(stack):
+        H.item(f"ingot_{i + 1}", bb, [x1, y, z1], [x2, y + 1.5, z2], f"ingot_{rm}", ingot(rm))
+    # a small open box of cut gems on red velvet
+    H.item("gem_box", bb, [31, 14, -10.5], [35, 15.5, -7], "gem_box", lambda W, Hh, c: H.P.form(R["walnut"], W, Hh, c, 3.6))
+    H.item("gem_box_velvet", bb, [31.5, 15.5, -10], [34.5, 16, -7.5], "velvet", lambda W, Hh, c: H.P.form(R["awn_red"], W, Hh, c, 2.8),
+           hide=("down", "north", "south", "east", "west"))
+    for i, (rm, x, z) in enumerate((("gem_ruby", 32, -9.25), ("gem_sapphire", 33.5, -9), ("gem_emerald", 32.75, -8),
+                                    ("gem_ruby", 34, -8))):
+        H.item(f"gem_{i + 1}", bb, [x - 0.5, 16, z - 0.5], [x + 0.5, 17, z + 0.5], f"gem_{rm}",
+               lambda W, Hh, c, r_=rm: H.P.gem(R[r_], W, Hh, c), rot=(0, 45, 0), origin=[x, 16, z])
+    # hides on pegs: wolf and boar on the left side wall, fox draped over the counter front
+    for i, (rm, z1, z2, y1, y2) in enumerate((("hide_wolf", -1, 5.5, 8, 21), ("hide_boar", 5.5, 11.5, 9, 21))):
+        key = H.rect(f"pelt_{rm}", px(z2 - z1), px(y2 - y1), lambda W, Hh, r_=rm: H.P.pelt(R[r_], W, Hh, "lit", belly=r_ != "hide_boar"))
+        H.card(f"hide_{rm.split('_')[1]}", bb, [37.75, y1, z1], [37.75, y2, z2], key, faces=("east", "west"))
+        zc = (z1 + z2) / 2
+        H.box(f"hide_{rm.split('_')[1]}_peg", bb, [37.5, y2 - 1, zc - 0.5], [38.5, y2, zc + 0.5], "top", ("west",), "hpeg")
+    key = H.rect("pelt_hide_fox", 14, 18, lambda W, Hh: H.P.pelt(R["hide_fox"], W, Hh, "lit"))
+    H.card("hide_fox", bb, [26.5, 5, -12.1], [33.5, 14, -12.1], key)
+    # on the floor beside the bay: three logs (oak, ash) with painted end rings, a sack spilling ore
+    rk = H.rect("log_ring_6x6", 6, 6, lambda W, Hh: H.P.log_ring(W, Hh, "lit"))
+    for i, (rm, x, y) in enumerate((("bark_oak", 40.5, 0), ("bark_ash", 44, 0), ("bark_oak", 42.25, 3))):
+        H.item(f"log_{i + 1}", bb, [x - 1.5, y, -8], [x + 1.5, y + 3, 1], f"log_{rm}",
+               lambda W, Hh, c, r_=rm: H.P.log_side(R[r_], W, Hh, c), hide=("down",) if y == 0 else (),
+               over={"north": F(rk), "south": F(rk, mirror=True)})
+    H.item("ore_sack", bb, [40, 0, -13.5], [44, 5, -10], "sack", lambda W, Hh, c: H.P.sack(R["burlap"], W, Hh, c),
+           rot=(0, 0, 11.25), origin=[40, 0, -11.75])
+    for i, (rm, x, z) in enumerate((("ore_copper", 39.25, -14.5), ("iron", 40.75, -15.25), ("ore_tin", 42.5, -14.75))):
+        form_item(f"ore_spilled_{i + 1}", bb, [x - 0.75, 0, z - 0.75], [x + 0.75, 1, z + 0.75], rm, 3.4, hl=True,
+                  rot=(0, 30 * i, 0), origin=[x, 0, z])
+    # two dried herb bundles hanging from the front beam (nettle and marigold, bundle_ icons)
+    for i, (x, rm) in enumerate(((21, "herb_nettle"), (29, "herb_marigold"))):
+        hg = H.group(f"herb_bundle_{i + 1}", [x, 42, -10.5], bb)
+        drop = 3.5 + i
+        H.box(f"herb_bundle_{i + 1}_string", hg, [x - 0.25, 42 - drop, -10.75], [x + 0.25, 42, -10.25], "iron", (), "hstr")
+        form_item(f"herb_bundle_{i + 1}_tie", hg, [x - 0.75, 41 - drop, -11.25], [x + 0.75, 42 - drop, -9.75], "burlap", 3.6, hide=())
+        H.item(f"herb_bundle_{i + 1}_leaves", hg, [x - 1.25, 36.5 - drop, -11.5], [x + 1.25, 41 - drop, -9.5], f"herbs_{rm}",
+               lambda W, Hh, c, r_=rm: H.P.form(R[r_], W, Hh, c, 3.4, noise=0.35, vert=0.8), hide=())
+    # on the back shelves: rolled leather, a jar of seeds, a wolf fang and a golden antler (trophy_ icons)
+    for i, (x, ys) in enumerate(((18, 22), (24.5, 32))):
+        H.item(f"leather_roll_{i + 1}", bb, [x, ys, 9.5], [x + 6, ys + 2.5, 12], "leather_roll",
+               lambda W, Hh, c: H.P.form(R["hide_boar"], W, Hh, c, 3.4, vert=0.8),
+               over={"east": F(H.rect("leather_roll_end", 5, 5, lambda W, Hh: H.P.log_ring(W, Hh, "lit")))})
+    H.item("seed_jar", bb, [26, 22, 9.5], [29, 26, 12], "seed_jar", lambda W, Hh, c: H.P.glass(R["glass"], W, Hh, c, glow=False))
+    H.item("seed_jar_seeds", bb, [26.5, 22.5, 10], [28.5, 24.5, 11.5], "seed_pile",
+           lambda W, Hh, c: H.P.pile(R["seed_gold"], W, Hh, c, r=0.75, stem=False, gap=R["seed_gold"]), hide=("down",))
+    form_item("seed_jar_lid", bb, [25.75, 26, 9.25], [29.25, 26.5, 12.25], "cork", 3.6)
+    fg = H.group("trophy_wolf_fang", [19, 32, 10.5], bb)
+    form_item("trophy_wolf_fang_tooth", fg, [18.5, 32, 10], [19.5, 35.5, 11], "fang", 4.2, hl=True, rot=(0, 0, -22.5),
+              origin=[19, 32, 10.5])
+    form_item("trophy_wolf_fang_cord", fg, [17, 32, 10.25], [21, 32.5, 10.75], "hide_boar", 3.4)
+    ag = H.group("trophy_golden_antler", [31, 32, 10.5], bb)
+    form_item("trophy_golden_antler_beam", ag, [30.5, 32, 10], [31.5, 38, 11], "seed_gold", 4.0, hl=True, rot=(0, 0, 11.25),
+              origin=[31, 32, 10.5])
+    for k, (yb_, roll) in enumerate(((34, -45), (36, -40))):
+        form_item(f"trophy_golden_antler_tine_{k + 1}", ag, [30.25, yb_, 10.25], [30.75, yb_ + 2.5, 10.75], "seed_gold", 4.4,
+                  rot=(0, 0, roll), origin=[30.5, yb_, 10.5])
+
+    # ---------------------------------------------------------------- bay_coin (centre): the merchant's desk
+    for i, (x, z, hh) in enumerate(((7.5, -10.75, 3.5), (9.5, -10.5, 2), (11, -9.5, 4.5), (7.75, -8.75, 1.5), (9.75, -8.5, 3))):
+        H.item(f"coin_stack_{i + 1}", bc, [x - 0.75, 14, z - 0.75], [x + 0.75, 14 + hh, z + 0.75], "coins",
+               lambda W, Hh, c: H.P.coins(W, Hh, c))
+    chg = H.group("coin_chest", [4, 14, -7], bc)
+    H.item("coin_chest_box", chg, [1.5, 14, -8], [6.5, 17, -5.5], "chest", lambda W, Hh, c: H.P.crate(R["walnut"], W, Hh, c))
+    H.item("coin_chest_heap", chg, [2, 16.5, -7.5], [6, 17.5, -6], "coin_heap",
+           lambda W, Hh, c: H.P.pile(R["gold"], W, Hh, c, r=0.75, stem=False, gap=R["gold"]))
+    H.box("coin_chest_lid", chg, [1.5, 17, -5.5], [6.5, 17.5, -2.5], "top", (), "clid", rot=(-67.5, 0, 0), origin=[4, 17, -5.5])
+    H.box("ledger_cover", bc, [-2.5, 14, -11.5], [3.5, 14.5, -8], "top", ("down",), "lcover")
+    bk = H.rect("ledger_pages", px(5), px(3), lambda W, Hh: H.P.pages(W, Hh, "up"))
+    fs = H.faces([-2, 14.5, -11.25], [3, 15, -8.25], "top", ("down",), "lpages"); fs["up"] = F(bk)
+    pg = H.rect("ledger_edge", 10, 1, lambda W, Hh: H.P.form(R["paper"], W, Hh, "lit", 4.0))
+    for f in ("north", "south"): fs[f] = F(pg)
+    pe = H.rect("ledger_edge_side", 6, 1, lambda W, Hh: H.P.form(R["paper"], W, Hh, "lit", 4.0))
+    for f in ("east", "west"): fs[f] = F(pe)
+    H.m.cube("ledger_pages", bc, [-2, 14.5, -11.25], [3, 15, -8.25], fs)
+    form_item("ink_pot", bc, [-1, 14, -7.5], [0.5, 15.5, -6], "awn_indigo", 2.4)
+    form_item("ink_pot_quill", bc, [-0.5, 15.5, -7], [0, 20, -6.5], "canvas", 4.6, hide=(), rot=(0, 0, -22.5),
+              origin=[-0.25, 15.5, -6.75])
+    # the brass balance scale: iron post, gold beam and pans on chains, the customer's left pan lower under an ingot
+    scg = H.group("balance_scale", [-6.5, 14, -9], bc)
+    H.box("balance_scale_base", scg, [-8, 14, -10.5], [-5, 15, -7.5], "iron", ("down",), "scbase")
+    H.box("balance_scale_post", scg, [-6.75, 15, -9.25], [-6.25, 21, -8.75], "iron", (), "scpost")
+    tilt = -8.0; dy = 3.5 * math.sin(math.radians(-tilt))
+    H.box("balance_scale_beam", scg, [-10, 21, -9.25], [-3, 21.5, -8.75], "gold", (), "scbeam", rot=(0, 0, tilt), origin=[-6.5, 21.25, -9])
+    for s, x, sy_ in (("left", -3.5, 21.25 - dy), ("right", -9.5, 21.25 + dy)):
+        ch_lo = h2(sy_ - 4)
+        H.box(f"balance_scale_chain_{s}", scg, [x - 0.25, ch_lo, -9.25], [x + 0.25, h2(sy_), -8.75], "iron", (), "scchain")
+        H.box(f"balance_scale_pan_{s}", scg, [x - 1.5, ch_lo - 0.5, -10.5], [x + 1.5, ch_lo, -7.5], "gold", (), "scpan")
+    H.item("balance_scale_ingot", scg, [-4.5, h2(21.25 - dy - 4), -9.75], [-2.5, h2(21.25 - dy - 4) + 1, -8.25], "ingot_ingot_gold",
+           ingot("ingot_gold"))
+
+    # ---------------------------------------------------------------- bay_sell (-x): what the merchant sells
+    # bags for inventory space: a satchel on the counter, a backpack and a satchel hanging from hooks on the posts
+    bag = lambda rm: (lambda W, Hh, c: H.P.bag(R[rm], W, Hh, c))
+    H.item("satchel_counter", bs, [-20, 14, -10.5], [-15.5, 17.5, -7.5], "bag_hide_boar", bag("hide_boar"))
+    form_item("satchel_counter_strap", bs, [-19.5, 17.5, -9.25], [-16, 18, -8.75], "hide_boar", 2.8, hide=())
+    for s, (x, y1, y2, w_, rm) in (("backpack", (-36, 24, 31, 4, "hide_boar")), ("satchel", (-13, 26, 30, 3.5, "hide_boar"))):
+        H.item(f"{s}_hanging", bs, [x - w_ / 2, y1, -14.5], [x + w_ / 2, y2, -12], f"bag_{rm}", bag(rm))
+        H.box(f"{s}_hook", bs, [x - 0.25, y2, -12.5], [x + 0.25, y2 + 1.5, -12], "iron", (), "hook")
+    # energy refills: a little rack of five stoppered flasks with a glowing warm gold drink (*_glow: emissive in Godot)
+    H.box("flask_rack_base", bs, [-34, 14, -11], [-26, 15, -7.5], "top", ("down",), "frbase")
+    H.box("flask_rack_back", bs, [-34, 15, -8], [-26, 19, -7.5], "top", (), "frback")
+    for i, x in enumerate((-33, -31.5, -30, -28.5, -27)):
+        H.item(f"energy_flask_{i + 1}_glow", bs, [x - 0.75, 15, -10.25], [x + 0.75, 18, -8.75], "energy_flask",
+               lambda W, Hh, c: H.P.glass(R["glow"], W, Hh, c))
+        form_item(f"energy_flask_{i + 1}_cork", bs, [x - 0.5, 18, -10], [x + 0.5, 18.5, -9], "cork", 3.6, hide=("down",))
+    # wood hilts (hilt_ash_hilt, hilt_oak_hilt) on a small rack on the inside of the right side wall
+    H.box("hilt_rack", bs, [-35, 25, 1], [-34.5, 32, 10], "top", ("west",), "hrack")
+    for i, (rm, y) in enumerate((("hilt_ash", 26.5), ("hilt_oak", 29.5))):
+        hg = H.group(f"hilt_{rm.split('_')[1]}", [-33.75, y, 5.5], bs)
+        form_item(f"hilt_{rm.split('_')[1]}_grip", hg, [-34.5, y, 2], [-33.5, y + 1, 8.5], rm, 3.6, hide=("west",))
+        form_item(f"hilt_{rm.split('_')[1]}_pommel", hg, [-34.5, y - 0.25, 8.5], [-33, y + 1.25, 10], "pommel", 3.8, hide=("west",))
+        form_item(f"hilt_{rm.split('_')[1]}_collar", hg, [-34.5, y - 0.25, 1.5], [-33, y + 1.25, 2], "pommel", 3.4, hide=("west",))
+    # cosmetics: a hat stand with a feathered cap and a top hat, a folded cloak on the counter, a mirror on the back wall
+    hs = H.group("hat_stand", [-30, 2, 6], bs)
+    H.box("hat_stand_base", hs, [-32, 2, 4], [-28, 3, 8], "top", ("down",), "hsb")
+    H.box("hat_stand_pole", hs, [-30.5, 3, 5.5], [-29.5, 20, 6.5], "post", (), "hsp")
+    H.box("hat_stand_arm", hs, [-34, 17, 5.75], [-29.5, 17.5, 6.25], "post", (), "hsa")
+    form_item("hat_cap_crown", hs, [-32, 20.5, 4], [-28, 22.5, 8], "awn_red", 3.6)
+    form_item("hat_cap_brim", hs, [-32.5, 20, 3], [-27.5, 20.5, 8.5], "awn_red", 3.0)
+    form_item("hat_cap_feather", hs, [-28.75, 21.5, 5.75], [-28.25, 25.5, 6.25], "seed_gold", 4.4, hide=(), rot=(0, 0, -22.5),
+              origin=[-28.5, 21.5, 6])
+    form_item("hat_top_crown", hs, [-35.25, 14, 4.75], [-32.75, 17, 7.25], "awn_indigo", 3.4, hide=())
+    form_item("hat_top_band", hs, [-35.5, 14, 4.5], [-32.5, 14.5, 7.5], "gold", 4.2)
+    form_item("hat_top_brim", hs, [-36, 13.5, 4], [-32, 14, 8], "awn_indigo", 3.0, hide=())
+    cloak = lambda W, Hh, c: H.P.cloth(R["emerald"], W, Hh, c, "damask", R["gold"], 3, hem=True)
+    H.item("cloak_folded_1", bs, [-25, 14, -10.5], [-21, 15.5, -7], "cloak_1", cloak)
+    H.item("cloak_folded_2", bs, [-24.5, 15.5, -10], [-21.5, 16.5, -7.5], "cloak_2", cloak)
+    H.box("mirror_frame", bs, [-21, 24, 11.5], [-16.5, 32, 12], "gold", ("south",), "mframe")
+    mk = H.rect("mirror_glass", 7, 14, lambda W, Hh: H.P.glass(R["glass"], W, Hh, "lit", glow=False))
+    H.card("mirror_glass", bs, [-20.5, 24.5, 11.4], [-17, 31.5, 11.4], mk, faces=("north",))
+    # spare stock on bay_sell's shelves: two pouches below, a folded cloth and a spare refill above
+    for i, x in enumerate((-32, -28)):
+        H.item(f"pouch_{i + 1}", bs, [x, 22, 9.5], [x + 3, 24.5, 11.5], "bag_hide_fox", bag("hide_fox"))
+    H.item("cloth_folded_shelf", bs, [-32.5, 32, 9.5], [-28.5, 33.5, 11.5], "cloak_1", cloak)
+    H.item("energy_flask_spare_glow", bs, [-26.75, 32, 10], [-25.25, 35, 11.5], "energy_flask", lambda W, Hh, c: H.P.glass(R["glow"], W, Hh, c))
+    # the price board: a small chalkboard leaning back against the sell counter, coin marks for prices
+    H.item("price_board", bs, [-34, 2, -13.5], [-28, 10, -13], "price_board", lambda W, Hh, c: H.P.chalk_coins(W, Hh, c),
+           rot=(15, 0, 0), origin=[-31, 2, -13.25])
+
+    # ---------------------------------------------------------------- details: lanterns, the ends, moss, ivy
+    for s, x in (("left", 33), ("right", -33)):
+        H.lantern_hang(f"lantern_{s}", dt, x, 42, -10.5, chain=3.0)
+    H.item("rolled_rug", dt, [-42.5, 0, 3.5], [-40, 18, 6], "rug_awn_red", lambda W, Hh, c: H.P.bolt(R["awn_red"], W, Hh, c, "diamond"),
+           rot=(0, 0, -11.25), origin=[-41.25, 0, 4.75])
+    barrel(H, "barrel", dt, -42, 10, 5, 7)
+    H.item("crate_stack_1", dt, [39, 0, 4.5], [45, 6, 10.5], "crate_oak", lambda W, Hh, c: H.P.crate(R["oak"], W, Hh, c))
+    H.item("crate_stack_2", dt, [39.5, 6, 5], [44.5, 10, 10], "crate_oak", lambda W, Hh, c: H.P.crate(R["oak"], W, Hh, c),
+           rot=(0, 22.5, 0), origin=[42, 6, 7.5])
+    H.box("moss_corner_1", dt, [-39, 2, -14], [-35, 2.5, -12.5], "moss", ("down",), "mc1")
+    H.box("moss_corner_2", dt, [35, 2, 13.5], [39, 2.5, 16], "moss", ("down",), "mc2")
+    for i, (x, z) in enumerate(((-40.5, -15), (40, -16.5), (-39.5, 16.5))):
+        H.box(f"loose_cobble_{i + 1}", dt, [x - 0.75, 0, z - 0.75], [x + 0.75, 1, z + 0.75], "plinth", ("down",), "lcob",
+              rot=(0, 22.5 * (i + 1), 0), origin=[x, 0, z])
+    ik = H.rect("ivy_wall", 14, 48, lambda W, Hh: H.P.ivy(W, Hh, "lit"))
+    H.card("ivy_side_wall", dt, [-37.75, 2, 5], [-37.75, 26, 12], ik, faces=("west", "east"))
+    # pivots at the base centre of each top-level group (section 8 of the prompt)
+    by_id = {e["uuid"]: e for e in H.m.elements}
+
+    def cubes_in(name):
+        out = []
+        for kind, ch in H.m.groups[name]["children"]:
+            out += cubes_in(ch) if kind == "g" else [by_id[ch]]
+        return out
+    for name in g.values():
+        es = cubes_in(name)
+        xs = [v for e in es for v in (e["from"][0], e["to"][0])]; zs = [v for e in es for v in (e["from"][2], e["to"][2])]
+        H.m.groups[name]["origin"] = [round((min(xs) + max(xs)) / 2, 2), round(min(e["from"][1] for e in es), 2),
+                                      round((min(zs) + max(zs)) / 2, 2)]
+    return H
+
+
+BUILDERS = {f.__name__: f for f in (market_stall_fruit, market_stall_bakery, market_stall_potion, market_stall_cloth,
+                                         market_stall_merchant)}
 
 if __name__ == "__main__":
     names = sys.argv[1:] or list(BUILDERS)
