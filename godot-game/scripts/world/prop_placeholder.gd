@@ -3,9 +3,9 @@ extends Node3D
 ## model can replace it later (docs/world_build_notes.md lists them all). Built from boxes, cylinders and cones,
 ## with simple box colliders for the solid parts.
 
-@export_enum("castle", "market_stall", "smelter", "workbench", "anvil", "standing_stones", "stone_arch", "stone_ruin",
-	"ice_spire", "frozen_waterfall", "pillar_ring", "hollow_tree", "dreadstone_pit", "log_bridge", "obsidian_vent",
-	"sunken_ruins", "giant_stone_peak_cairn") var kind := "castle"
+@export_enum("castle", "market_stall", "smelter", "workbench", "anvil", "stone_arch", "stone_ruin",
+	"ice_spire", "frozen_waterfall", "hollow_tree", "dreadstone_pit", "log_bridge", "obsidian_vent",
+	"sunken_ruins", "giant_stone_peak_cairn", "waterfall_rocks") var kind := "castle"
 @export var colour_seed := 0
 
 const STONE := Color("#8a8a90")
@@ -15,6 +15,9 @@ const WOOD := Color("#7a5232")
 const WOOD_DARK := Color("#4e3220")
 
 var body: StaticBody3D
+## World terrain height (x, z) -> y, set by resource_landmarks.gd before the placeholder enters the tree; kinds that
+## sit each piece on uneven ground use it (waterfall_rocks). Unset (editor preview): flat ground at the origin.
+var ground: Callable
 
 
 func _ready() -> void:
@@ -145,15 +148,6 @@ func _build_anvil() -> void:
 
 
 # ---------------------------------------------------------------- resource world landmarks
-func _build_standing_stones() -> void:
-	for i in 9:
-		var a := i * TAU / 9.0
-		var h := 4.5 + (i % 3) * 1.2
-		var s := box(Vector3(1.4, h, 0.8), Vector3(cos(a) * 9.0, 0, sin(a) * 9.0), Color("#7a7e8a"), true, -a)
-		s.rotation.z = deg_to_rad(((i * 37) % 9) - 4)
-	box(Vector3(3, 1.0, 1.6), Vector3(0, 0, 0), Color("#6a6e7a"))
-
-
 func _build_stone_arch() -> void:
 	var col := Color("#c49a6a")
 	box(Vector3(6, 26, 7), Vector3(-12, 0, 0), col)
@@ -185,16 +179,6 @@ func _build_frozen_waterfall() -> void:
 	for i in 7:
 		box(Vector3(2.4, 22 - (i % 3) * 3, 2.0), Vector3(-7 + i * 2.3, 0, (i % 2) * 0.8), ice.darkened(0.05 * (i % 3)), true)
 	box(Vector3(20, 2, 8), Vector3(0, 0, 3), Color("#d0ecf8"))
-
-
-func _build_pillar_ring() -> void:
-	var col := Color("#d8c098")
-	for i in 10:
-		var a := i * TAU / 10.0
-		var h := 12.0 if i % 3 else 7.0
-		cyl(1.4, 1.2, h, Vector3(cos(a) * 15, 0, sin(a) * 15), col, true, 8)
-		if i % 2 == 0 and h > 10:
-			box(Vector3(4, 1.4, 3), Vector3(cos(a) * 15, h, sin(a) * 15), col.darkened(0.1), false, -a)
 
 
 func _build_hollow_tree() -> void:
@@ -244,3 +228,86 @@ func _build_giant_stone_peak_cairn() -> void:
 	box(Vector3(2.5, 1.2, 2.5), Vector3.ZERO, Color("#8a8e98"))
 	box(Vector3(1.8, 1.0, 1.8), Vector3(0, 1.2, 0), Color("#9a9ea8"), true, 0.4)
 	box(Vector3(1.1, 0.9, 1.1), Vector3(0, 2.2, 0), Color("#aab0b8"), true, 0.9)
+
+
+
+# ---------------------------------------------------------------- waterfall rocks
+
+const MOSS := Color("#4a6a2a")
+
+
+## The forest waterfall (landmark "waterfall", placed with yaw -PI/2): local x runs across the fall, local z along
+## the flow. The crest is at z 1..3, the cliff foot at z 6..8, the plunge pool at z 7..13 (bake_world_data.gd
+## _shape_water step e). Mirrored clusters: one each side of the crest (5.5 to 9 m out, they collide), one each side
+## of the plunge pool against the cliff foot, half in the water (no collision), and flat stepping stones across the
+## downstream end of the pool. Each boulder sits on the lowest of its four corners, so none floats.
+func _build_waterfall_rocks() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6214
+	var crest := _rock_params(rng, 6, Vector2(0.8, 2.4), Vector2(0.55, 0.9), Vector2(1.5, 1.5), true)
+	var pool := _rock_params(rng, 6, Vector2(1.0, 2.4), Vector2(0.9, 1.3), Vector2(1.2, 1.4), false)
+	for side in [-1.0, 1.0]:
+		_rock_cluster(Vector3(side * 7.2, 0, 2.0), crest, true, 0.15, side)
+		_rock_cluster(Vector3(side * 6.6, 0, 7.4), pool, false, 0.1, side)
+	for i in 3:
+		var p := Vector3(-2.2 + i * 2.2 + rng.randf_range(-0.3, 0.3), 0, 12.8 + rng.randf_range(-0.4, 0.4))
+		var size := Vector3(rng.randf_range(1.0, 1.4), 0, rng.randf_range(0.9, 1.2))
+		var rot := rng.randf_range(-0.4, 0.4)
+		var bottom := _ground_under(p, size, rot) - 0.1
+		size.y = maxf(0.3, _local_y(3.0 + 0.15) - bottom)  # tops just above the river (level 3)
+		box(size, Vector3(p.x, bottom, p.z), STONE_DARK, false, rot)
+
+
+func _rock_params(rng: RandomNumberGenerator, n: int, s_range: Vector2, h_range: Vector2, spread: Vector2, moss_ok: bool) -> Array:
+	var out := []
+	for i in n:
+		var s := rng.randf_range(s_range.x, s_range.y)
+		var size := Vector3(s * rng.randf_range(0.8, 1.2), s * rng.randf_range(h_range.x, h_range.y), s * rng.randf_range(0.8, 1.2))
+		var moss := moss_ok and rng.randf() < 0.45
+		var stack := i == n - 1
+		if stack:
+			size *= 0.55
+		out.append({
+			off = Vector3(rng.randf_range(-spread.x, spread.x), 0, rng.randf_range(-spread.y, spread.y)),
+			size = size, rot = rng.randf_range(-0.6, 0.6), moss = moss, stack = stack, light = rng.randf() < 0.5,
+			tilt = Vector2.ZERO if moss else Vector2(rng.randf_range(-0.08, 0.08), rng.randf_range(-0.08, 0.08)),
+		})
+	return out
+
+
+func _rock_cluster(centre: Vector3, rocks: Array, collide: bool, sink: float, side: float) -> void:
+	var prev := centre
+	var prev_top := -1e9
+	for r in rocks:
+		var size: Vector3 = r.size
+		var rot: float = r.rot * side
+		var p := centre + Vector3(r.off.x * side, 0, r.off.z)
+		var y: float
+		if r.stack and prev_top > -1e8:
+			p = prev + Vector3(r.off.x * 0.25 * side, 0, r.off.z * 0.25)
+			y = prev_top - 0.15  # stacked on the one before
+		else:
+			y = _ground_under(p, size, rot) - size.y * sink
+		var mi := box(size, Vector3(p.x, y, p.z), STONE if r.light else STONE_DARK, collide, rot)
+		mi.rotation.x = r.tilt.x
+		mi.rotation.z = r.tilt.y * side
+		if r.moss:
+			box(Vector3(size.x * 0.85, 0.12, size.z * 0.85), Vector3(p.x, y + size.y - 0.05, p.z), MOSS, false, rot)
+		prev = p
+		prev_top = y + size.y
+
+
+## The lowest terrain under a box's four bottom corners, in local y (0 without ground).
+func _ground_under(p: Vector3, size: Vector3, rot: float) -> float:
+	if not ground.is_valid():
+		return 0.0
+	var lowest := 1e9
+	var b := Basis(Vector3.UP, rot)
+	for c in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(-1, 0, 1), Vector3(1, 0, 1)]:
+		var w: Vector3 = global_transform * (p + b * (Vector3(c) * size * 0.5))
+		lowest = minf(lowest, _local_y(ground.call(w.x, w.z)))
+	return lowest
+
+
+func _local_y(world_y: float) -> float:
+	return world_y - global_position.y

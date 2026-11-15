@@ -302,7 +302,7 @@ Two kinds:
 
 These are suggestions for the later prompt, not decisions. They follow MODELS-BLOCKBENCH (D-044, D-047).
 
-**Start from the base Imp.** `models/blockbench/creatures/implingz_voxel_character_model.bbmodel` is the HD Imp already built from the pixel-art portrait. Each trait should be a separate model (or a separate group) that **attaches to a named bone** on that Imp, so traits can be swapped in Godot.
+**Start from the base Imp.** `godot-game/assets/models/source/blockbench/creatures/implingz_voxel_character_model.bbmodel` is the HD Imp already built from the pixel-art portrait. Each trait should be a separate model (or a separate group) that **attaches to a named bone** on that Imp, so traits can be swapped in Godot.
 
 | Trait type | Attach to | Notes |
 |---|---|---|
@@ -315,7 +315,7 @@ These are suggestions for the later prompt, not decisions. They follow MODELS-BL
 **Rules to keep the traits faithful**
 - Take every colour from this doc's tables, the way MODELS-BLOCKBENCH says a model takes its colours from its icon.
 - Keep the 2D lighting idea: the Imp's right side (the viewer's left) is lit, the other side is shaded.
-- Keep the black outline feel with a dark rim on edges, as the existing Imp model does.
+- Paint every trait in the house texture style of `blockbench_detailed_prompts.md` section 1.5.1 (J00BA's imp, `docs/images/imp_style_reference.png`): soft gradients, lighter centres and darker edges, **no** dark rim or outline. This replaces the 2D art's black outlines in 3D (J00BA, 2026-11-01).
 - Keep the angry face: angled lids, inward-pointing glare.
 - Test every trait against the worst cases: Bone Wings with Cape-length clothes, Afro or Straw Hat with each eyewear, Blonde with each Back trait, Battle Armour pads with each wing.
 

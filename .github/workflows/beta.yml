@@ -1,0 +1,112 @@
+# Builds the live beta and puts it online (game-server/README.md).
+#
+# 1. Exports the Godot game for the web (release, so the TEST trait switch is off) with the Glyph bundle.
+# 2. Packs it with the beta server (game-server/Dockerfile) into an image:
+#    ghcr.io/joobajooba/club-impz-beta:latest
+# 3. Tells Render to deploy that image (the RENDER_DEPLOY_HOOK secret, the service's Deploy Hook URL).
+#
+# Runs on every push to the default branch and to staging/multiplayer-beta, or by hand
+# (Actions -> Beta -> Run workflow).
+name: Beta
+
+on:
+  push:
+    branches: [claude/project-thread-w0l9g3, staging/multiplayer-beta]
+    paths:
+      - "godot-game/**"
+      - "game-server/**"
+      - "web-wallet/**"
+      - ".github/workflows/beta.yml"
+      - ".dockerignore"
+  workflow_dispatch:
+
+concurrency:
+  group: beta
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+  IMAGE: ghcr.io/joobajooba/club-impz-beta
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Glyph bundle
+        working-directory: web-wallet
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: Cache Godot and its web templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-web-v1
+
+      - name: Download Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot
+          curl -sSfL "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
+          unzip -q godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          # only the single-threaded web templates (export_presets.cfg: thread_support=false)
+          curl -sSfL "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o templates.tpz
+          dir=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$dir"
+          unzip -q -j templates.tpz "templates/version.txt" "templates/web_nothreads_release.zip" "templates/web_nothreads_debug.zip" -d "$dir"
+          rm godot.zip templates.tpz
+
+      - name: Cache imported assets
+        uses: actions/cache@v4
+        with:
+          path: godot-game/.godot
+          key: godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('godot-game/**/*.import', 'godot-game/project.godot') }}
+          restore-keys: godot-import-${{ env.GODOT_VERSION }}-
+
+      - name: Export the web build
+        run: |
+          ~/godot/godot --headless --path godot-game --import || true
+          GODOT=~/godot/godot node web-wallet/scripts/export-web.mjs
+          ls -la godot-game/export/web
+          test -s godot-game/export/web/index.pck
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: game-server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Deploy on Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "No RENDER_DEPLOY_HOOK secret yet: the image is built, deploy it from Render's dashboard."
+          else
+            curl -sSf -X POST "$HOOK" > /dev/null && echo "Render is deploying the new image."
+          fi

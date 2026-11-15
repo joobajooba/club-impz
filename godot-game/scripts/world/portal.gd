@@ -1,91 +1,106 @@
 extends Node3D
-## Portal placeholder: a glowing ring with an Area3D. Walking in fades to black, changes world and places the
-## player at the target spawn point (game_worlds.md section 5).
+## World portal (game_worlds.md section 5): the obsidian arch model (assets/models/props/portal.glb, built by
+## `build scripts/build_portal.py`) with its looping `idle` animation of red swirls, plus an Area3D in the opening.
+## Walking in fades to black, changes world and places the player at the target spawn point.
+
+const MODEL := "res://assets/models/props/portal.glb"
+const GLOW_ENERGY := 0.15         # the swirls, runes, gem and embers (cubes named *_glow)
+const BACKDROP_ENERGY := 0.05    # the solid surface behind the swirls (stronger washes it out to white)
+const OPENING := Vector3(3.0, 2.6, 1.2)   # trigger box in metres: the arch opening is 3.25 wide, 2.75 tall
+const BASE_TOP := 0.25            # the stepped base is 4 units (0.25 m) tall
 
 @export var target_world := "resource"
 @export var target_spawn := "spawn_point"
-@export var ring_color := Color("#8a5cff")
 
 var armed := false
+var _anim: AnimationPlayer
 
 
 func _ready() -> void:
-	var ring := MeshInstance3D.new()
-	ring.name = "ring"
-	var torus := TorusMesh.new()
-	torus.inner_radius = 1.55
-	torus.outer_radius = 1.95
-	torus.rings = 24
-	torus.ring_segments = 8
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = ring_color
-	mat.emission_enabled = true
-	mat.emission = ring_color
-	mat.emission_energy_multiplier = 1.6
-	torus.material = mat
-	ring.mesh = torus
-	ring.rotation_degrees = Vector3(90, 0, 0)
-	ring.position = Vector3(0, 2.05, 0)
-	add_child(ring)
-	var disc := MeshInstance3D.new()
-	disc.name = "disc"
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 1.6
-	cyl.bottom_radius = 1.6
-	cyl.height = 0.05
-	var dmat := StandardMaterial3D.new()
-	dmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dmat.albedo_color = Color(ring_color.r * 0.6 + 0.3, ring_color.g * 0.6 + 0.3, ring_color.b * 0.6 + 0.4, 0.55)
-	cyl.material = dmat
-	disc.mesh = cyl
-	disc.rotation_degrees = Vector3(90, 0, 0)
-	disc.position = Vector3(0, 2.05, 0)
-	add_child(disc)
-	for side in [-1.0, 1.0]:
-		var base := MeshInstance3D.new()
-		var b := BoxMesh.new()
-		b.size = Vector3(0.7, 0.7, 0.9)
-		var bm := StandardMaterial3D.new()
-		bm.albedo_color = Color("#8a8480")
-		b.material = bm
-		base.mesh = b
-		base.position = Vector3(side * 1.75, 0.3, 0)
-		add_child(base)
-	var sparks := CPUParticles3D.new()
-	sparks.amount = 40
-	sparks.lifetime = 2.0
-	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-	sparks.emission_ring_axis = Vector3(0, 0, 1)
-	sparks.emission_ring_radius = 1.75
-	sparks.emission_ring_inner_radius = 1.5
-	sparks.emission_ring_height = 0.1
-	sparks.gravity = Vector3(0, 0.6, 0)
-	sparks.position = Vector3(0, 2.05, 0)
-	var q := QuadMesh.new()
-	q.size = Vector2(0.09, 0.09)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	qm.albedo_color = ring_color.lightened(0.5)
-	q.material = qm
-	sparks.mesh = q
-	add_child(sparks)
+	var model := (load(MODEL) as PackedScene).instantiate() as Node3D
+	model.name = "model"
+	add_child(model)
+	_set_materials(model)
+	var found := model.find_children("*", "AnimationPlayer", true, false)
+	if not found.is_empty():
+		_anim = found[0] as AnimationPlayer
+		if _anim.has_animation("idle"):
+			_anim.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
+			_anim.play("idle")
+	_add_pillar_colliders()
 	var area := Area3D.new()
 	area.name = "trigger"
 	area.collision_layer = 8
 	area.collision_mask = 2
 	var cs := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(3.0, 3.6, 1.2)
+	shape.size = OPENING
 	cs.shape = shape
-	cs.position = Vector3(0, 1.8, 0)
+	cs.position = Vector3(0, BASE_TOP + OPENING.y / 2.0, 0)
 	area.add_child(cs)
 	add_child(area)
 	area.body_entered.connect(_on_body_entered)
 	# don't fire for a player who arrives standing in it
 	await get_tree().create_timer(1.5).timeout
 	armed = true
+
+
+## Hard alpha everywhere (the swirls, runes and shards are alpha cards, seen from both sides); parts named *_glow
+## are emissive from their own texture, so the portal lights up at dusk.
+func _set_materials(model: Node) -> void:
+	var cache := {}
+	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		var glow := _is_glow(mi, model)
+		var backdrop := _has_ancestor_named(mi, model, "portal_backdrop")
+		for si in mi.mesh.get_surface_count():
+			var src := mi.get_active_material(si) as BaseMaterial3D
+			if src == null:
+				continue
+			var key := [src, glow, backdrop]
+			if not cache.has(key):
+				var m := src.duplicate() as BaseMaterial3D
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+				m.alpha_scissor_threshold = 0.5
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				if glow:
+					m.emission_enabled = true
+					m.emission_texture = m.albedo_texture
+					m.emission = Color.WHITE
+					m.emission_energy_multiplier = BACKDROP_ENERGY if backdrop else GLOW_ENERGY
+				cache[key] = m
+			mi.set_surface_override_material(si, cache[key])
+
+
+static func _has_ancestor_named(n: Node, root: Node, prefix: String) -> bool:
+	while n != null and n != root:
+		if String(n.name).begins_with(prefix):
+			return true
+		n = n.get_parent()
+	return false
+
+
+static func _is_glow(n: Node, root: Node) -> bool:
+	while n != null and n != root:
+		if String(n.name).ends_with("_glow"):
+			return true
+		n = n.get_parent()
+	return false
+
+
+## Solid pillars either side of the opening (the arch is overhead, the base is low enough to walk onto).
+func _add_pillar_colliders() -> void:
+	var body := StaticBody3D.new()
+	body.name = "pillars"
+	body.collision_layer = 4
+	body.collision_mask = 0
+	for side in [-1.0, 1.0]:
+		var cs := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(0.6, 3.4, 0.8)
+		cs.shape = box
+		cs.position = Vector3(side * (1.625 + 0.3), 1.7, 0)
+		body.add_child(cs)
+	add_child(body)
 
 
 func _on_body_entered(body: Node) -> void:

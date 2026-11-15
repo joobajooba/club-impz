@@ -18,6 +18,13 @@ var mask: Image
 var fixed_biome := -1
 var band := 256.0
 var blend_half := 22.5
+# skirt (resource world): cliffs and mountains outside the world, from data/<prefix>_skirt.png (bake_world_data.gd)
+var has_skirt := false
+var sk_origin := Vector2.ZERO
+var sk_step := 4.0
+var sk_nx := 0
+var sk_nz := 0
+var sk_heights := PackedFloat32Array()
 
 
 func _init(prefix: String, biome_fixed := -1) -> void:
@@ -42,6 +49,20 @@ func _init(prefix: String, biome_fixed := -1) -> void:
 	for i in nx * nz:
 		heights[i] = (data[i * 4] * 256 + data[i * 4 + 1]) / hs - ho
 		depths[i] = (data[i * 4 + 2] * 256 + data[i * 4 + 3]) / ss
+	if layout.has("skirt"):
+		var sk: Dictionary = layout["skirt"]
+		var simg := _load_png("res://data/%s_skirt.png" % prefix)
+		has_skirt = true
+		sk_origin = Vector2(sk["origin"][0], sk["origin"][1])
+		sk_step = sk["step"]
+		sk_nx = simg.get_width()
+		sk_nz = simg.get_height()
+		var sdata := simg.get_data()
+		var so: float = sk["h_offset"]
+		var sc: float = sk["h_scale"]
+		sk_heights.resize(sk_nx * sk_nz)
+		for i in sk_nx * sk_nz:
+			sk_heights[i] = (sdata[i * 4] * 256 + sdata[i * 4 + 1]) / sc - so
 
 
 static func _load_png(path: String) -> Image:
@@ -69,7 +90,44 @@ func _bilinear(arr: PackedFloat32Array, x: float, z: float) -> float:
 
 
 func height(x: float, z: float) -> float:
+	if has_skirt and not in_bounds(x, z):
+		return skirt_height(x, z)
 	return _bilinear(heights, x, z)
+
+
+func skirt_height(x: float, z: float) -> float:
+	## Outside the world: Catmull-Rom (smooth, no 4 m creases) through the skirt samples, corrected over the first
+	## 8 m so it meets the world's own border height exactly.
+	var cx := clampf(x, origin.x, origin.x + size.x)
+	var cz := clampf(z, origin.y, origin.y + size.y)
+	var d := Vector2(x - cx, z - cz).length()
+	var h := _skirt_cubic(x, z)
+	if d < 8.0:
+		h += (_bilinear(heights, cx, cz) - _skirt_cubic(cx, cz)) * (1.0 - smoothstep(0.0, 8.0, d))
+	return h
+
+
+func skirt_sample(i: int, j: int) -> float:
+	## Raw skirt height at sample (i, j), clamped to the image (the far mesh reads these directly).
+	return sk_heights[clampi(j, 0, sk_nz - 1) * sk_nx + clampi(i, 0, sk_nx - 1)]
+
+
+func _skirt_cubic(x: float, z: float) -> float:
+	var gx := (x - sk_origin.x) / sk_step
+	var gz := (z - sk_origin.y) / sk_step
+	var ix := floori(gx)
+	var iz := floori(gz)
+	var tx := gx - ix
+	var tz := gz - iz
+	var rows := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+	for r in 4:
+		var j := iz - 1 + r
+		rows[r] = _cr(skirt_sample(ix - 1, j), skirt_sample(ix, j), skirt_sample(ix + 1, j), skirt_sample(ix + 2, j), tx)
+	return _cr(rows[0], rows[1], rows[2], rows[3], tz)
+
+
+static func _cr(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
+	return p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)))
 
 
 func depth(x: float, z: float) -> float:

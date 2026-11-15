@@ -30,11 +30,15 @@ func _ready() -> void:
 		cyl.radius = t[2] * U
 		cyl.height = t[3] * U
 		_shape(body, cyl, Vector3(t[0], t[3] / 2.0, t[1]) * U)
-	for k in 6:  # the six front steps
-		var w := 15.0 - k * 0.5
-		var a := Vector3(-w, 0, -56 + k * 2.5) * U
-		var c := Vector3(w, 1.5 * (k + 1), -40) * U
-		_shape(body, _box(c - a), (a + c) / 2.0)
+	# front stairs: one walkable ramp wedge (stacked step boxes were walls to CharacterBody3D)
+	var ramp := ConvexPolygonShape3D.new()
+	var pts := PackedVector3Array()
+	for x in [-15.0, 15.0]:
+		pts.append(Vector3(x, 0, -56) * U)
+		pts.append(Vector3(x, 0, -40) * U)
+		pts.append(Vector3(x, 9, -40) * U)
+	ramp.points = pts
+	_shape(body, ramp, Vector3.ZERO)
 
 
 func _box(size: Vector3) -> BoxShape3D:

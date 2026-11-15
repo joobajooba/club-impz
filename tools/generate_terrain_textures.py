@@ -3,8 +3,13 @@
 Spec: docs/terrain_textures.md (built from blockbench_detailed_prompts.md
 sections 1.5, 3.12 and 5, and game_worlds.md section 4.8).
 
-Every texture is 128 x 128 (4 m at 32 px per metre) and tiles seamlessly in
+Every texture is 256 x 256 (4 m at 64 px per metre) and tiles seamlessly in
 both directions: all noise, cells and strokes wrap around the edges.
+
+K is the detail scale: the textures were first drawn at 128 x 128 (K = 1). At
+K = 2 every feature keeps its size on the ground (a blade, a pebble, a plank)
+but is drawn with twice the pixels, and fine grain (blades, specks, gravel)
+comes in K x K times the number, so the ground reads sharper and more detailed.
 
 Usage:
     python3 tools/generate_terrain_textures.py            # writes the PNGs
@@ -21,7 +26,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-S = 128
+K = 2           # detail scale (see the docstring); 1 gives the original 128 px textures
+S = 128 * K
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "godot-game" / "assets" / "textures" / "terrain"
 PREVIEW_DIR = ROOT / "tools" / "previews"  # git ignored
@@ -71,7 +77,7 @@ def fbm(cells, octaves, seed, cy=None):
 
 def clusters(seed):
     """Small 2 to 4 px clusters of shade change, centred on 0."""
-    n = 0.5 * value_noise(32, 32, seed) + 0.5 * value_noise(64, 64, seed + 7)
+    n = 0.5 * value_noise(32 * K, 32 * K, seed) + 0.5 * value_noise(64 * K, 64 * K, seed + 7)
     return n - 0.5
 
 
@@ -79,16 +85,16 @@ def shade(h, k):
     """Light from the top left: slopes facing up-left get lighter."""
     gx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) / 2
     gy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) / 2
-    return (gx + gy) * k
+    return (gx + gy) * k * K
 
 
 def voronoi(n, seed, sx=1.0, sy=1.0, warp=0.0):
     r = np.random.default_rng(seed)
-    pts = r.random((n, 2)) * S
-    yy, xx = np.mgrid[0:S, 0:S].astype(float)
+    pts = (r.random((n, 2)) * S).astype(np.float32)
+    yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
     if warp:
-        xx = xx + warp * (fbm(4, 2, seed + 1) - 0.5) * 2
-        yy = yy + warp * (fbm(4, 2, seed + 2) - 0.5) * 2
+        xx = xx + (warp * K * (fbm(4, 2, seed + 1) - 0.5) * 2).astype(np.float32)
+        yy = yy + (warp * K * (fbm(4, 2, seed + 2) - 0.5) * 2).astype(np.float32)
     dx = np.abs(xx[None] - pts[:, 0, None, None]) % S
     dy = np.abs(yy[None] - pts[:, 1, None, None]) % S
     dx = np.minimum(dx, S - dx) * sx
@@ -143,6 +149,8 @@ def blades(t, rmp, count, length=(2, 5), base=0.25, rise=0.4, under=None, lean=0
     """Short grass blades seen from above: dark root pixel, lighter tip."""
     r = t.r
     rows = []
+    count *= K * K
+    length = (length[0] * K, length[1] * K)
     for _ in range(count):
         rows.append((int(r.integers(S)), int(r.integers(S))))
     rows.sort(key=lambda p: p[1])
@@ -159,6 +167,7 @@ def blades(t, rmp, count, length=(2, 5), base=0.25, rise=0.4, under=None, lean=0
 
 
 def pebble(t, x, y, w, h, rmp, base=0.45, contrast=0.35, shadow=True):
+    w, h = w * K, h * K
     for j in range(-h, h + 1):
         for i in range(-w, w + 1):
             u = i / (w + 0.5)
@@ -172,6 +181,16 @@ def pebble(t, x, y, w, h, rmp, base=0.45, contrast=0.35, shadow=True):
 
 
 def flower(t, x, y, rmp, centre_rmp=None, size=1):
+    size *= K
+    if size >= 4:  # four round petals and a centre
+        for i, j, lv in ((0, -2, 0.95), (-2, 0, 0.85), (2, 0, 0.7), (0, 2, 0.6)):
+            for a, b in ((0, 0), (1, 0), (0, 1), (1, 1)):
+                t.px(x + i + a - 1 * (i > 0) + (i < 0), y + j + b - 1 * (j > 0) + (j < 0), rmp, lv)
+        for a, b in ((0, 0), (1, 0), (0, 1), (1, 1)):
+            t.px(x + a, y + b, centre_rmp if centre_rmp is not None else rmp, 0.9 - 0.1 * (a + b))
+        t.darken(x + 2, y + 3, 0.8)
+        t.darken(x + 3, y + 2, 0.8)
+        return
     if size == 1:
         t.px(x, y, rmp, 0.85)
         t.darken(x + 1, y + 1, 0.85)
@@ -184,6 +203,7 @@ def flower(t, x, y, rmp, centre_rmp=None, size=1):
 
 
 def leaf(t, x, y, length, width, angle, rmp):
+    length, width = length * K, width * K
     ca, sa = math.cos(angle), math.sin(angle)
     reach = int(length) + 1
     for j in range(-reach, reach + 1):
@@ -201,6 +221,7 @@ def leaf(t, x, y, length, width, angle, rmp):
 
 def stones(t, n, rmp, seed, sx=1.0, sy=1.0, warp=3.0, gap=1.2, radius=5.0, var=0.18, k=2.4, flat=False):
     f1, f2, ids = voronoi(n, seed, sx, sy, warp)
+    gap, radius = gap * K, radius * K
     edge = f2 - f1
     inside = edge > gap
     hgt = np.clip((edge - gap) / radius, 0, 1)
@@ -213,7 +234,7 @@ def stones(t, n, rmp, seed, sx=1.0, sy=1.0, warp=3.0, gap=1.2, radius=5.0, var=0
 
 def cracks(t, n, seed, width=0.9, warp=4.0, sx=1.0, sy=1.0, strength=0.72, mask=None):
     f1, f2, _ = voronoi(n, seed, sx, sy, warp)
-    c = (f2 - f1) < width
+    c = (f2 - f1) < width * K
     if mask is not None:
         c &= mask
     lit = np.roll(c, (1, 1), (0, 1)) & ~c
@@ -223,6 +244,7 @@ def cracks(t, n, seed, width=0.9, warp=4.0, sx=1.0, sy=1.0, strength=0.72, mask=
 
 
 def bubble(t, x, y, rad, rmp):
+    rad *= K
     for j in range(-rad - 1, rad + 2):
         for i in range(-rad - 1, rad + 2):
             d = math.hypot(i, j)
@@ -236,6 +258,19 @@ def bubble(t, x, y, rad, rmp):
 
 def scatter(t, count):
     return [(int(t.r.integers(S)), int(t.r.integers(S))) for _ in range(count)]
+
+
+def specks(t, count):
+    """Positions for single pixel specks and grit: K x K times as many, so the grain keeps its density."""
+    return scatter(t, count * K * K)
+
+
+def grit(t, x, y, rmp, level):
+    """A small stone or grain: K x K pixels, lit top left, with a contact shadow."""
+    for j in range(K):
+        for i in range(K):
+            t.px(x + i, y + j, rmp, level + 0.12 * (K > 1) * (1 - i - j))
+    t.darken(x + K, y + K, 0.86)
 
 
 # ---------------------------------------------------------------- ramps (dark to light, hue shifted)
@@ -286,6 +321,13 @@ R = {
     "hub_path": ramp("#3a2a1e", "#503826", "#664830", "#7c5a3c", "#926c48", "#a67e56", "#b89066"),
     "cobble": ramp("#2a2828", "#3c3834", "#504a44", "#665e56", "#7c736a", "#928a80", "#aaa298", "#c0b8ac"),
     "mortar": ramp("#1e1814", "#2a2218", "#3a3022", "#4a3e2c"),
+    # smooth cliff stone: many close shades, so broad gradients step softly instead of showing stones
+    "cliff_stone": ramp("#3a3e46", "#40444c", "#464a53", "#4c5059", "#52575f", "#595d66", "#5f646c", "#666a73",
+                        "#6c7179", "#737780"),
+    "cliff_stone_frost": ramp("#4e5868", "#545e6f", "#5b6575", "#616c7c", "#687383", "#6f7a8a", "#768191",
+                              "#7d8898", "#848f9f", "#8b96a6"),
+    "cliff_stone_sand": ramp("#6a5240", "#715845", "#785e4a", "#7f6450", "#866a55", "#8d715b", "#947761",
+                             "#9b7e67", "#a2846d", "#a98b73"),
 }
 
 
@@ -352,15 +394,16 @@ def forest_dirt(t):
     for _ in range(5):
         x, y = float(t.r.integers(S)), float(t.r.integers(S))
         ang = t.r.uniform(0, math.tau)
-        for _ in range(int(t.r.integers(14, 30))):
-            t.px(int(x), int(y), R["root"], 0.25)
+        for _ in range(int(t.r.integers(14, 30)) * K):
+            for w in range(K):
+                t.px(int(x), int(y) + w, R["root"], 0.25)
             t.px(int(x), int(y) - 1, R["root"], 0.75)
             ang += t.r.uniform(-0.4, 0.4)
             x += math.cos(ang)
             y += math.sin(ang)
     for x, y in scatter(t, 40):
         pebble(t, x, y, int(t.r.integers(1, 3)), int(t.r.integers(1, 2)), R["grey_stone"], base=t.r.uniform(0.4, 0.6))
-    for x, y in scatter(t, 120):
+    for x, y in specks(t, 120):
         t.px(x, y, R["forest_dirt"], 0.95)
     for x, y in scatter(t, 6):
         leaf(t, x, y, 2.5, 1.5, t.r.uniform(0, math.pi), R["leaf_brown"])
@@ -374,7 +417,7 @@ def forest_leaf_litter(t):
         leaf(t, x, y, t.r.uniform(2.2, 4.2), t.r.uniform(1.2, 2.2), t.r.uniform(0, math.pi), ramps[int(t.r.integers(len(ramps)))])
     for _ in range(6):
         x, y = int(t.r.integers(S)), int(t.r.integers(S))
-        for i in range(int(t.r.integers(5, 10))):
+        for i in range(int(t.r.integers(5, 10)) * K):
             t.px(x + i, y + i // 3, R["root"], 0.55)
             t.darken(x + i, y + i // 3 + 1, 0.8)
 
@@ -384,11 +427,10 @@ def path(t, rmp, gravel_rmp, gravel=220, flat_stones=10, grass_rmp=None):
     base = fbm(16, 3, t.seed())
     worn = fbm(8, 2, t.seed(), cy=2)  # long streaks along the path direction (v)
     t.fill(rmp, 0.28 + 0.3 * base + 0.18 * worn + 0.16 * clusters(t.seed()))
-    for x, y in scatter(t, 500):
+    for x, y in specks(t, 500):
         t.px(x, y, rmp, t.r.choice([0.15, 0.85]))
-    for x, y in scatter(t, gravel):
-        t.px(x, y, gravel_rmp, t.r.uniform(0.35, 0.85))
-        t.darken(x + 1, y + 1, 0.86)
+    for x, y in scatter(t, gravel * K):
+        grit(t, x, y, gravel_rmp, t.r.uniform(0.35, 0.85))
     for x, y in scatter(t, flat_stones):
         pebble(t, x, y, int(t.r.integers(2, 5)), int(t.r.integers(1, 3)), gravel_rmp, base=t.r.uniform(0.45, 0.6), contrast=0.25)
     if grass_rmp is not None:
@@ -423,7 +465,9 @@ def mountain_rock(t):
     t.fill(R["lichen"], 0.15 + 0.5 * fbm(32, 1, t.seed()), lich)
     for x, y in scatter(t, 12):
         for i, j in ((0, 0), (1, 0), (0, 1)):
-            t.px(x + i, y + j, R["lichen_orange"], 0.5 + 0.2 * i)
+            for a in range(K):
+                for b in range(K):
+                    t.px(x + i * K + a, y + j * K + b, R["lichen_orange"], 0.5 + 0.2 * i - 0.1 * b)
 
 
 def mountain_scree(t):
@@ -431,7 +475,7 @@ def mountain_scree(t):
     stones(t, 230, R["mountain_rock"], t.seed(), warp=2.0, gap=1.0, radius=2.5, var=0.22, k=2.2)
     for x, y in scatter(t, 12):
         pebble(t, x, y, int(t.r.integers(3, 6)), int(t.r.integers(2, 4)), R["mountain_rock"], base=t.r.uniform(0.45, 0.65))
-    for x, y in scatter(t, 25):
+    for x, y in specks(t, 25):
         t.px(x, y, R["lichen"], 0.6)
 
 
@@ -444,7 +488,7 @@ def snow(t, rmp, k=(3, 1), ripple=0.12, sparkles=50, warp=1.6):
     drift = fbm(4, 3, t.seed())
     lvl = 0.5 + 0.3 * drift + ripple * (h - 0.5) + shade(h * 4, 0.9) + 0.05 * clusters(t.seed())
     t.fill(rmp, lvl)
-    for x, y in scatter(t, sparkles):
+    for x, y in specks(t, sparkles):
         t.px(x, y, rmp, 1.0)
     return drift
 
@@ -477,10 +521,10 @@ def frost_ice(t):
     t.img[np.roll(big, (1, 1), (0, 1)) & ~big] *= np.array([0.78, 0.82, 0.9])
     t.fill(R["ice"], np.full((S, S), 1.0), big)
     cracks(t, 40, t.seed(), width=0.5, warp=4, strength=0.85)
-    for x, y in scatter(t, 30):
+    for x, y in specks(t, 30):
         t.px(x, y, R["ice"], 0.95)
         t.px(x + 1, y + 1, R["ice"], 0.6)
-    for x, y in scatter(t, 25):
+    for x, y in specks(t, 25):
         t.px(x, y, R["ice"], 1.0)
 
 
@@ -491,11 +535,11 @@ def frost_packed_snow(t):
     t.fill(R["packed_snow"], 0.25 + 0.3 * base + 0.25 * tracks + 0.1 * clusters(t.seed()))
     for x, y in scatter(t, 14):
         pebble(t, x, y, int(t.r.integers(2, 4)), int(t.r.integers(1, 3)), R["packed_snow"], base=0.45, contrast=-0.3, shadow=False)
-    for x, y in scatter(t, 300):
+    for x, y in specks(t, 300):
         t.px(x, y, R["packed_snow"], t.r.choice([0.2, 0.9]))
-    for x, y in scatter(t, 20):
-        t.px(x, y, R["forest_dirt"], 0.35)
-    for x, y in scatter(t, 30):
+    for x, y in scatter(t, 20 * K):
+        grit(t, x, y, R["forest_dirt"], 0.35)
+    for x, y in specks(t, 30):
         t.px(x, y, R["ice"], 0.85)
 
 
@@ -547,8 +591,8 @@ def plains_dirt(t):
     dust = fbm(4, 2, t.seed()) > 0.6
     t.fill(R["plains_dirt"], 0.6 + 0.25 * base + 0.05 * clusters(t.seed()), dust)
     cracks(t, 34, t.seed(), width=0.8, warp=5, strength=0.68)
-    for x, y in scatter(t, 80):
-        t.px(x, y, R["plains_rock"], t.r.uniform(0.4, 0.8))
+    for x, y in scatter(t, 80 * K):
+        grit(t, x, y, R["plains_rock"], t.r.uniform(0.4, 0.8))
     for x, y in scatter(t, 10):
         pebble(t, x, y, int(t.r.integers(1, 3)), 1, R["plains_rock"], base=0.5)
     for x, y in scatter(t, 10):
@@ -557,18 +601,19 @@ def plains_dirt(t):
 
 def plains_rock(t):
     yy = np.mgrid[0:S, 0:S][0].astype(float)
-    wob = 8 * (fbm(4, 2, t.seed()) - 0.5)
-    band = np.floor((yy + wob) / 8).astype(int) % 16
+    bh = 8 * K
+    wob = bh * (fbm(4, 2, t.seed()) - 0.5)
+    band = np.floor((yy + wob) / bh).astype(int) % 16
     offs = t.r.uniform(-0.2, 0.2, 16)
     grain = fbm(8, 3, t.seed(), cy=32)
-    h = ((yy + wob) % 8) / 8
+    h = ((yy + wob) % bh) / bh
     lvl = 0.45 + offs[band] + 0.2 * (grain - 0.5) + 0.12 * (0.5 - h) + 0.08 * clusters(t.seed())
     t.fill(R["plains_rock"], lvl)
-    ledge = ((yy + wob) % 8) < 1
+    ledge = ((yy + wob) % bh) < K
     t.fill(R["plains_rock"], np.full((S, S), 0.15), ledge)
     t.fill(R["plains_rock"], np.full((S, S), 0.9), np.roll(ledge, 1, 0) & ~ledge)
     cracks(t, 20, t.seed(), width=0.5, warp=3, sx=1.6, sy=0.5)
-    for x, y in scatter(t, 40):
+    for x, y in specks(t, 40):
         t.px(x, y, R["plains_rock"], 1.0)
 
 
@@ -586,15 +631,16 @@ def swamp_mud(t):
     rim = pools & ~np.roll(pools, (-1, -1), (0, 1))
     t.fill(R["swamp_water"], np.full((S, S), 0.95), rim)
     cracks(t, 28, t.seed(), width=0.7, warp=5, strength=0.7, mask=wet > 0.55)
-    for x, y in scatter(t, 70):
+    for x, y in specks(t, 70):
         if not pools[y, x]:
             t.px(x, y, R["swamp_water"], 1.0)
     for x, y in scatter(t, 14):
         if pools[y, x]:
             bubble(t, x, y, 1, R["swamp_water"])
     for x, y in scatter(t, 8):
-        for i in range(int(t.r.integers(3, 7))):
+        for i in range(int(t.r.integers(3, 7)) * K):
             t.px(x + i, y, R["root"], 0.5)
+            t.px(x + i, y + 1, R["root"], 0.3)
 
 
 def swamp_moss(t):
@@ -603,11 +649,12 @@ def swamp_moss(t):
     for x, y in scatter(t, 160):
         pebble(t, x, y, int(t.r.integers(2, 5)), int(t.r.integers(2, 4)), R["swamp_moss"], base=t.r.uniform(0.35, 0.6), contrast=0.3)
     blades(t, R["swamp_moss"], 900, (1, 2), base=0.4, rise=0.4, under=base, shadow=False)
-    for x, y in scatter(t, 300):
+    for x, y in specks(t, 300):
         t.px(x, y, R["swamp_moss"], t.r.uniform(0.7, 1.0))
     for x, y in scatter(t, 40):
-        t.px(x, y, R["flower_yellow"], 0.2)
-        t.px(x, y - 1, R["lichen"], 0.8)
+        for k in range(K):
+            t.px(x, y + k, R["flower_yellow"], 0.2)
+            t.px(x, y - 1 - k, R["lichen"], 0.8)
 
 
 def swamp_grass(t):
@@ -618,7 +665,7 @@ def swamp_grass(t):
     for x, y in scatter(t, 600):
         if damp[y, x]:
             blades(t, R["swamp_grass"], 1, (2, 4), base=0.25, rise=0.5)
-    for x, y in scatter(t, 60):
+    for x, y in specks(t, 60):
         t.px(x, y, R["swamp_moss"], 0.8)
 
 
@@ -632,13 +679,13 @@ def swamp_slime(t):
     for x, y in scatter(t, 26):
         if not mud[y, x]:
             bubble(t, x, y, int(t.r.integers(1, 4)), R["slime"])
-    for x, y in scatter(t, 80):
+    for x, y in specks(t, 80):
         if not mud[y, x]:
             t.px(x, y, R["slime"], 1.0)
 
 
 def swamp_boardwalk(t):
-    plank_h = 16
+    plank_h = 16 * K
     grain = fbm(4, 3, t.seed(), cy=32)
     t.fill(R["board"], 0.3 + 0.4 * grain + 0.1 * clusters(t.seed()))
     for p in range(S // plank_h):
@@ -647,28 +694,79 @@ def swamp_boardwalk(t):
         seams = sorted(int(v) for v in t.r.integers(0, S, int(t.r.integers(1, 3))))
         off = t.r.uniform(-0.15, 0.15)
         t.img[rows] *= 1 + off
-        t.fill(R["board_gap"], np.full((S, S), 0.3), np.isin(np.arange(S), [y0, y0 + 1])[:, None] & np.ones((1, S), bool))
-        t.img[y0 + 2] *= 1.14
+        gap = 2 * K
+        t.fill(R["board_gap"], np.full((S, S), 0.3), np.isin(np.arange(S), list(range(y0, y0 + gap)))[:, None] & np.ones((1, S), bool))
+        t.img[y0 + gap] *= 1.14
         t.img[y0 + plank_h - 1] *= 0.82
         for sx in seams:
-            for y in range(y0 + 2, y0 + plank_h):
-                t.px(sx, y, R["board_gap"], 0.2)
-                t.darken(sx + 1, y, 0.85)
-            for dx in (-3, 3):
-                for ny in (y0 + 5, y0 + plank_h - 4):
-                    t.px(sx + dx, ny, R["nail"], 0.8)
-                    t.px(sx + dx + 1, ny + 1, R["nail"], 0.2)
+            for y in range(y0 + gap, y0 + plank_h):
+                for w in range(K):
+                    t.px(sx + w, y, R["board_gap"], 0.2)
+                t.darken(sx + K, y, 0.85)
+            for dx in (-3 * K, 3 * K):
+                for ny in (y0 + 5 * K, y0 + plank_h - 4 * K):
+                    for a in range(K):
+                        for b in range(K):
+                            t.px(sx + dx + a, ny + b, R["nail"], 0.8 - 0.25 * (a + b))
+                    t.px(sx + dx + K, ny + K, R["nail"], 0.2)
         for _ in range(int(t.r.integers(0, 2))):
-            kx, ky = int(t.r.integers(S)), y0 + int(t.r.integers(5, plank_h - 4))
+            kx, ky = int(t.r.integers(S)), y0 + int(t.r.integers(5 * K, plank_h - 4 * K))
             pebble(t, kx, ky, 2, 1, R["board"], base=0.2, contrast=0.2, shadow=False)
     moss = fbm(8, 3, t.seed()) > 0.76
     t.fill(R["moss"], 0.2 + 0.5 * fbm(32, 2, t.seed()), moss)
 
 
+def smooth_stone(t, rmp):
+    """Smooth, weathered cliff stone: one solid face with soft tonal drift and gentle horizontal bedding.
+    No stones, pebbles, cracks, lichen or hue blotches. Tone steps between close shades with a 4 x 4 ordered
+    dither, so gradients read smooth instead of as blobs with hard outlines. Rows of the tile run along world
+    height on cliff faces (the side projections use y as v), and the bedding depends on the row (plus a slow
+    wobble), so it lines up across the seams between the x and z projections. The shader adds the large scale
+    light and dark, so the tile itself stays low contrast and doesn't show its repeat."""
+    yy, xx = np.mgrid[0:S, 0:S].astype(float)
+    broad = fbm(2, 2, t.seed())
+    mid = fbm(4, 2, t.seed())
+    wob = 4 * K * (fbm(3, 2, t.seed()) - 0.5)
+    v = (yy + wob) / S
+    bands = 0.6 * np.sin(2 * math.pi * 3 * v + 1.3) + 0.4 * np.sin(2 * math.pi * 5 * v + 0.4)
+    lvl = 0.5 + 0.2 * (broad - 0.5) + 0.1 * (mid - 0.5) + 0.025 * bands
+    bayer = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]], float) / 16.0
+    # one dither cell is K x K texels, so it reads at the same size on the ground at any K
+    dith = np.kron(bayer, np.ones((K, K)))
+    dith = np.tile(dith, (S // dith.shape[0], S // dith.shape[1]))
+    n = len(rmp) - 1
+    idx = np.clip(np.floor(lvl * n + dith), 0, n).astype(int)
+    t.img[:] = rmp[idx]
+    # one faint bedding joint: a darker texel row with a lit lip under it, fading in and out along the face
+    for y0 in (int(S * 0.62),):
+        line_wob = 2 * K * (fbm(3, 2, t.seed())[0] - 0.5)
+        fade = fbm(3, 2, t.seed())[0]
+        for x in range(S):
+            if fade[x] < 0.45:
+                continue
+            k = min(1.0, (fade[x] - 0.45) / 0.2)
+            y = int(round(y0 + line_wob[x])) % S
+            for a in range(K // 2 or 1):
+                t.img[(y + a) % S, x] *= 1 - 0.07 * k
+            t.img[(y + max(1, K // 2)) % S, x] *= 1 + 0.04 * k
+
+
+def cliff_stone(t):
+    smooth_stone(t, R["cliff_stone"])
+
+
+def cliff_stone_frost(t):
+    smooth_stone(t, R["cliff_stone_frost"])
+
+
+def cliff_stone_sand(t):
+    smooth_stone(t, R["cliff_stone_sand"])
+
+
 TEXTURES = [
     ("hub", "hub_grass", hub_grass),
     ("hub", "hub_dirt_path", hub_dirt_path),
-    ("hub", "hub_cobblestone", hub_cobblestone),
+    # hub_cobblestone is made at 256 px by tools/generate_hub_cobblestone.py (more detail, 2026-11-09)
     ("forest", "forest_grass", forest_grass),
     ("forest", "forest_grass_dry", forest_grass_dry),
     ("forest", "forest_dirt", forest_dirt),
@@ -694,6 +792,10 @@ TEXTURES = [
     ("swamp", "swamp_grass", swamp_grass),
     ("swamp", "swamp_slime", swamp_slime),
     ("swamp", "swamp_boardwalk", swamp_boardwalk),
+    # appended (layer indices 28 to 30), so the indices above never move
+    ("cliff", "cliff_stone", cliff_stone),
+    ("cliff", "cliff_stone_frost", cliff_stone_frost),
+    ("cliff", "cliff_stone_sand", cliff_stone_sand),
 ]
 
 

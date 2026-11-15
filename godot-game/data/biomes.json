@@ -28,7 +28,10 @@
     "swamp_moss",
     "swamp_grass",
     "swamp_slime",
-    "swamp_boardwalk"
+    "swamp_boardwalk",
+    "cliff_stone",
+    "cliff_stone_frost",
+    "cliff_stone_sand"
   ],
   "band_depth": 256.0,
   "blend_half_width": 22.5,
@@ -55,7 +58,10 @@
         "wet": 5,
         "special": 2,
         "path": 1,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": -1,
+        "cap": -1,
+        "cap_y": 9999
       },
       "env": {
         "sky_top": "#8fc8f0",
@@ -88,9 +94,13 @@
         "high": -1,
         "high_y": 999,
         "wet": 5,
-        "special": -1,
+        "special": 9,
+        "special_on_steep": true,
         "path": 7,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 28,
+        "cap": 11,
+        "cap_y": 140
       },
       "env": {
         "sky_top": "#8fc8f0",
@@ -117,16 +127,19 @@
         "patch": -1,
         "patch_threshold": 1.0,
         "litter": -1,
-        "steep": 9,
+        "steep": 28,
         "steep_slope": 0.4,
         "mid": 10,
         "mid_slope": 0.22,
         "high": 11,
-        "high_y": 72,
+        "high_y": 55,
         "wet": 10,
         "special": -1,
         "path": 12,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 28,
+        "cap": 11,
+        "cap_y": 55
       },
       "env": {
         "sky_top": "#a8c4e0",
@@ -153,7 +166,7 @@
         "patch": 17,
         "patch_threshold": 0.8,
         "litter": -1,
-        "steep": 16,
+        "steep": 29,
         "steep_slope": 0.42,
         "mid": -1,
         "high": 13,
@@ -161,7 +174,10 @@
         "wet": 14,
         "special": -1,
         "path": 15,
-        "border_patch": 1.0
+        "border_patch": 1.0,
+        "cliff": 29,
+        "cap": 13,
+        "cap_y": 30
       },
       "env": {
         "sky_top": "#3a78d8",
@@ -188,7 +204,7 @@
         "patch": 19,
         "patch_threshold": 0.7,
         "litter": -1,
-        "steep": 21,
+        "steep": 30,
         "steep_slope": 0.4,
         "mid": -1,
         "high": 21,
@@ -196,7 +212,10 @@
         "wet": 20,
         "special": 19,
         "path": 22,
-        "border_patch": 0.0
+        "border_patch": 0.0,
+        "cliff": 30,
+        "cap": -1,
+        "cap_y": 9999
       },
       "env": {
         "sky_top": "#90b8d8",
@@ -230,8 +249,11 @@
         "high_y": 3.6,
         "wet": 23,
         "special": 26,
-        "path": 27,
-        "border_patch": 0.0
+        "path": 5,
+        "border_patch": 0.0,
+        "cliff": 28,
+        "cap": 8,
+        "cap_y": 20
       },
       "env": {
         "sky_top": "#7aa898",
@@ -261,5 +283,6 @@
     "rare": 22.0
   },
   "foliage_view_distance": 46.0,
-  "tree_view_distance": 180.0
+  "tree_view_distance": 180.0,
+  "_doc_cliff": "cliff / cap / cap_y: outside the world's border (the skirt's cliffs and mountains) steep ground uses the cliff layer and ground above cap_y the cap layer (snow, or mountain grass round the swamp)."
 }

@@ -1,0 +1,20 @@
+fence pieces: 95 (92 rails, 3 lone posts), models: fence_post post +0.0000,+0.0000 rail end None, fence_rail post -1.0000,+0.0000 rail end 1.0, fence_rail_short post -0.5938,+0.0000 rail end 0.59375
+
+1. rail ends with no post within 0.05 m: 0
+
+2. posts closer than 0.1 m: 0
+
+3. side fence ends not on the front fence line or the back of the plot: 0
+
+4. plot closure (player radius 0.3 m):
+   smelter: closed except its gateway
+   blacksmith: closed except its gateway
+   carpenter: closed except its gateway
+   sawyer: closed except its gateway
+   tanner: closed except its gateway
+   herbalist: closed except its gateway
+   passage: closed except its front and back (passage)
+   brewer: closed except its gateway
+   plots open elsewhere: 0
+
+total problems (1-3): 0

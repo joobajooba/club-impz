@@ -25,8 +25,10 @@
 | Space | Jump |
 | Right mouse drag | Orbit the camera |
 | Mouse wheel | Zoom (3 to 14 m) |
-| F3 | Toggle the debug overlay (FPS, draw calls, position, biome) |
-| F4 | Teleport to the next biome centre (resource world) |
+| 3 | Toggle the debug overlay (FPS, draw calls, position, biome) |
+| 4 | Teleport to the next biome centre (resource world) |
+| 5 | Flip between day and night (2 s fade, restarts the 30 minute timer) |
+| 6 | Toggle fast sprint (sprint at 5x speed, for testing) |
 
 ---
 
@@ -41,7 +43,7 @@ godot-game/
   scripts/  main.gd, debug_overlay.gd
             player/   imp_player.gd (controller + camera), imp_visual.gd (placeholder imp)
             terrain/  world_data.gd (loads the baked data), terrain_world.gd (chunks, colliders, far mesh, material)
-            world/    game_world.gd, scatter.gd, hub_props.gd, hub_castle.gd, resource_landmarks.gd, portal.gd,
+            world/    game_world.gd, scatter.gd, hub_town.gd, hub_castle.gd, resource_landmarks.gd, portal.gd,
                       prop_placeholder.gd, ore_vein_placeholder.gd
             environment/ biome_environment.gd
             tools/    bake_world_data.gd, model_lineup.gd
@@ -63,9 +65,9 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | File | Size | Contents |
 | --- | --- | --- |
 | `resource_terrain.png` | 641 × 257 (2 m per pixel) | **RG** = height, 16 bit: `height = (R × 256 + G) / 200 − 20` m. **BA** = warped depth `s`, 16 bit: `s = (B × 256 + A) / 50` m |
-| `resource_mask.png` | 1280 × 512 (1 m per pixel) | **R** path, **G** wet / low ground (riverbanks, frozen lake, dry riverbeds), **B** special patch (plains green grass at the watering hole, swamp slime at the dreadstone pit), **A** forest leaf litter / tree clusters |
+| `resource_mask.png` | 1280 × 512 (1 m per pixel) | **R** path, **G** wet / low ground (riverbanks, frozen lake, dry riverbeds), **B** special patch (plains green grass at the watering hole, swamp slime at the dreadstone pit, rock on the forest waterfall cliff), **A** forest leaf litter / tree clusters |
 | `resource_layout.json` | | Main path and branch polylines, landmark positions, water planes, waterfall, spawn point |
-| `hub_terrain.png`, `hub_mask.png`, `hub_layout.json` | 101 × 101 / 200 × 200 | Same for the 200 × 200 m hub. Mask **R** dirt paths, **B** cobblestone |
+| `hub_terrain.png`, `hub_mask.png`, `hub_layout.json` | 101 × 101 / 200 × 200 | The flat 200 × 200 m hub, baked from `hub_town.json` (section "The hub town"). Mask **R** dirt walks, **B** cobblestone |
 
 **Repainting:** the masks can be painted by hand (keep the channel meanings). The height map is 16 bit split over two channels, so edit it through the bake script rather than by hand. If you hand paint a mask, stop re-baking or the bake will overwrite it.
 
@@ -97,7 +99,8 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | `wet` | Mask G (riverbanks, frozen lake ice, dry riverbeds) |
 | `high`, `high_y` | Above a height (mountain snow, plains mesa tops, swamp islands) |
 | `mid`, `mid_slope` | Moderate slopes (mountain scree below cliffs) |
-| `special` | Mask B (plains green grass, swamp slime, hub cobblestone) |
+| `special` | Mask B (plains green grass, swamp slime, hub cobblestone, forest waterfall cliff rock) |
+| `special_on_steep` | Forest only: steep cells inside the special patch use the special layer, not `steep` |
 | `steep`, `steep_slope` | Cliffs (triplanar) |
 | `path` | Mask R |
 | `border_patch` | Frost only: tundra gets more likely near the biome borders |
@@ -106,7 +109,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 
 - **Planes:** flat water planes from `water` in the layout JSON: the forest river below and above the waterfall, the frost open pool, the plains watering hole, and the swamp water over the whole swamp. The colour is the biome's `water` value in `biomes.json`.
 - **Look:** stepped pixel ripples snapped to 32 px per metre, soft transparency, no refraction.
-- **Waterfall:** the same shader on a vertical quad with `flow` > 0.
+- **Waterfall:** a ribbon draped over the baked notch (`game_world.gd _make_waterfall`), from the pool channel over the crest and down the face into the river, drawn over the pools (render priority 1). The same shader with `flow` > 0: ripples and white streaks scroll down it, faster on the face. A foam disc and CPU spray sit at the foot.
 
 ---
 
@@ -152,7 +155,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 | Wildflowers, alpine flowers, plains flowers (rose with recoloured petals) | Forest, mountain, plains | Their own flower models |
 | `dry_grass_tuft`, `frost_grass_tuft`, `tundra_grass_tuft`, `mountain_grass_tuft`, `plains_tall_grass`, `swamp_grass_tuft` (recoloured forest grass tufts) | All biomes | Fine as recolours (section 4.10), or dedicated models |
 | `forest_fern`, `forest_reeds`, `heather_bush`, `red_flame_bush`, `copper_autumn_bush`, `frost_bush`, `frozen_dead_bush`, `berry_shrub`, `wild_wheat`, `dry_bush`, `swamp_reeds`, `swamp_fern`, `swamp_big_leaf`, `giant_mushroom` (recoloured tufts and bushes, all `_placeholder` in `scatter.json`) | Biomes | Their models from `game_worlds.md` section 4.10 |
-| Landmarks: `stone_ruin`, `standing_stones`, `obsidian_vent` (cave), `giant_stone_peak_cairn`, `frozen_waterfall`, `ice_spire`, `stone_arch`, `pillar_ring`, `hollow_tree`, `dreadstone_pit`, `sunken_ruins`, `log_bridge` | Resource world | Landmark models |
+| Landmarks: `stone_ruin`, `standing_stones`, `obsidian_vent` (cave), `giant_stone_peak_cairn`, `frozen_waterfall`, `ice_spire`, `stone_arch`, `pillar_ring`, `hollow_tree`, `dreadstone_pit`, `sunken_ruins`, `log_bridge`, `waterfall_rocks` (boulder clusters at the forest waterfall's crest corners and plunge pool, plus stepping stones) | Resource world | Landmark models |
 | Not placed yet | | Lily pads, hanging moss, glow fungus, cave glow mushrooms, ice and gem crystal clusters, ground leaf litter models, mobs |
 | Ambient sounds | Every biome | Loops for the `ambient_<biome>` players |
 
@@ -163,7 +166,7 @@ tools/      bbmodel_to_gltf.py, generate_terrain_textures.py
 1. **Godot 4.7.2** (the installed stable). GDScript warning "inference on Variant" is set to a warning instead of an error.
 2. **glTF UVs are not flipped.** glTF's UV origin is the top-left of the image, the same as Blockbench's pixel UVs, so flipping V (as the build prompt suggested) would turn the textures upside down.
 3. **Converter output:** one mesh per model. Materials are split by texture and kind (solid, double-sided card, `_glow` emissive), with nearest sampling and alpha MASK where the texture has transparency. Group rotations are baked in; animations are skipped.
-4. **The hub castle** uses J00BA's `hub_castle` Blockbench model (not a block-out), with box and cylinder colliders from its own block sizes. It is shown at **2.5×** model scale (about 40 m wide) so the centrepiece reads across the village; `CASTLE_SCALE` in `hub_props.gd` sets it.
+4. **The hub castle** uses J00BA's `hub_castle` Blockbench model (not a block-out), with box and cylinder colliders from its own block sizes. It is shown at **2.5×** model scale (about 40 m wide) so the centrepiece reads across the town; its scale is the castle placement's scale in `build_hub_town.py`.
 5. **Terrain textures import as Image resources** (not textures), so building the texture array never reads back from the GPU. That readback hung the game now and then on this machine.
 6. **Gravity** is 12 m/s² for a snappier jump. The imp walks slopes up to 46°.
 7. **Biome switching** uses the band boxes (x ranges). The shader and the scatter use the exact warped border.
@@ -199,3 +202,61 @@ Measured with `--perf=4` (desktop, 1280 × 720, standing at each biome centre, c
 - Those headless runs use SwiftShader (CPU rendering), so their 4 to 10 FPS overlay reading isn't a real-GPU number. On a normal browser with a GPU, expect frame rates close to the desktop table above.
 - Portals were tested both ways with `--portal_test` (hub → resource → hub).
 - Nothing failed only in the web build.
+
+---
+
+## 9. World generation fixes
+
+- **Walkable terrain:** after the height pass, `bake_world_data.gd` blurs the heights (3 passes of a 5 × 5 box blur, skipping the edge ring) and limits the slopes. The limit is about 35° everywhere and about 20° in path corridors, which now include the branch paths. Peaks above 70 m, the edge ring, the frost ice cliffs and the waterfall stay steep, except where a path runs through them. The bake prints a check line; currently it shows 0 cells over 44°, a 19.8° max path grade and 0 water leaks.
+- **Water banks:** each water rect's bed is sunk 0.5 m under the level, and its edges are raised to 0.4 m above it. A slope cone raises the dry land next to those banks, so water never pokes out over low ground. The upper pool leaves only through the waterfall notch; everywhere else along its shared border with the river a bank of at least 10.5 m closes it off. Still water also fades out over the last 0.75 m inside its rect, so no plane shows a straight cut line. The bake's `edge leaks` check counts rect border cells with the terrain under the water (target 0). Path corridors through water (the swamp) are kept 0.25 m above the water so the path stays dry.
+- **Swamp path** uses `forest_dirt` instead of `swamp_boardwalk`.
+- **World edges (2026-11-10):** the resource world no longer ends in a drop. Low foothills (`_edge_ring`, at most about 20°) level off at the border, and `resource_skirt.png` (4 m per pixel, 512 m past each side, its own height scale in `layout.skirt`) holds the cliffs and mountains outside: a 2 to 4.5 m shelf, a 46 to 76 m cliff at 60 to 70° with buttresses, gullies and ledges, then a ridged range up to about 300 m. `WorldData.height` answers outside the border from the skirt (Catmull-Rom, matched to the border height). `TerrainWorld` builds one ring of detailed chunks with colliders outside the border and stretches the far mesh over the whole skirt; invisible walls stand 34 m out. A flood fill over the skirt at the Imp's 46° limit reaches at most 16 m past the border, so nobody reaches the cliff tops. Outside the border the shader paints steep ground with the biome's `cliff` layer and high ground with its `cap` layer (`biomes.json`).
+- **Smoother ground (2026-11-10):** the mountain pass and mesa path clamps use a smooth min / max instead of `minf` / `maxf`, and `_soften` rounds off creases and pits after the water is shaped (cells more than 8 cm off their 3 × 3 average move most of the way to it, within the slope limits, away from shores and the waterfall). Sharp cells (curvature over 1 m) fell from 526 to 159.
+- **Cleaner texture edges (2026-11-10):** slopes take one projection (the dominant axis) instead of blending three, which smeared and doubled pixels, and layer edges follow the mask's smooth contour with a few texels of raggedness instead of per-pixel speckle.
+- **Terrain textures:** every layer is now sampled triplanar (blend sharpness 8, flat ground takes a single sample), with anisotropic nearest filtering, so scree and slopes no longer stretch.
+- **Water shader:** a Compatibility-safe lookalike of the stylised water J00BA asked for. That asset store shader needs Forward+ and has a proprietary licence, so it couldn't be used. The lookalike has 4 depth colour bands from a per-rect depth map (built in `game_world.gd` `_make_water`), shore foam, a fade to clear at the waterline, 0.04 m vertex waves and toon sparkles.
+- **Sky and day/night:** `shaders/sky_day_night.gdshader` draws the gradient, pixel-stepped drifting clouds, the sun, and at night the moon and stars. The cycle is 30 minutes of day and 30 of night, with a 60 s fade. At night the one DirectionalLight3D becomes moonlight (#9fb4ff, energy 0.18), ambient energy drops to 45 % and the fog darkens. It is blended on top of the biome presets in `biome_environment.gd`. The debug flag `--night` starts at night.
+- **Castle stairs** are one walkable ramp collider (about 29°) instead of six stacked step boxes.
+- **Ores** only spawn on walkable ground (slope ≤ 0.3, and not at the foot of a cliff).
+- **Foliage:** grass, bushes, ferns, reeds and mushrooms are about twice as dense, and flowers 1.25 times. Forest now draws 271 calls and plains 156, both at 60 fps.
+- **Screenshots** of these fixes are in `docs/images/world_fixes/`.
+- **Smoothing pass (soft hills, no sharp edges).** The mountain ridge noise is FBM, not ridged, at 1/160 with 3 octaves. Detail noise is 1/60. Hills, peaks, mesas, ice cliffs and swamp islands are all lower and wider. The border ring is `pow(1 - smoothstep(4, 80, e), 1.6) * (40 + low-frequency hill noise)`: rounded hills instead of spikes. Snow on the mountains starts at 55 m.
+- **Post-process.** The whole grid, edge ring included, gets 5 passes of a 5×5 blur. The slope limiter then caps slopes at 24° (normal), 17° (paths) and 37° (`rugged`: the high mountain band and the edge ring). After that come 2 more blur passes and a second limiter pass. Only the 6 m round the waterfall is exempt.
+- **Soft shores.** Each water rect has a wet mask with a noisy 6 ± 4 m margin, so there are no straight lines. Sides that meet the edge ring or another water rect have no margin. A chamfer distance transform shapes a 1:8 shelf under the water, down to 1.4 m deep. On land, a bank rises from the waterline. Within 12 m of the water the land rises at most 0.3 m per 2 m cell, and the first wet cells are raised to meet it. Both sides stay at least 0.1 m clear of the waterline.
+- **Swamp path.** Through the water it now blends up to `level + 0.35` over 2.5 to 7 m, instead of a raised strip with square edges.
+- **Water shader.** The depth map is 2 px per metre and sampled in smooth world coordinates. The colour is a smooth shallow-to-deep gradient. Foam is a soft half-strength band, and alpha fades out over the first 22 cm of depth, which hides the triangle edge at the waterline. There are fewer sparkles and smaller waves.
+- **Water kept through the smoothing.** Cells that were under water before the blur get their carved height back afterwards. Each water bed is a smooth bowl: at most 0.3 m per 2 m cell, and 1.4 m deep. The river covers 12% of its rect (11% before smoothing). The swamp covers 10% (26% before), because tiny puddles now get proper shores and merge into the land. Dry land only has to stay above a water level inside that water's rect, or within 4 m of the water. Further out the bank blends back into the land.
+- **Waterfall cliff line.** The river (3 m) meets the upper pool (10 m) along x = 211. The pool pours through a 10 m notch at the waterfall landmark: a channel (bed 9.4), a rounded crest (9.7, 0.3 m of water), a 4 m face down to a plunge pool (at most 1.6, 1.4 m under the river). Everywhere else a bank of at least 10.5 m runs along x 209..216 and falls west to the river at 37° (`rugged`, a 23 × 60 m band). Only the notch (x 200..218, 12 m wide) is fully exempt, and rect sides shared with other water are open only there. The steep cliff is baked into mask B, so it shows forest's special layer (mountain_rock, `special_on_steep`). `waterfall_rocks` boulders hide the corners, bank plants (`waterfall_bank_plants`, a 4..14 m ring) cover the seams, and nothing is scattered on the falling water.
+- **BAKE CHECK** after smoothing: 0 leaks, 0 cells over 30° outside the waterfall or rugged ground, path grade 16.7° (target 18°), shore step 0.30 m (target 0.3).
+
+## The hub town
+
+J00BA, 2026-11-09: the hub is flat (no edge hills) and walled. A 150 m square of the castle wall kit (`hub_wall_segment` and `hub_wall_pillar` at 2.5×, 4 m tall) encloses a small town. Outside the walls there is a ring of flat grass with trees, as a backdrop.
+
+- **The plan** is `godot-game/data/hub_town.json`, written by `build scripts/build_hub_town.py` (run it with `--preview plan.png` for a top-down map). After changing the plan, re-bake the hub: `godot --headless --path godot-game --script res://scripts/tools/bake_world_data.gd -- --hub_only`.
+- **Districts:**
+  - north: the castle with a cobbled forecourt and a formal garden on its east side (hedges, topiary, blossom trees, path lanterns)
+  - north-west: the wizard's garden, behind the crafters' yard. The wizard tower (`assets/models/buildings/wizard_tower`, shown at 1.5×, about 35 m tall, with an animated `idle`) stands at the head of the garden walk, with its door facing south. Around it:
+    - a rune circle with a floating crystal (animated)
+    - crystal clusters
+    - a spellbook lectern
+    - violet arcane lamps
+    - a `wizard` NPC spot at the door
+
+    The props are in `assets/models/props/arcane/` (`build scripts/build_arcane_props.py`). Animated models are their own scene instances in `hub_town.gd`, not MultiMeshes.
+  - centre: the town square on the grand avenue
+  - east: the market (eight stalls facing Market Street)
+  - west: the crafters' yard, where each station is its own fenced workshop plot on Market Street (smelter, blacksmith, carpenter, sawyer, tanner, herbalist, brewer with its potion stall). Each plot has:
+    - a lean-to shelter: forge (stone wall, slate roof), timber (plank wall, shake roof) or apothecary (plaster wall, teal roof)
+    - a hanging trade sign
+    - trade props from `assets/models/props/workshop/` (`build scripts/build_workshop_props.py`)
+    - an open passage plot leading to Rose Lane
+  - south: Rose Lane and Orchard Lane with 32 houses, the orchard, and the portal plaza by the south wall, where players arrive
+- **Routes:** portal → avenue → square → castle runs straight north. Market Street runs straight from the yard through the square to the market. The connectors at x ±44 link the squares to the lanes and the gardens.
+- **`scripts/world/hub_town.gd`** builds the plan:
+  - one MultiMesh per model type, merged from the Blockbench glb; `*_glow` cubes go on an emissive surface
+  - box colliders from each model's ground footprint
+  - OmniLights on the lamps (40), which fade in with `BiomeEnvironment.night` and fade out beyond 38 m
+  - the portal
+- **NPC spots:** `Marker3D` nodes under `hub_town/npc_spots/`, 19 of them. Each has a `role` meta, and its rotation is the way the NPC should face. Vendors stand beside the right end of each stall counter, facing the customers. Crafters stand in front of their station, facing it. There is also a herald at the castle steps.
+- **Scatter:** `no_scatter` footprints in `hub_layout.json` stop grass and flowers growing through buildings and decorations. The `outside_rect` rule key keeps hub trees and bushes outside the walls.
