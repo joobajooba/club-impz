@@ -5,6 +5,8 @@ extends Node3D
 
 @export var data_prefix := "resource"
 @export var fixed_biome := -1
+## A biome world (J00BA, 2026-11-15): the resource bake cut to one biome, ringed by peaks (WorldData band lock).
+@export var band_lock := false
 @export var view_chunks := 4
 
 var terrain: TerrainWorld
@@ -19,8 +21,9 @@ func _ready() -> void:
 	terrain.name = "terrain"
 	terrain.data_prefix = data_prefix
 	terrain.fixed_biome = fixed_biome
+	terrain.band_lock = band_lock
 	terrain.view_chunks = view_chunks
-	terrain.far_mesh = fixed_biome < 0
+	terrain.far_mesh = fixed_biome < 0 or band_lock   # biome worlds keep the far peaks on the horizon
 	add_child(terrain)
 	var t0 := Time.get_ticks_msec()
 	terrain.setup()
@@ -147,7 +150,9 @@ func _make_markers() -> void:
 		var x: float = sp[0]
 		var z: float = sp[1]
 		m.global_position = Vector3(x, terrain.data.height(x, z) + 0.2, z)
-		if fixed_biome < 0:
+		if band_lock:                                       # a biome world: arrive in the middle of the biome
+			m.global_transform = biome_centre(biome_names()[fixed_biome - 1])
+		elif fixed_biome < 0:
 			m.rotation.y = -PI / 2.0  # resource world: face deeper into the world (+x)
 
 

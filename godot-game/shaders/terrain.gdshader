@@ -20,6 +20,10 @@ uniform vec4 mask_rect = vec4(0.0, -256.0, 1280.0, 512.0);
 uniform int fixed_biome = -1;
 uniform float band_depth = 256.0;
 uniform float blend_half = 22.5;
+// biome worlds: the band this world keeps; the path fades out before the mountains round it (2026-11-15)
+uniform float band_lo = -1.0e6;
+uniform float band_hi = 1.0e6;
+uniform float path_hi = 1.0e6;   // where paths stop (the band itself, even where a world keeps extra ground)
 uniform int r_base[6];
 uniform int r_patch[6];
 uniform int r_litter[6];
@@ -196,6 +200,15 @@ vec3 hub_ground(out bool steep_out) {
 	return col;
 }
 
+// the solo forest world: an even blend, so a dark layer (leaf litter) shows up gradually across the whole band
+// instead of only once it is nearly full weight; clumps of whole texels, a stronger colour mix mid-band
+vec3 even_blend(vec3 cu, vec3 co, float w, vec2 px, float dither) {
+	// islands of the incoming layer about 0.3 to 0.5 m across, growing denser through the band, a few loose texels
+	float clump = vnoise(px / 22.0) * 0.55 + vnoise(px / 7.0) * 0.3 + dither * 0.15;
+	vec3 col = mix(cu, co, step(clump, w));
+	return mix(col, mix(cu, co, w), 0.6 * (1.0 - abs(2.0 * w - 1.0)));
+}
+
 void fragment() {
 	if (near_cut > 0.0 && in_detail(wpos.xz) && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
 		discard;
@@ -238,7 +251,10 @@ void fragment() {
 			}
 			border = 1.0 - smoothstep(0.0, 60.0, min(f, band_depth - f));
 		}
-		vec2 muv = (wpos.xz - mask_rect.xy) / mask_rect.zw;
+		bool solo_forest = fixed_biome == 1;          // the standalone forest world (J00BA, 2026-11-15): extra soft dirt edges
+		// wobble the mask lookup by up to 1.5 m there, so the 1 m mask never shows a straight-sided outline
+		vec2 wob = solo_forest ? (vec2(vnoise(wpos.xz / 3.0), vnoise(wpos.xz / 3.0 + 7.3)) - 0.5) * 3.0 : vec2(0.0);
+		vec2 muv = (wpos.xz + wob - mask_rect.xy) / mask_rect.zw;
 		bool outside = muv.x < 0.0 || muv.y < 0.0 || muv.x > 1.0 || muv.y > 1.0;
 		vec4 m = outside ? vec4(0.0) : texture(mask_map, muv);
 		float slope = 1.0 - clamp(wnrm.y, 0.0, 1.0);
@@ -252,8 +268,15 @@ void fragment() {
 			float thr = patch_threshold[b];
 			apply_rule(under, over, w_over, r_patch[b], smoothstep(thr - 0.12, thr + 0.12, n + border * border_patch[b] * 0.55));
 		}
-		apply_rule(under, over, w_over, r_litter[b], smoothstep(0.25, 0.75, m.a));
-		apply_rule(under, over, w_over, r_wet[b], smoothstep(0.1, 0.7, m.g));
+		vec4 mb = m;
+		if (solo_forest && !outside) {               // litter and wet: averaged over +-2.5 m, so they fade far wider
+			vec2 o = 2.5 / mask_rect.zw;
+			mb = (m + texture(mask_map, muv + vec2(o.x, 0.0)) + texture(mask_map, muv - vec2(o.x, 0.0))
+					+ texture(mask_map, muv + vec2(0.0, o.y)) + texture(mask_map, muv - vec2(0.0, o.y))) / 5.0;
+		}
+		float rag = solo_forest ? (vnoise(wpos.xz / 1.2) * 0.6 + vnoise(wpos.xz / 0.5) * 0.4 - 0.5) : 0.0;
+		apply_rule(under, over, w_over, r_litter[b], solo_forest ? smoothstep(0.02, 0.95, mb.a + rag * 0.3) : smoothstep(0.25, 0.75, m.a));
+		apply_rule(under, over, w_over, r_wet[b], solo_forest ? smoothstep(0.02, 0.9, mb.g + rag * 0.3) : smoothstep(0.1, 0.7, m.g));
 		if (r_high[b] >= 0) {
 			apply_rule(under, over, w_over, r_high[b], smoothstep(high_y[b] - 3.0, high_y[b] + 3.0, wpos.y + (n - 0.5) * 3.0));
 		}
@@ -261,12 +284,13 @@ void fragment() {
 		apply_rule(under, over, w_over, r_special[b], special_w);
 		apply_rule(under, over, w_over, r_mid[b], smoothstep(mid_slope[b] - 0.06, mid_slope[b] + 0.06, slope));
 		steep_w = smoothstep(steep_slope[b] - 0.05, steep_slope[b] + 0.05, slope);
-		float path_w = r_path[b] >= 0 ? smoothstep(0.15, 0.6, m.r) : 0.0;
+		float path_w = r_path[b] >= 0 ? (solo_forest ? smoothstep(0.0, 0.95, m.r + rag * 0.35) : smoothstep(0.15, 0.6, m.r)) : 0.0;
+	path_w *= smoothstep(band_lo + 8.0, band_lo + 24.0, sdepth) * (1.0 - smoothstep(path_hi - 24.0, path_hi - 8.0, sdepth));
 		apply_rule(under, over, w_over, r_path[b], path_w);
 		steep_w *= 1.0 - path_w;                    // the path clears the steep layer where it wins
 		int steep_layer = (special_w > 0.5 && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
-		if (outside) {
-			// the skirt: rock cliffs, a snow (or grass) cap up high
+		// the skirt, and in biome worlds the mountains round the band: rock cliffs, a snow (or grass) cap up high
+		if (outside || sdepth < band_lo - 2.0 || sdepth > band_hi + 2.0) {
 			if (r_cap[b] >= 0) {
 				apply_rule(under, over, w_over, r_cap[b], smoothstep(cap_y[b] - 3.0, cap_y[b] + 3.0, wpos.y + n * 6.0));
 			}
@@ -281,7 +305,7 @@ void fragment() {
 		col = tri_sample(float(under), bayer);
 		if (w_over > 0.0 && over != under) {
 			vec3 co = tri_sample(float(over), bayer);
-			col = w_over >= 0.999 ? co : height_blend(col, co, w_over, bayer);
+			col = w_over >= 0.999 ? co : (solo_forest ? even_blend(col, co, w_over, px, bayer) : height_blend(col, co, w_over, bayer));
 		}
 	}
 	// gentle large scale light and dark so wide fields and cliff faces don't look flat or visibly tiled;

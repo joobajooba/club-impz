@@ -55,7 +55,7 @@ const TP_EVERY_MS = 3000;            // the teleport menu (T): a jump to a biome
 const WORLD_EVERY_MS = 3000;         // world changes (they take a loading screen, so never faster)
 const CHECK_EVERY_MS = 3000;         // sign-in / look checks that ask impz.club: at most this often
 const API_PER_MIN = 60;              // /api/imps and /api/profile requests from one address per minute
-const WORLDS = new Set(["hub", "resource", "test"]);
+const WORLDS = new Set(["hub", "resource", "test", "wilds_forest", "wilds_mountain", "wilds_frost", "wilds_plains", "wilds_swamp"]);
 const SLOTS = ["body", "head", "eyes", "clothing", "back"];
 // The base Imp: the White body, which every player has (J00BA, 2026-11-14). Green is a held trait like the others.
 const BASE_LOOK = { body: "body_white", head: "", eyes: "", clothing: "", back: "" };

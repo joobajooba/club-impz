@@ -33,6 +33,12 @@ const WORLDS := {
 	"resource": "res://scenes/resource/resource_world.tscn",
 	"test": "res://scenes/test/flat_test_world.tscn",
 	"lineup": "res://scenes/test/model_lineup.tscn",
+	# one world per biome (J00BA, 2026-11-15): the resource bake cut to that biome, ringed by peaks
+	"wilds_forest": "res://scenes/resource/wilds_forest.tscn",
+	"wilds_mountain": "res://scenes/resource/wilds_mountain.tscn",
+	"wilds_frost": "res://scenes/resource/wilds_frost.tscn",
+	"wilds_plains": "res://scenes/resource/wilds_plains.tscn",
+	"wilds_swamp": "res://scenes/resource/wilds_swamp.tscn",
 }
 
 @onready var world_holder: Node3D = $world_holder
@@ -53,7 +59,9 @@ var joined_world := ""
 var busy := false
 var args := {}
 const LOAD_BUDGET_USEC := 25000           # world building per frame on the loading screen (the bar still moves)
-const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering The Wilds"}
+const LOADING_TITLES := {"hub": "Returning to the Hub", "resource": "Entering The Wilds", "wilds_forest": "Entering the Forest",
+		"wilds_mountain": "Entering the Mountains", "wilds_frost": "Entering the Frost", "wilds_plains": "Entering the Plains",
+		"wilds_swamp": "Entering the Swamp"}
 var loading: CanvasLayer                  # ui/loading_screen.gd
 var inventory_ui: CanvasLayer             # ui/inventory_ui.tscn, I
 
@@ -77,6 +85,9 @@ func _ready() -> void:
 	inventory_ui.visible = false
 	inventory_ui.add_to_group("modal")                 # the Imp stands still while it is open
 	add_child(inventory_ui)
+	var merchant_menu: CanvasLayer = preload("res://ui/merchant_menu.gd").new()   # the merchant's shop: E at the stall
+	merchant_menu.name = "merchant_menu"
+	add_child(merchant_menu)
 	var start: String = args.get("world", "hub")
 	busy = true
 	player.frozen = true
