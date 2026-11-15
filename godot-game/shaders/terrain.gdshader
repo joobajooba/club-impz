@@ -135,12 +135,13 @@ vec3 height_blend(vec3 cu, vec3 co, float w, float dither) {
 	return mix(col, mix(cu, co, w), 0.35 * (1.0 - abs(2.0 * w - 1.0)));
 }
 
-void fragment() {
-	if (near_cut > 0.0 && in_detail(wpos.xz) && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
-		discard;
-	}
+// the hub keeps the original texture picking (J00BA, 2026-11-15: the gradual blending is for the Wilds only)
+vec3 hub_ground(out bool steep_out) {
 	vec2 px = floor(wpos.xz * px_per_m);       // the texel grid
-	float bayer = bayer4(px);
+	// clumped dither: mostly smooth noise a few texels across with a little per texel grain, so layer and biome
+	// edges are ragged lines of whole texel clumps rather than scattered single pixels
+	float d = clamp(vnoise(px / 6.0) * 0.75 + vnoise(px / 2.0) * 0.15 + hash(px * 0.0137 + 3.1) * 0.1, 0.0, 1.0);
+	float d2 = clamp(vnoise(px / 5.0 + 17.0) * 0.8 + hash(px * 0.0071 + 9.7) * 0.2, 0.0, 1.0);
 	int b = fixed_biome;
 	float border = 0.0;
 	if (b < 0) {
@@ -156,64 +157,132 @@ void fragment() {
 			j = i - 1;
 			w = (blend_half - f) / (2.0 * blend_half);
 		}
-		w = smoothstep(0.0, 1.0, w);
-		b = 1 + i;
-		if (w > 0.0) {
-			// pick the biome per texel with the same Bayer + height trick, on each biome's base layer
-			float bi = float(r_base[1 + i]);
-			float bj = float(r_base[1 + j]);
-			float ha = lum(tri_sample(bi, bayer)) + (1.0 - w);
-			float hb = lum(tri_sample(bj, bayer)) + w;
-			if (clamp((hb - ha) / 0.35 + 0.5 + (bayer - 0.5) * 0.6, 0.0, 1.0) >= 0.5) {
-				b = 1 + j;
-			}
-		}
+		// grass blades poke over the neighbour in clumps instead of a soft fade
+		float bd = clamp(vnoise(wpos.xz * 0.9) * 0.6 + d * 0.4, 0.0, 1.0);
+		b = 1 + (bd < w ? j : i);
 		border = 1.0 - smoothstep(0.0, 60.0, min(f, band_depth - f));
 	}
 	vec2 muv = (wpos.xz - mask_rect.xy) / mask_rect.zw;
 	bool outside = muv.x < 0.0 || muv.y < 0.0 || muv.x > 1.0 || muv.y > 1.0;
 	vec4 m = outside ? vec4(0.0) : texture(mask_map, muv);
 	float slope = 1.0 - clamp(wnrm.y, 0.0, 1.0);
-	float n = (vnoise(wpos.xz / 14.0) * 0.65 + vnoise(wpos.xz / 5.0) * 0.35 + vnoise(wpos.xz / 2.0) * 0.15) / 1.15;
+	float n = vnoise(wpos.xz / 14.0) * 0.65 + vnoise(wpos.xz / 5.0) * 0.35;
 
-	// every rule is a soft weight over a few metres, in the old order and with the old override meaning
-	int under = r_base[b];
-	int over = under;
-	float w_over = 0.0;
-	if (r_patch[b] >= 0) {
-		float thr = patch_threshold[b];
-		apply_rule(under, over, w_over, r_patch[b], smoothstep(thr - 0.12, thr + 0.12, n + border * border_patch[b] * 0.55));
+	int layer = r_base[b];
+	if (r_patch[b] >= 0 && n + border * border_patch[b] * 0.55 + (d2 - 0.5) * 0.1 > patch_threshold[b]) layer = r_patch[b];
+	// mask layers: a clean edge on the mask's smooth contour, ragged by a few texels only (no speckle bleeding)
+	if (r_litter[b] >= 0 && m.a > 0.5 + (d2 - 0.5) * 0.2) layer = r_litter[b];
+	if (r_wet[b] >= 0 && m.g > 0.5 + (d - 0.5) * 0.2) layer = r_wet[b];
+	if (r_high[b] >= 0 && wpos.y + (d - 0.5) * 5.0 > high_y[b]) layer = r_high[b];
+	bool special_here = r_special[b] >= 0 && m.b > 0.5 + (d - 0.5) * 0.2;
+	if (special_here) layer = r_special[b];
+	if (r_mid[b] >= 0 && slope + (d2 - 0.5) * 0.08 > mid_slope[b]) layer = r_mid[b];
+	bool steep = slope + (d - 0.5) * 0.06 > steep_slope[b];
+	if (r_path[b] >= 0 && m.r > 0.5 + (d - 0.5) * 0.25) {
+		layer = r_path[b];
+		steep = false;
 	}
-	apply_rule(under, over, w_over, r_litter[b], smoothstep(0.25, 0.75, m.a));
-	apply_rule(under, over, w_over, r_wet[b], smoothstep(0.1, 0.7, m.g));
-	if (r_high[b] >= 0) {
-		apply_rule(under, over, w_over, r_high[b], smoothstep(high_y[b] - 3.0, high_y[b] + 3.0, wpos.y + (n - 0.5) * 3.0));
-	}
-	float special_w = r_special[b] >= 0 ? smoothstep(0.1, 0.7, m.b) : 0.0;
-	apply_rule(under, over, w_over, r_special[b], special_w);
-	apply_rule(under, over, w_over, r_mid[b], smoothstep(mid_slope[b] - 0.06, mid_slope[b] + 0.06, slope));
-	float steep_w = smoothstep(steep_slope[b] - 0.05, steep_slope[b] + 0.05, slope);
-	float path_w = r_path[b] >= 0 ? smoothstep(0.15, 0.6, m.r) : 0.0;
-	apply_rule(under, over, w_over, r_path[b], path_w);
-	steep_w *= 1.0 - path_w;                    // the path clears the steep layer where it wins
-	int steep_layer = (special_w > 0.5 && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
+	int steep_layer = (special_here && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
 	if (outside) {
 		// the skirt: rock cliffs, a snow (or grass) cap up high
-		if (r_cap[b] >= 0) {
-			apply_rule(under, over, w_over, r_cap[b], smoothstep(cap_y[b] - 3.0, cap_y[b] + 3.0, wpos.y + n * 6.0));
-		}
+		if (r_cap[b] >= 0 && wpos.y + (d - 0.5) * 8.0 + n * 6.0 > cap_y[b]) layer = r_cap[b];
 		if (r_cliff[b] >= 0) {
 			steep_layer = r_cliff[b];
-			steep_w = smoothstep(0.19, 0.29, slope);
+			steep = slope + (d - 0.5) * 0.06 > 0.24;
 		}
 	}
-	apply_rule(under, over, w_over, steep_layer, steep_w);
+	vec3 col = tri_sample(float(steep ? steep_layer : layer), d2);
+	steep_out = steep;
+	return col;
+}
 
-	// at most two layer samples: one for flat single-layer ground, two only inside a transition
-	vec3 col = tri_sample(float(under), bayer);
-	if (w_over > 0.0 && over != under) {
-		vec3 co = tri_sample(float(over), bayer);
-		col = w_over >= 0.999 ? co : height_blend(col, co, w_over, bayer);
+void fragment() {
+	if (near_cut > 0.0 && in_detail(wpos.xz) && distance(wpos, CAMERA_POSITION_WORLD) < near_cut) {
+		discard;
+	}
+	vec3 col;
+	float steep_w;
+	if (fixed_biome == 0) {
+		bool hub_steep;
+		col = hub_ground(hub_steep);
+		steep_w = hub_steep ? 1.0 : 0.0;
+	} else {
+		vec2 px = floor(wpos.xz * px_per_m);       // the texel grid
+		float bayer = bayer4(px);
+		int b = fixed_biome;
+		float border = 0.0;
+		if (b < 0) {
+			float band = sdepth / band_depth;
+			int i = clamp(int(floor(band)), 0, 4);
+			float f = sdepth - float(i) * band_depth;
+			int j = i;
+			float w = 0.0;
+			if (f > band_depth - blend_half && i < 4) {
+				j = i + 1;
+				w = (f - (band_depth - blend_half)) / (2.0 * blend_half);
+			} else if (f < blend_half && i > 0) {
+				j = i - 1;
+				w = (blend_half - f) / (2.0 * blend_half);
+			}
+			w = smoothstep(0.0, 1.0, w);
+			b = 1 + i;
+			if (w > 0.0) {
+				// pick the biome per texel with the same Bayer + height trick, on each biome's base layer
+				float bi = float(r_base[1 + i]);
+				float bj = float(r_base[1 + j]);
+				float ha = lum(tri_sample(bi, bayer)) + (1.0 - w);
+				float hb = lum(tri_sample(bj, bayer)) + w;
+				if (clamp((hb - ha) / 0.35 + 0.5 + (bayer - 0.5) * 0.6, 0.0, 1.0) >= 0.5) {
+					b = 1 + j;
+				}
+			}
+			border = 1.0 - smoothstep(0.0, 60.0, min(f, band_depth - f));
+		}
+		vec2 muv = (wpos.xz - mask_rect.xy) / mask_rect.zw;
+		bool outside = muv.x < 0.0 || muv.y < 0.0 || muv.x > 1.0 || muv.y > 1.0;
+		vec4 m = outside ? vec4(0.0) : texture(mask_map, muv);
+		float slope = 1.0 - clamp(wnrm.y, 0.0, 1.0);
+		float n = (vnoise(wpos.xz / 14.0) * 0.65 + vnoise(wpos.xz / 5.0) * 0.35 + vnoise(wpos.xz / 2.0) * 0.15) / 1.15;
+
+		// every rule is a soft weight over a few metres, in the old order and with the old override meaning
+		int under = r_base[b];
+		int over = under;
+		float w_over = 0.0;
+		if (r_patch[b] >= 0) {
+			float thr = patch_threshold[b];
+			apply_rule(under, over, w_over, r_patch[b], smoothstep(thr - 0.12, thr + 0.12, n + border * border_patch[b] * 0.55));
+		}
+		apply_rule(under, over, w_over, r_litter[b], smoothstep(0.25, 0.75, m.a));
+		apply_rule(under, over, w_over, r_wet[b], smoothstep(0.1, 0.7, m.g));
+		if (r_high[b] >= 0) {
+			apply_rule(under, over, w_over, r_high[b], smoothstep(high_y[b] - 3.0, high_y[b] + 3.0, wpos.y + (n - 0.5) * 3.0));
+		}
+		float special_w = r_special[b] >= 0 ? smoothstep(0.1, 0.7, m.b) : 0.0;
+		apply_rule(under, over, w_over, r_special[b], special_w);
+		apply_rule(under, over, w_over, r_mid[b], smoothstep(mid_slope[b] - 0.06, mid_slope[b] + 0.06, slope));
+		steep_w = smoothstep(steep_slope[b] - 0.05, steep_slope[b] + 0.05, slope);
+		float path_w = r_path[b] >= 0 ? smoothstep(0.15, 0.6, m.r) : 0.0;
+		apply_rule(under, over, w_over, r_path[b], path_w);
+		steep_w *= 1.0 - path_w;                    // the path clears the steep layer where it wins
+		int steep_layer = (special_w > 0.5 && special_on_steep[b] > 0.5) ? r_special[b] : r_steep[b];
+		if (outside) {
+			// the skirt: rock cliffs, a snow (or grass) cap up high
+			if (r_cap[b] >= 0) {
+				apply_rule(under, over, w_over, r_cap[b], smoothstep(cap_y[b] - 3.0, cap_y[b] + 3.0, wpos.y + n * 6.0));
+			}
+			if (r_cliff[b] >= 0) {
+				steep_layer = r_cliff[b];
+				steep_w = smoothstep(0.19, 0.29, slope);
+			}
+		}
+		apply_rule(under, over, w_over, steep_layer, steep_w);
+
+		// at most two layer samples: one for flat single-layer ground, two only inside a transition
+		col = tri_sample(float(under), bayer);
+		if (w_over > 0.0 && over != under) {
+			vec3 co = tri_sample(float(over), bayer);
+			col = w_over >= 0.999 ? co : height_blend(col, co, w_over, bayer);
+		}
 	}
 	// gentle large scale light and dark so wide fields and cliff faces don't look flat or visibly tiled;
 	// cliffs also get faint horizontal strata

@@ -341,7 +341,7 @@ func _bake_resource() -> void:
 	f.close()
 
 
-func _stamp_path(mask: Image, pts: PackedVector2Array, radius: float, offset: Vector2) -> void:
+func _stamp_path(mask: Image, pts: PackedVector2Array, radius: float, offset: Vector2, soft := true) -> void:
 	for i in pts.size() - 1:
 		var a := pts[i]
 		var b := pts[i + 1]
@@ -355,8 +355,8 @@ func _stamp_path(mask: Image, pts: PackedVector2Array, radius: float, offset: Ve
 					if px < 0 or pz < 0 or px >= mask.get_width() or pz >= mask.get_height():
 						continue
 					var d := Vector2(px + 0.5, pz + 0.5).distance_to(p)
-					# ragged edges fading over about 3 m
-					var v := 1.0 - smoothstep(radius - 1.2, radius + 2.0, d + n_detail.get_noise_2d(px * 1.7, pz * 1.7) * 0.8)
+					# the Wilds: ragged edges fading over about 3 m; the hub keeps its original edge
+					var v := 1.0 - smoothstep(radius - 1.2, radius + 2.0, d + n_detail.get_noise_2d(px * 1.7, pz * 1.7) * 0.8) 							if soft else 1.0 - smoothstep(radius - 0.8, radius + 0.8, d)
 					var c := mask.get_pixel(px, pz)
 					if v > c.r:
 						c.r = v
@@ -441,7 +441,7 @@ func _bake_hub() -> void:
 		var pts := PackedVector2Array()
 		for q in w["points"]:
 			pts.append(Vector2(q[0], q[1]))
-		_stamp_path(mask, pts, float(w["radius"]), Vector2(HW / 2.0, HW / 2.0))
+		_stamp_path(mask, pts, float(w["radius"]), Vector2(HW / 2.0, HW / 2.0), false)   # the hub is unchanged
 	for r in town["ground"].get("dirt_rects", []):  # packed-earth floors (the crafters' yard workshops)
 		for mz in range(maxi(0, int(r[1] + HW / 2.0)), mini(int(HW), int(r[3] + HW / 2.0))):
 			for mx in range(maxi(0, int(r[0] + HW / 2.0)), mini(int(HW), int(r[2] + HW / 2.0))):
@@ -449,16 +449,13 @@ func _bake_hub() -> void:
 				c.r = 1.0
 				mask.set_pixel(mx, mz, c)
 	for r in town["ground"]["cobble"]:
-		# a soft rounded box (1.5 m corners) with a noisy 2 m edge, so the cobbles fade into the grass, no ruler line
-		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 4), mini(int(HW), int(r[3] + HW / 2.0) + 5)):
-			for mx in range(maxi(0, int(r[0] + HW / 2.0) - 4), mini(int(HW), int(r[2] + HW / 2.0) + 5)):
+		# 1 px soft edge so the cobbles meet the grass with a dithered border, not a ruler line
+		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 1), mini(int(HW), int(r[3] + HW / 2.0) + 2)):
+			for mx in range(maxi(0, int(r[0] + HW / 2.0) - 1), mini(int(HW), int(r[2] + HW / 2.0) + 2)):
 				var x := mx + 0.5 - HW / 2.0
 				var z := mz + 0.5 - HW / 2.0
-				var hx: float = (r[2] - r[0]) / 2.0 - 1.5
-				var hz: float = (r[3] - r[1]) / 2.0 - 1.5
-				var q := Vector2(absf(x - (float(r[0]) + float(r[2])) / 2.0) - hx, absf(z - (float(r[1]) + float(r[3])) / 2.0) - hz)
-				var sd := Vector2(maxf(q.x, 0.0), maxf(q.y, 0.0)).length() + minf(maxf(q.x, q.y), 0.0) - 1.5
-				var cob := 1.0 - smoothstep(-0.5, 1.5, sd + n_detail.get_noise_2d(x * 2.0, z * 2.0) * 3.0 * 0.3)
+				var d := maxf(maxf(r[0] - x, x - r[2]), maxf(r[1] - z, z - r[3]))
+				var cob := 1.0 - smoothstep(-0.5, 0.7, d)
 				var c := mask.get_pixel(mx, mz)
 				if cob > c.b:
 					c.b = cob
