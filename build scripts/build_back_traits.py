@@ -393,10 +393,12 @@ STEEL = ['#0f1316', '#1d2328', '#2e363d', '#465058', '#66727b', '#8c98a0', '#b9c
 EDGE = ['#3a454c', '#6e7c85', '#a6b3ba', '#d6dfe3', '#f4f8f9', '#ffffff']
 WOOD = ['#1a0e08', '#2a160c', '#3d2212', '#55311a', '#6e4224', '#875632', '#a06c42']
 LEATHER = ['#120a07', '#20120b', '#311c11', '#462919', '#5c3822', '#74492d']
+DARK = ['#1a1b1d', '#25272a', '#303236', '#3b3e42', '#474a4f', '#54585d', '#64686d', '#7a7e83', '#969a9e']   # the blade: dark grey steel (J00BA, 2026-11-15)
+DARK_EDGE = ['#3a3d41', '#4c5055', '#62666b', '#7a7e83', '#93979b', '#a8abaf']
 BRASS = ['#2e1d06', '#55380c', '#806018', '#ab8a30', '#d6b65a', '#f4e08e', '#fff6cc']
 
 
-def steel_shader(edge_side=None, spine=False, etched=False, cube_tone=0.):
+def steel_shader(edge_side=None, spine=False, etched=False, cube_tone=0., stops=None):
     """Forged steel: brushed streaks along the length, a broad specular band, a bright polished edge with a fine
     grind line on one side (edge_side -1: local -x), small scratches, an optional etched vine."""
     def shader(P, N, cube):
@@ -417,7 +419,7 @@ def steel_shader(edge_side=None, spine=False, etched=False, cube_tone=0.):
         sx, sy = P[..., 0], P[..., 1]
         scratch = np.abs(((sx * .83 + sy * .55 + vnoise(sx, sy, 21) * 2) % 7.3) - 3.6) < .05
         t = t + np.where(scratch & (vnoise(sx * .4, sy * .4, 17) > .62), .14, 0)
-        rgb = ramp(np.clip(t, 0, 1), STEEL)
+        rgb = ramp(np.clip(t, 0, 1), stops or STEEL)
         if big and edge_side is not None:
             d = (1 + u * -edge_side) * (np.array(LOC['to'])[0] - np.array(LOC['fr'])[0]) / 2   # units from the edge
             e = d < 1.4
@@ -566,12 +568,12 @@ def scythe():
         sx, sy = P[..., 0], P[..., 1]
         scratch = np.abs(((sx * .83 + sy * .55 + vnoise(sx, sy, 21) * 2) % 7.3) - 3.6) < .05
         t = t + np.where(scratch & (vnoise(sx * .4, sy * .4, 17) > .6), .12, 0)
-        rgb = ramp(np.clip(t, 0, 1), STEEL)
+        rgb = ramp(np.clip(t, 0, 1), DARK)
         to_edge = w - dist
         e = to_edge < 1.6
         te = .5 + .35 * np.clip(1 - to_edge / 1.6, 0, 1) + .12 * lit + .1 * (vnoise(v * .7, to_edge * 5, 31) - .5)
-        rgb = np.where(e[..., None], ramp(np.clip(te, 0, 1), EDGE), rgb)
-        rgb = np.where(((to_edge >= 1.6) & (to_edge < 1.85))[..., None], ramp(np.full(t.shape, .16), STEEL), rgb)
+        rgb = np.where(e[..., None], ramp(np.clip(te, 0, 1), DARK_EDGE), rgb)
+        rgb = np.where(((to_edge >= 1.6) & (to_edge < 1.85))[..., None], ramp(np.full(t.shape, .1), DARK), rgb)
         keep = inpoly(sx, sy, [tuple(q) for q in poly])
         return rgb, np.where(keep, 255., 0.)
 
@@ -579,7 +581,7 @@ def scythe():
     x1, y1 = np.ceil(poly.max(0)).astype(int)
     t.box('blade', (x0, y0, -18.5), (x1, y1, -17.5), blade_shader, faces=('north', 'south'), solid=False)
     for i in range(n - 3):
-        seg_off(t, f'spine_{i + 1}', pts[i], pts[i + 1], 0, 1, -19.5, -16.5, steel_shader(cube_tone=-.08), extra=1)
+        seg_off(t, f'spine_{i + 1}', pts[i], pts[i + 1], 0, 1, -19.5, -16.5, steel_shader(cube_tone=-.08, stops=DARK), extra=1)
     press_to_back(t)
     t.save()
 
