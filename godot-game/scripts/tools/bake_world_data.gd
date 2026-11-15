@@ -299,15 +299,17 @@ func _bake_resource() -> void:
 			var b: int = biome_blend(s)[0]
 			var wet := 0.0
 			var special := 0.0
+			# wide falloffs broken by noise, so no mask edge is a clean circle or line (gradual blending, 2026-11-15)
+			var nd := n_detail.get_noise_2d(x * 2.0, z * 2.0) * 3.0
 			if x < 262.0:
-				wet = 1.0 - smoothstep(6.0, 10.0, absf(z - river_z(x)))
+				wet = 1.0 - smoothstep(5.0, 12.0, absf(z - river_z(x)) + nd)
 			var dl := Vector2(x, z).distance_to(landmarks["frozen_lake"])
-			wet = maxf(wet, 1.0 - smoothstep(48.0, 54.0, dl))
-			wet = maxf(wet, 1.0 - smoothstep(10.0, 13.0, Vector2(x, z).distance_to(Vector2(706, -40))))
+			wet = maxf(wet, 1.0 - smoothstep(47.0, 56.0, dl + nd))   # still keeps the ice off the snow bank
+			wet = maxf(wet, 1.0 - smoothstep(8.0, 16.0, Vector2(x, z).distance_to(Vector2(706, -40)) + nd))
 			if x > 760.0 and x < 1030.0:
-				wet = maxf(wet, 1.0 - smoothstep(4.0, 7.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0)))))
-				special = 1.0 - smoothstep(18.0, 30.0, Vector2(x, z).distance_to(Vector2(900, 60)))
-			special = maxf(special, 1.0 - smoothstep(24.0, 38.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"])))
+				wet = maxf(wet, 1.0 - smoothstep(3.0, 9.0, absf(z - (-120.0 + 40.0 * sin(x / 70.0))) + nd))
+				special = 1.0 - smoothstep(16.0, 34.0, Vector2(x, z).distance_to(Vector2(900, 60)) + nd)
+			special = maxf(special, 1.0 - smoothstep(22.0, 42.0, Vector2(x, z).distance_to(landmarks["dreadstone_pit"]) + nd))
 			# the waterfall cliff reads as rock (forest special = mountain_rock): its steep cells, grown by 1.5 m
 			# and broken up with noise so the edge is ragged; the flat top and gentle slopes stay grass
 			if b == 0 and _in_fall_cliff(x, z):
@@ -315,7 +317,8 @@ func _bake_resource() -> void:
 				for o in [Vector2(1.5, 0), Vector2(-1.5, 0), Vector2(0, 1.5), Vector2(0, -1.5)]:
 					sl = maxf(sl, _slope_at(hs, nx, nz, x + o.x, z + o.y))
 				special = maxf(special, smoothstep(0.3, 0.4, sl + n_detail.get_noise_2d(x * 3.0, z * 3.0) * 0.08))
-			var litter := clampf(n_litter.get_noise_2d(x, z) * 1.6 + 0.1, 0.0, 1.0) if b == 0 else 0.0
+			# leaf litter with a soft 2 to 4 m edge
+			var litter := smoothstep(-0.15, 0.45, n_litter.get_noise_2d(x, z) + n_detail.get_noise_2d(x * 2.0, z * 2.0) * 0.15) 					if b == 0 else 0.0
 			mask.set_pixel(mx, mz, Color(0.0, wet, special, litter))
 	# paths stamped along the main line and the branches
 	_stamp_path(mask, main_path, 2.6, Vector2(0, RD / 2.0))
@@ -352,7 +355,8 @@ func _stamp_path(mask: Image, pts: PackedVector2Array, radius: float, offset: Ve
 					if px < 0 or pz < 0 or px >= mask.get_width() or pz >= mask.get_height():
 						continue
 					var d := Vector2(px + 0.5, pz + 0.5).distance_to(p)
-					var v := 1.0 - smoothstep(radius - 0.8, radius + 0.8, d)
+					# ragged edges fading over about 3 m
+					var v := 1.0 - smoothstep(radius - 1.2, radius + 2.0, d + n_detail.get_noise_2d(px * 1.7, pz * 1.7) * 0.8)
 					var c := mask.get_pixel(px, pz)
 					if v > c.r:
 						c.r = v
@@ -445,13 +449,16 @@ func _bake_hub() -> void:
 				c.r = 1.0
 				mask.set_pixel(mx, mz, c)
 	for r in town["ground"]["cobble"]:
-		# 1 px soft edge so the cobbles meet the grass with a dithered border, not a ruler line
-		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 1), mini(int(HW), int(r[3] + HW / 2.0) + 2)):
-			for mx in range(maxi(0, int(r[0] + HW / 2.0) - 1), mini(int(HW), int(r[2] + HW / 2.0) + 2)):
+		# a soft rounded box (1.5 m corners) with a noisy 2 m edge, so the cobbles fade into the grass, no ruler line
+		for mz in range(maxi(0, int(r[1] + HW / 2.0) - 4), mini(int(HW), int(r[3] + HW / 2.0) + 5)):
+			for mx in range(maxi(0, int(r[0] + HW / 2.0) - 4), mini(int(HW), int(r[2] + HW / 2.0) + 5)):
 				var x := mx + 0.5 - HW / 2.0
 				var z := mz + 0.5 - HW / 2.0
-				var d := maxf(maxf(r[0] - x, x - r[2]), maxf(r[1] - z, z - r[3]))
-				var cob := 1.0 - smoothstep(-0.5, 0.7, d)
+				var hx: float = (r[2] - r[0]) / 2.0 - 1.5
+				var hz: float = (r[3] - r[1]) / 2.0 - 1.5
+				var q := Vector2(absf(x - (float(r[0]) + float(r[2])) / 2.0) - hx, absf(z - (float(r[1]) + float(r[3])) / 2.0) - hz)
+				var sd := Vector2(maxf(q.x, 0.0), maxf(q.y, 0.0)).length() + minf(maxf(q.x, q.y), 0.0) - 1.5
+				var cob := 1.0 - smoothstep(-0.5, 1.5, sd + n_detail.get_noise_2d(x * 2.0, z * 2.0) * 3.0 * 0.3)
 				var c := mask.get_pixel(mx, mz)
 				if cob > c.b:
 					c.b = cob
