@@ -645,7 +645,6 @@ def market_stall_merchant():
                   "roof": {"kind": "shingle", "ramp": R["tile_red"], "side": (96, 40), "top": (96, 48), "under": (96, 48),
                            "no_lit2": True, "extra": {"style": "clay_curved"}},
                   "wall": {"kind": "plaster", "ramp": R["plaster"], "side": (64, 24), "top": (16, 16), "no_lit2": True},
-                  "plain": flat_mat("plaster", (72, 48)),
                   "cloth_a": flat_mat("awn_indigo"),
                   "moss": flat_mat("moss", (24, 8)),
               })
@@ -657,16 +656,14 @@ def market_stall_merchant():
                                                           "sign", "details"))
     FACES6 = ("north", "east", "south", "west", "up", "down")
 
-    def panel(name, grp, frm, to, painted, plain=()):
-        """A cream plaster panel set between timbers: painted faces darken toward the frame; `plain` faces get the
-        back swatch; every other face is pressed against a timber and hidden."""
+    def panel(name, grp, frm, to, painted):
+        """A cream plaster panel set between timbers: painted faces darken toward the frame; every other face is
+        pressed against a timber and hidden."""
         frm = [float(v) for v in frm]; to = [float(v) for v in to]
         fs = {f: None for f in FACES6}
         for f, cat in painted.items():
             a, b = DIMS[f]; w, h = px(to[a] - frm[a]), px(to[b] - frm[b])
             fs[f] = F(H.rect(f"panel_{cat}_{w}x{h}", w, h, lambda W, Hh, c=cat: H.P.panel(R["plaster"], W, Hh, c)))
-        for f in plain:
-            a, b = DIMS[f]; fs[f] = H.crop("plain_shade", px(to[a] - frm[a]), px(to[b] - frm[b]))
         return H.m.cube(name, grp, frm, to, fs)
 
     def form_item(name, grp, frm, to, rm, base=3.4, hl=False, hide=("down",), rot=(0, 0, 0), origin=None, tag=None):
@@ -685,14 +682,14 @@ def market_stall_merchant():
         H.box(f"plinth_{k + 1}", bo, [x1, 0, -14], [x2, 2, 16], "plinth", ("down",), f"plinth{k}", place="ground")
     H.box("plinth_step", bo, [-20, 0, -16], [20, 1, -14], "plinth", ("down", "south"), "pstep", place="ground")
     # back wall: three walnut posts, a sill, a mid rail at y 24, a top beam; plaster panels 0.5 back between them
-    back = {"south": "plain"}
+    back = None                                                  # free-standing: the back is finished like the front
     H.box("back_sill", bo, [-37, 2, 12], [37, 4, 16], "top", ("down",), "bsill", over=back)
     for s, (x1, x2) in (("right", (-37, -34)), ("centre", (-1.5, 1.5)), ("left", (34, 37))):
         H.box(f"back_post_{s}", bo, [x1, 4, 12], [x2, 42, 16], "post", ("down", "up"), f"bp{s}", over=back)
     for s, (x1, x2) in (("right", (-34, -1.5)), ("left", (1.5, 34))):
         H.box(f"back_rail_{s}", bo, [x1, 23, 12], [x2, 25, 16], "top", (), f"br{s}", over=back)
         for r_, (y1, y2) in (("low", (4, 23)), ("high", (25, 42))):
-            panel(f"back_panel_{s}_{r_}", bo, [x1, y1, 12.5], [x2, y2, 16], {"north": "lit"}, plain=("south",))
+            panel(f"back_panel_{s}_{r_}", bo, [x1, y1, 12.5], [x2, y2, 16], {"north": "lit", "south": "shade"})
     H.box("back_beam", bo, [-37, 42, 12], [37, 46, 16], "top", (), "bbeam", over=back)
     # side walls (x 35..37 and -37..-35, z -4..12): a front corner post, sill, rail, top beam, panels, an arched window
     for s, sx in (("left", 1), ("right", -1)):
@@ -719,10 +716,6 @@ def market_stall_merchant():
     prof = [(0, 2)] + [(2.5, 2.5)] * 6
     H.roof("roof_main", ro, -40, 40, -12.5, 16, 46, prof, "roof", "post", axis="x", eave=3, ridge=("gold", 3, 1.5),
            finials=("gold", 4))
-    for e in H.m.elements:                                       # the back slope against the town wall: the plain swatch
-        if e["name"].startswith("roof_main_layer") and e["faces"]["south"].get("_spec"):
-            w, h = px(e["to"][0] - e["from"][0]), px(e["to"][1] - e["from"][1])
-            e["faces"]["south"]["_spec"] = H.crop("plain_shade", w, h)
     H.box("roof_moss_patch_1", ro, [28, 48, -15.5], [34, 48.5, -13], "moss", ("down",), "rmoss")         # moss on two
     H.box("roof_moss_patch_2", ro, [29, 50.5, -13], [32.5, 51, -10.5], "moss", ("down",), "rmoss")       # steps near one eave
     gprof = [(0, 3)] + [(2, 3)] * 7

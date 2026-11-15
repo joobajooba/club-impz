@@ -202,7 +202,6 @@ for i in range(1, 10):
     u = -W + i * 15.0
     for side, (x, z, yaw) in (("N", (u, -W + 0.95, 180)), ("S", (u, W - 0.95, 0)), ("E", (W - 0.95, u, 90)), ("W", (-W + 0.95, u, -90))):
         if side == "N" and abs(u) < 25: continue            # behind the castle
-        if side == "E" and u == -15.0: continue              # behind the merchant's stall (it would poke through its back)
         place("wall_lantern", x, z, yaw, s=1.6, y=1.6, collide=False, light=False)
 
 # ================================================================ 2. castle and forecourt (north)
@@ -277,11 +276,10 @@ def square(sx, north, south, kind):
         hedge_run((sx * 46.5, hz), (sx * 64.5, hz))
     for x in (31.4, 65.6):                                    # topiary balls finishing the north hedge's ends
         place("topiary_ball_planter", sx * x, -30.6, "S")
-    # Market Street ends at the merchant's stall, back to the town wall, facing down the street (J00BA, 2026-11-15).
-    # The wall pillar behind it stands 0.39 m proud of the wall (inner face x 73.98): at x 72.75 the stall's back
-    # (local z +16, 1.0 m) and its roof eave (+19, 1.19 m) both clear it.
-    place("stall_merchant", sx * 72.75, -16.0, "W" if sx > 0 else "E")
-    npc("vendor_merchant", *local_to_world(sx * 72.75, -16.0, 90.0 if sx > 0 else -90.0, 0.0, -0.1), "W" if sx > 0 else "E",
+    # Market Street ends at the merchant's stall, its back on the last of the cobbles (the street ends at x 63.5),
+    # facing down the street (J00BA, 2026-11-15). The merchant stands behind the centre counter, clear of the desk.
+    place("stall_merchant", sx * 62.5, -16.0, "W" if sx > 0 else "E")
+    npc("vendor_merchant", *local_to_world(sx * 62.5, -16.0, 90.0 if sx > 0 else -90.0, 0.0, 0.06), "W" if sx > 0 else "E",
         "market vendor (merchant)")
     for z in (-22.0, -10.0):
         place("urn_planter", sx * 66.5, z, "W" if sx > 0 else "E", s=1.2)
