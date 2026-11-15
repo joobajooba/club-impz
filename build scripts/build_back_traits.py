@@ -442,15 +442,15 @@ def sword():
 
 def samurai():
     """Two crossed katana in their scabbards, in HD (J00BA, 2026-11-15): painted at 8 texels per unit, every face kept.
-    Glossy plum lacquer scabbards with a silk cord band, dark silver fittings (end cap, mouth, collar, pommel cap), a
+    Brown leather scabbards with a stitched seam and a leather strap, dark silver fittings (end cap, mouth, collar, pommel cap), a
     dark iron tsuba with a pierced pattern and a dark silver rim, plain wrapped hilts, a small emerald on each cap."""
     t = Back('back_samurai')
     t.PPU = 8
     t.HIDE_IN_BODY = False
-    LACQ = ['#0b050c', '#170b19', '#241226', '#331a37', '#442349', '#5a305f', '#764080', '#9a5ca6', '#c58fd0']
+    LACQ = ['#140a05', '#22120a', '#331c0f', '#462816', '#5a351e', '#704428', '#875634', '#a06c44', '#bb8758']   # brown leather (J00BA, 2026-11-15)
     DSILV = ['#1c1e21', '#2a2d31', '#3a3e43', '#4d5258', '#62686f', '#7d838a', '#9ea4aa', '#c4c9cd']
     IRON = ['#08090a', '#111214', '#1a1c1f', '#24272b', '#2f3338', '#3c4147', '#4c525a']
-    CORD = ['#0d0710', '#1a0e1f', '#2a1630', '#3a1f42', '#4c2a56']
+    CORD = ['#0e0805', '#1a0f08', '#28170d', '#372013', '#472a19']                                    # a darker leather strap
     WRAP = ['#060607', '#0d0d0f', '#151518', '#1e1e22', '#28282d', '#34343a']
     EMER = ['#021a0c', '#063c1c', '#0c6630', '#14924a', '#3cc472', '#9ef0bc', '#effff4']
 
@@ -462,8 +462,14 @@ def samurai():
         u, v = _across(n)
         lit = _light(N)
         t_ = round_tone(n, u, lit, .30, .32) + .04 * (vnoise(u * 6, v * .3, 71) - .5)
-        t_ = t_ + .34 * np.exp(-((u - .35) / .1) ** 2) + .14 * np.exp(-((u + .45) / .16) ** 2)   # glossy reflections
-        return ramp(np.clip(t_, 0, 1), LACQ), np.full(u.shape, 255.)
+        t_ = t_ + .12 * np.exp(-((u - .3) / .2) ** 2)                              # a soft leather sheen
+        t_ = t_ + .07 * (vnoise(u * 14, v * 5, 75) - .5) - .05 * (vnoise(u * 30, v * 12, 77) > .7)   # grain and pores
+        rgb = ramp(np.clip(t_, 0, 1), LACQ)
+        if abs(n[0]) > .5:                                              # a stitched seam down each side
+            st = (np.abs(u) < .12) & (((v * 2.5) % 1) < .55)
+            rgb = np.where(st[..., None], ramp(np.full(u.shape, .82), LACQ), rgb)
+            rgb = np.where(((np.abs(u) >= .12) & (np.abs(u) < .2))[..., None], rgb * .7, rgb)
+        return rgb, np.full(u.shape, 255.)
 
     def dsilver(gem=0.):
         def shader(P, N, cube):
