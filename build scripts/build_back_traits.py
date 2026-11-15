@@ -323,18 +323,125 @@ METAL = ['#2f2f30', '#4e4e4f', '#666768', '#7f8884', '#97a99a']
 
 
 def sword():
+    """The Sword in HD (J00BA, 2026-11-15): a longsword painted at 8 texels per unit. Polished steel blade with a
+    fuller, bevelled edges and an ogive point; a blackened steel crossguard with gold trim, flared quillons and a
+    ruby set in its centre; a black leather grip bound in criss-cross silver wire; a faceted pommel with a ruby."""
     t = Back('back_sword')
-    p = Prop(t, (-20, 63), 50)
-    metal = S(METAL, base=.55, gain=.34)
-    grip = S(['#141a0a', '#242e12', '#36431c', '#475528', '#5a6a36'], base=.5, gain=.3, mods=[lambda P, N, t_: t_ - .14 * ((LOC['p'][..., 1] % 3) < 1)])
-    fuller = lambda P, N: np.abs(LOC['p'][..., 0] - (LOC['fr'][0] + LOC['to'][0]) / 2) < 1
-    blade = S(METAL, base=.6, gain=.3, decals=[(fuller, METAL[:3], .55)])
-    p.b('pommel', -4, 19, 4, 26, -20, -16, metal)
-    p.b('grip', -2.5, 2, 2.5, 19, -19.5, -16.5, grip)
-    p.b('guard', -8, -2, 8, 2, -20, -16, metal)
-    p.b('blade', -3.5, -52, 3.5, -2, -19, -17, blade)
-    p.b('blade_tip_1', -2.5, -58, 2.5, -52, -19, -17, S(METAL, base=.6, gain=.3))
-    p.b('blade_tip_2', -1, -62, 1, -58, -19, -17, S(METAL, base=.6, gain=.3))
+    t.PPU = 8
+    t.HIDE_IN_BODY = False
+    A = (-20, 63)
+    p = Prop(t, A, 50)
+    BLACK = ['#0b0c0f', '#14161a', '#1d2025', '#272b31', '#333840', '#424851', '#565d67', '#737b85', '#9aa2ab']
+    GOLDT = ['#3a2606', '#5e400c', '#8a6516', '#b88d2a', '#dcb64c', '#f3d97e', '#fff3c4']
+    RUBY = ['#1e0206', '#4a0710', '#7c0f1c', '#b01c2e', '#e04a5c', '#ff9aa8', '#fff0f2']
+    WIRE = ['#3c4148', '#69717a', '#a0a8b0', '#d4dade', '#f6f9fa']
+    LEATH = ['#060607', '#0d0d0f', '#151518', '#1e1e22', '#28282d', '#34343a']
+
+    def local_uv():
+        q = LOC['p']
+        return q[..., 0] - A[0], q[..., 1] - A[1]
+
+    def blade_tone(u_abs, v, hw, lit):
+        """Steel across a blade of half width hw: fuller in the middle, flats, bevels to a bright edge."""
+        a = u_abs / hw
+        t_ = .60 + .14 * lit + .08 * (vnoise(a * 3 + 20, v * .12, 7) - .5) + .07 * (vnoise(a * 18, v * .9, 11) - .5)
+        t_ = t_ + .2 * np.exp(-((a - .5) / .14) ** 2)                       # sheen along each flat
+        return a, t_
+
+    def blade_shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = local_uv()
+        lit = _light(N)
+        if abs(n[2]) < .5:                                                  # the edges: a thin bright line
+            t_ = .78 + .12 * lit + .05 * (vnoise(v * .9, u, 13) - .5)
+            return ramp(np.clip(t_, 0, 1), STEEL), np.full(u.shape, 255.)
+        a, t_ = blade_tone(np.abs(u), v, 3.5, lit)
+        fl_end = -44.0
+        in_fuller = (a < .24) & (v > fl_end) & (v < -7)
+        rnd = (v <= fl_end + 1.2) & (np.hypot(a / .24, (v - fl_end - 1.2) / 1.2) < 1)   # the fuller's rounded end
+        fuller = in_fuller | rnd
+        tf = .44 + .25 * np.clip(u / (3.5 * .24), -1, 1) * .5 + .1 * lit + .05 * (vnoise(u * 9, v * .7, 17) - .5)
+        t_ = np.where(fuller, tf, t_)
+        lip = (~fuller) & (np.abs(a - .24) < .045) & (v > fl_end - .2) & (v < -7)
+        t_ = np.where(lip, t_ + .25, t_)
+        rgb = ramp(np.clip(t_, 0, 1), STEEL)
+        bev = a > .72
+        tb = .62 + .3 * (a - .72) / .28 + .1 * lit
+        rgb = np.where(bev[..., None], ramp(np.clip(tb, 0, 1), EDGE), rgb)
+        rgb = np.where((np.abs(a - .72) < .035)[..., None], ramp(np.full(a.shape, .22), STEEL), rgb)
+        return rgb, np.full(u.shape, 255.)
+
+    def tip_shader(P, N, cube):
+        u, v = local_uv()
+        lit = _light(N)
+        s = np.clip((v - (-62)) / 12.0, 0, 1)                              # 0 at the point, 1 where the blade starts
+        hw = 3.5 * np.sin(s * np.pi / 2) ** .75 + 1e-3                     # an ogive point
+        a, t_ = blade_tone(np.abs(u), v, np.maximum(hw, .3), lit)
+        rgb = ramp(np.clip(t_, 0, 1), STEEL)
+        bev = (hw - np.abs(u)) < 1.0
+        tb = .65 + .3 * np.clip(1 - (hw - np.abs(u)), 0, 1) + .1 * lit
+        rgb = np.where(bev[..., None], ramp(np.clip(tb, 0, 1), EDGE), rgb)
+        ridge = np.abs(u) < .09                                              # the point's centre ridge
+        rgb = np.where(ridge[..., None], ramp(np.full(u.shape, .82), STEEL), rgb)
+        return rgb, np.where(np.abs(u) <= hw, 255., 0.)
+
+    def black_steel(gem=0., trim=.45, engrave=True):
+        """Blackened steel with a gold inlaid rim, a fine engraved line inside it and an optional cut ruby."""
+        def shader(P, N, cube):
+            n = np.array(LOC['n'], float)
+            u, v = _across(n)
+            lit = _light(N)
+            t_ = .38 + .3 * np.sqrt(np.clip(1 - u * u, 0, 1)) + .16 * lit + .05 * (vnoise(u * 10, v * 3, 23) - .5)
+            rgb = ramp(np.clip(t_, 0, 1), BLACK)
+            d = edge_dist()
+            rgb = np.where((d < trim)[..., None], ramp(np.clip(.5 + .3 * lit + .25 * (1 - d / trim), 0, 1), GOLDT), rgb)
+            if engrave:
+                rgb = np.where((np.abs(d - trim - .35) < .06)[..., None], ramp(np.full(d.shape, .55), GOLDT), rgb)
+            if gem and abs(n[2]) > .5:
+                q = LOC['p']
+                fr, to = np.array(LOC['fr']), np.array(LOC['to'])
+                c = (fr + to) / 2
+                r = np.hypot(q[..., 0] - c[0], q[..., 1] - c[1]) / gem
+                ang = np.arctan2(q[..., 1] - c[1], q[..., 0] - c[0])
+                facet = .5 + .25 * np.cos(ang * 4 + .6) * (r > .45) + .3 * np.clip(1 - np.hypot((q[..., 0] - c[0]) / gem + .3, (q[..., 1] - c[1]) / gem - .3) / .35, 0, 1)
+                rgb = np.where((r < 1)[..., None], ramp(np.clip(facet, 0, 1), RUBY), rgb)
+                rgb = np.where(((r >= 1) & (r < 1.3))[..., None], ramp(np.full(r.shape, .75), GOLDT), rgb)   # the setting
+            return rgb, np.full(u.shape, 255.)
+        return shader
+
+    def grip_shader(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        lit = _light(N)
+        t_ = .35 + .35 * np.sqrt(np.clip(1 - u * u, 0, 1)) + .15 * lit + .06 * (vnoise(u * 16, v * 8, 29) - .5)
+        rgb = ramp(np.clip(t_, 0, 1), LEATH)
+        k = 1.4
+        d1 = np.abs(((v + u * 1.6) % k) - k / 2)
+        d2 = np.abs(((v - u * 1.6) % k) - k / 2)
+        for d in (d1, d2):
+            w = d < .13
+            tw = .55 + .3 * (1 - d / .13) + .15 * lit
+            rgb = np.where(w[..., None], ramp(np.clip(tw, 0, 1), WIRE), rgb)
+        cross = (d1 < .16) & (d2 < .16)
+        rgb = np.where(cross[..., None], ramp(np.full(u.shape, .98), WIRE), rgb)
+        return rgb, np.full(u.shape, 255.)
+
+    # pommel and grip
+    p.b('pommel_cap', -2, 27, 2, 29, -19.5, -16.5, black_steel(trim=.3, engrave=False))
+    p.b('pommel', -4, 20, 4, 27, -20.5, -15.5, black_steel(gem=1.6))
+    p.b('pommel_neck', -2.5, 18, 2.5, 20, -20, -16, black_steel(trim=.3, engrave=False))
+    p.b('grip', -2, 4, 2, 18, -19.5, -16.5, grip_shader)
+    p.b('grip_ferrule', -2.5, 2, 2.5, 4, -20, -16, black_steel(trim=.3, engrave=False))
+    # the crossguard: a bar, flared quillon ends and a centre block holding a ruby
+    p.b('guard_bar', -10, -1, 10, 2, -19.5, -16.5, black_steel())
+    for s_, nm in ((1, 'l'), (-1, 'r')):
+        lo, hi = (10, 13) if s_ > 0 else (-13, -10)
+        p.b(f'quillon_{nm}', lo, -2, hi, 4, -20, -16, black_steel(trim=.35))
+    p.b('guard_centre', -4, -4, 4, 3, -20.5, -15.5, black_steel(gem=1.5))
+    # the blade: ricasso, the main blade with its fuller and the ogive point
+    p.b('ricasso', -3, -7, 3, -4, -19, -17, black_steel(trim=.25, engrave=False))
+    p.b('blade', -3.5, -50, 3.5, -7, -19, -17, blade_shader)
+    p.b('blade_point', -3.5, -62, 3.5, -50, -18.5, -17.5, tip_shader, faces=('north', 'south'), solid=False)
     press_to_back(t)
     t.save()
 
