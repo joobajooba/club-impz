@@ -4,7 +4,8 @@ extends Node
 ## `worn` is the look the player picked: {body, head, eyes, clothing, back} of trait ids from
 ## res://data/impz/manifest.json, "" = none. Save keeps it in user://save.json.
 ## `shown()` is what the Imp actually wears: `worn` with every trait the player can't use right now
-## swapped for the base imp's (Green body, no traits), so selling an Imp locks its traits again.
+## swapped for the base imp's (White body, no traits), so selling an Imp locks its traits again. The White body is
+## everyone's; Green and the other collection bodies are held traits like any other.
 ##
 ## Who can use what (game_direction.md section 2): every player has the base imp. An Imp holder can use
 ## each trait of every Imp in the linked wallet. Ownership comes from impz.club (/api/imps?wallet=), the

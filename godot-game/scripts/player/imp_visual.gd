@@ -155,7 +155,7 @@ func _look() -> Dictionary:
 
 
 func _body_data() -> Dictionary:
-	return ImpBuilder._model(ImpBuilder.entry("body", _look().get("body", "body_green")).get("model", ""))
+	return ImpBuilder._model(ImpBuilder.entry("body", _look().get("body", ImpBuilder.DEFAULT.body)).get("model", ""))
 
 
 ## The arm, hand, chest and left arm bones, and where they rest, read before anything moves them.

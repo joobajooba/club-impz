@@ -22,7 +22,7 @@ await a.opened; a.hello(); await wait(300);
 await b.opened; b.hello(); await wait(300);
 const wa = a.got.find((m) => m.t === "welcome"), wb = b.got.find((m) => m.t === "welcome");
 check(wa && /^Guest \d{4}$/.test(wa.name), `guest name (${wa?.name})`);
-check(wa?.look.body === "body_green" && wa?.look.head === "", "guests wear the base Imp, made-up traits refused");
+check(wa?.look.body === "body_white" && wa?.look.head === "", "guests wear the base (White) Imp, made-up traits refused");
 check(wb?.players.length === 1 && wb.players[0].id === wa.id, "b sees a already there");
 check(a.got.some((m) => m.t === "join" && m.player.id === wb.id), "a hears b join");
 a.ws.send(JSON.stringify({ t: "s", p: [2, 0, -3], y: 1.25, m: 1 }));

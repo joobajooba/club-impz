@@ -48,6 +48,8 @@ for line in (REPO / 'docs/implingz_collection.md').read_text(encoding='utf8').sp
     m = re.match(r'\| ([^|]+?) \| [\d,]+ \(', line)
     if m and section in TYPES:
         names[(section, key(m.group(1)))] = m.group(1)
+# White is not a collection body: it is the base Imp every player wears until they pick held traits (J00BA, 2026-11-14)
+names[('body', 'white')] = 'White'
 
 
 def slim(model):
