@@ -325,15 +325,16 @@ METAL = ['#2f2f30', '#4e4e4f', '#666768', '#7f8884', '#97a99a']
 def sword():
     """The Sword in HD (J00BA, 2026-11-15): a longsword painted at 8 texels per unit. Polished steel blade with a
     fuller, bevelled edges and an ogive point; a blackened steel crossguard with gold trim, flared quillons and a
-    ruby set in its centre; a black leather grip bound in criss-cross silver wire; a faceted pommel with a ruby."""
+    ruby set in its centre; a black leather grip bound in criss-cross silver wire; a faceted pommel with a ruby.
+    Later the same day: the trim is dark silver, the gems are emeralds and the grip is plain wrapped leather."""
     t = Back('back_sword')
     t.PPU = 8
     t.HIDE_IN_BODY = False
     A = (-20, 63)
     p = Prop(t, A, 50)
     BLACK = ['#0b0c0f', '#14161a', '#1d2025', '#272b31', '#333840', '#424851', '#565d67', '#737b85', '#9aa2ab']
-    GOLDT = ['#3a2606', '#5e400c', '#8a6516', '#b88d2a', '#dcb64c', '#f3d97e', '#fff3c4']
-    RUBY = ['#1e0206', '#4a0710', '#7c0f1c', '#b01c2e', '#e04a5c', '#ff9aa8', '#fff0f2']
+    GOLDT = ['#1c1e21', '#2a2d31', '#3a3e43', '#4d5258', '#62686f', '#7d838a', '#9ea4aa']   # dark silver trim (J00BA, 2026-11-15)
+    RUBY = ['#021a0c', '#063c1c', '#0c6630', '#14924a', '#3cc472', '#9ef0bc', '#effff4']   # an emerald (J00BA, 2026-11-15)
     WIRE = ['#3c4148', '#69717a', '#a0a8b0', '#d4dade', '#f6f9fa']
     LEATH = ['#060607', '#0d0d0f', '#151518', '#1e1e22', '#28282d', '#34343a']
 
@@ -415,15 +416,8 @@ def sword():
         lit = _light(N)
         t_ = .35 + .35 * np.sqrt(np.clip(1 - u * u, 0, 1)) + .15 * lit + .06 * (vnoise(u * 16, v * 8, 29) - .5)
         rgb = ramp(np.clip(t_, 0, 1), LEATH)
-        k = 1.4
-        d1 = np.abs(((v + u * 1.6) % k) - k / 2)
-        d2 = np.abs(((v - u * 1.6) % k) - k / 2)
-        for d in (d1, d2):
-            w = d < .13
-            tw = .55 + .3 * (1 - d / .13) + .15 * lit
-            rgb = np.where(w[..., None], ramp(np.clip(tw, 0, 1), WIRE), rgb)
-        cross = (d1 < .16) & (d2 < .16)
-        rgb = np.where(cross[..., None], ramp(np.full(u.shape, .98), WIRE), rgb)
+        band = (v % 1.5) / 1.5                                             # simple wrapped bands, a soft groove between
+        rgb = np.where((band < .12)[..., None], rgb * .55, rgb)
         return rgb, np.full(u.shape, 255.)
 
     # pommel and grip
