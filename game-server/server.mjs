@@ -51,6 +51,7 @@ const MOVE_SLACK = 3;                // metres a burst of late packets may catch
 const MAX_PER_IP = Number(process.env.MAX_PER_IP || 4);   // open connections from one address
 const CONNECTS_PER_MIN = Number(process.env.CONNECTS_PER_MIN || 20);   // new connections from one address per minute
 const HELLO_WITHIN_MS = 20000;       // a connection that never says hello is closed
+const TP_EVERY_MS = 3000;            // the teleport menu (T): a jump to a biome or a player, never faster
 const WORLD_EVERY_MS = 3000;         // world changes (they take a loading screen, so never faster)
 const CHECK_EVERY_MS = 3000;         // sign-in / look checks that ask impz.club: at most this often
 const API_PER_MIN = 60;              // /api/imps and /api/profile requests from one address per minute
@@ -308,6 +309,13 @@ async function onMessage(p, msg) {
       p.world = msg.world;
       readState(p, msg, true);
       broadcast({ t: "update", id: p.id, world: p.world, s: stateRow(p) }, p);
+      return;
+    case "tp":
+      // The teleport menu: the game moves the Imp to a biome or beside another player. Taken as given, like a
+      // world change, but at most every TP_EVERY_MS, so it can't be used to skip the move check.
+      if (!p.ready || Date.now() - (p.tpAt || 0) < TP_EVERY_MS) return;
+      p.tpAt = Date.now();
+      readState(p, msg, true);
       return;
     case "look":
       if (!p.ready) return;

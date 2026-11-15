@@ -83,6 +83,7 @@ func _ready() -> void:
 	await _enter_world(start, "spawn_point")
 	if args.has("biome") and current_world.has_method("biome_centre"):
 		player.place_at(current_world.biome_centre(args["biome"]))
+		Net.teleported()                                   # so the server doesn't pull the Imp back to the spawn
 	if args.has("ore_event"):                              # testing: --ore_event=void starts an event here
 		OreEvents.start_local(args["ore_event"])
 		await get_tree().process_frame
@@ -176,6 +177,22 @@ func _ready() -> void:
 			ProfileMenu.open()
 			if str(args["skill_tree"]) != "none":       # --skill_tree=none: just the Stats tab
 				ProfileMenu.call("_open_tree", str(args["skill_tree"])))
+	if args.has("teleport"):                               # testing: --teleport=frost (or hub; menu opens it; player goes to the first other player)
+		get_tree().create_timer(1.0).timeout.connect(func():
+			if str(args["teleport"]) == "menu":
+				TeleportMenu.open_menu()
+			elif str(args["teleport"]) == "player":            # the first other player online
+				for i in 100:
+					if not Net.others().is_empty():
+						break
+					await get_tree().create_timer(0.2).timeout
+				if not Net.others().is_empty():
+					var o: Dictionary = Net.others()[0]
+					print("TP to ", o.name, " in ", o.world, " at ", o.pos)
+					await TeleportMenu.call("_go_player", int(o.id))
+					print("TP now in ", current_world_name, " at ", player.global_position, " them ", Net.other(int(o.id)).get("pos"))
+			else:
+				TeleportMenu.call("_go_place", str(args["teleport"])))
 	if args.has("shot"):
 		_take_screenshot(args["shot"], float(args.get("shot_delay", "6")))
 	if args.has("perf"):
