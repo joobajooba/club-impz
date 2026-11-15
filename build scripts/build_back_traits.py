@@ -441,22 +441,101 @@ def sword():
 
 
 def samurai():
+    """Two crossed katana in their scabbards, in HD (J00BA, 2026-11-15): painted at 8 texels per unit, every face kept.
+    Glossy plum lacquer scabbards with a silk cord band, dark silver fittings (end cap, mouth, collar, pommel cap), a
+    dark iron tsuba with a pierced pattern and a dark silver rim, plain wrapped hilts, a small emerald on each cap."""
     t = Back('back_samurai')
-    plum = ['#241526', '#3b243d', '#4b2e4f', '#5c3861', '#704a76']
-    brass = S(['#3f2e0a', '#5c4410', '#80662b', '#a08440', '#b89c58'], base=.55, gain=.34)
-    dark = S(['#14181b', '#252b30', '#343c43', '#454e56', '#566069'], base=.5, gain=.3)
-    wrap = lambda P, N, t_: t_ - .18 * (((LOC['p'][..., 1] + np.abs(LOC['p'][..., 0] - (LOC['fr'][0] + LOC['to'][0]) / 2)) % 5) < 1.2)
-    sc = S(plum, base=.55, gain=.34)
-    hilt = S(plum, base=.5, gain=.3, mods=[wrap])
-    for n, th, z in (('a', 42, -20), ('b', -42, -25)):
+    t.PPU = 8
+    t.HIDE_IN_BODY = False
+    LACQ = ['#0b050c', '#170b19', '#241226', '#331a37', '#442349', '#5a305f', '#764080', '#9a5ca6', '#c58fd0']
+    DSILV = ['#1c1e21', '#2a2d31', '#3a3e43', '#4d5258', '#62686f', '#7d838a', '#9ea4aa', '#c4c9cd']
+    IRON = ['#08090a', '#111214', '#1a1c1f', '#24272b', '#2f3338', '#3c4147', '#4c525a']
+    CORD = ['#0d0710', '#1a0e1f', '#2a1630', '#3a1f42', '#4c2a56']
+    WRAP = ['#060607', '#0d0d0f', '#151518', '#1e1e22', '#28282d', '#34343a']
+    EMER = ['#021a0c', '#063c1c', '#0c6630', '#14924a', '#3cc472', '#9ef0bc', '#effff4']
+
+    def round_tone(n, u, lit, base=.36, roundness=.3):
+        return base + roundness * np.sqrt(np.clip(1 - u * u, 0, 1)) + .16 * lit
+
+    def lacquer(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        lit = _light(N)
+        t_ = round_tone(n, u, lit, .30, .32) + .04 * (vnoise(u * 6, v * .3, 71) - .5)
+        t_ = t_ + .34 * np.exp(-((u - .35) / .1) ** 2) + .14 * np.exp(-((u + .45) / .16) ** 2)   # glossy reflections
+        return ramp(np.clip(t_, 0, 1), LACQ), np.full(u.shape, 255.)
+
+    def dsilver(gem=0.):
+        def shader(P, N, cube):
+            n = np.array(LOC['n'], float)
+            u, v = _across(n)
+            lit = _light(N)
+            t_ = round_tone(n, u, lit, .34, .3) + .05 * (vnoise(u * 10, v * 4, 73) - .5)
+            d = edge_dist()
+            t_ = t_ + np.where(d < .3, .16, 0) - np.where(np.abs(d - .45) < .06, .2, 0)   # a raised rim and a fine line
+            rgb = ramp(np.clip(t_, 0, 1), DSILV)
+            if gem and abs(n[2]) > .5:
+                q = LOC['p']
+                c = (np.array(LOC['fr']) + np.array(LOC['to'])) / 2
+                r = np.hypot(q[..., 0] - c[0], q[..., 1] - c[1]) / gem
+                ang = np.arctan2(q[..., 1] - c[1], q[..., 0] - c[0])
+                fc = .5 + .25 * np.cos(ang * 4 + .6) * (r > .45) + .3 * np.clip(1 - np.hypot((q[..., 0] - c[0]) / gem + .3, (q[..., 1] - c[1]) / gem - .3) / .35, 0, 1)
+                rgb = np.where((r < 1)[..., None], ramp(np.clip(fc, 0, 1), EMER), rgb)
+                rgb = np.where(((r >= 1) & (r < 1.3))[..., None], ramp(np.full(r.shape, .8), DSILV), rgb)
+            return rgb, np.full(u.shape, 255.)
+        return shader
+
+    def tsuba(P, N, cube):
+        """Dark iron guard: a dark silver rim, hammered texture, pierced crescent windows on the broad faces."""
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        lit = _light(N)
+        t_ = .36 + .16 * lit + .1 * (vnoise(u * 7, v * 7, 79) - .5) + .06 * (vnoise(u * 20, v * 20, 83) - .5)
+        rgb = ramp(np.clip(t_, 0, 1), IRON)
+        d = edge_dist()
+        rgb = np.where((d < .35)[..., None], ramp(np.clip(.55 + .25 * lit, 0, 1), DSILV), rgb)
+        if abs(n[1]) > .5:                                               # the guard's broad faces (along the sword)
+            q = LOC['p']
+            fr, to = np.array(LOC['fr']), np.array(LOC['to'])
+            c = (fr + to) / 2
+            x, z = q[..., 0] - c[0], q[..., 2] - c[2]
+            for s_ in (-1, 1):
+                r1 = np.hypot(x - s_ * 2.6, z)
+                win = (r1 < 1.1) & (np.hypot(x - s_ * 2.1, z) > .8)
+                rgb = np.where(win[..., None], ramp(np.full(x.shape, .02), IRON), rgb)
+        return rgb, np.full(u.shape, 255.)
+
+    def cord(P, N, cube):
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        lit = _light(N)
+        ph = (v * 2.2 + u * .8) % 1
+        t_ = .3 + .3 * np.sin(ph * np.pi) + .15 * lit + .15 * np.sqrt(np.clip(1 - u * u, 0, 1))
+        return ramp(np.clip(t_, 0, 1), CORD), np.full(u.shape, 255.)
+
+    def hilt(P, N, cube):
+        """A plain wrapped hilt: black cord in even bands, a soft groove between them."""
+        n = np.array(LOC['n'], float)
+        u, v = _across(n)
+        lit = _light(N)
+        t_ = round_tone(n, u, lit, .3, .35) + .06 * (vnoise(u * 16, v * 8, 89) - .5)
+        rgb = ramp(np.clip(t_, 0, 1), WRAP)
+        band = (v % 1.5) / 1.5
+        rgb = np.where((band < .12)[..., None], rgb * .55, rgb)
+        return rgb, np.full(u.shape, 255.)
+
+    for nm, th, z in (('a', 42, -20), ('b', -42, -25)):
         p = Prop(t, (0, 44), th)
-        zz = (z, z + 4)
-        p.b(f'chape_{n}', -3.5, -28, 3.5, -22, *zz, brass)
-        p.b(f'scabbard_{n}', -3, -22, 3, 22, z + .5, z + 3.5, sc)
-        p.b(f'mouth_{n}', -3.5, 22, 3.5, 25, *zz, brass)
-        p.b(f'tsuba_{n}', -5.5, 25, 5.5, 27, *zz, dark)
-        p.b(f'hilt_{n}', -2.5, 27, 2.5, 45, z + .5, z + 3.5, hilt)
-        p.b(f'cap_{n}', -3, 45, 3, 49, *zz, brass)
+        zz, zi = (z, z + 4), (z + .5, z + 3.5)
+        p.b(f'chape_{nm}', -3.5, -30, 3.5, -26, *zz, dsilver())
+        p.b(f'scabbard_{nm}', -3, -26, 3, 21, *zi, lacquer)
+        p.b(f'cord_{nm}', -3.5, 13, 3.5, 16, *zz, cord)
+        p.b(f'mouth_{nm}', -3.5, 21, 3.5, 23, *zz, dsilver())
+        p.b(f'collar_{nm}', -3, 23, 3, 24, *zi, dsilver())
+        p.b(f'tsuba_{nm}', -5.5, 24, 5.5, 26, z - 1, z + 5, tsuba)
+        p.b(f'fuchi_{nm}', -3, 26, 3, 28, *zi, dsilver())
+        p.b(f'hilt_{nm}', -2.5, 28, 2.5, 45, *zi, hilt)
+        p.b(f'cap_{nm}', -3, 45, 3, 48, *zz, dsilver(gem=1.1))
     t.save()
 
 
