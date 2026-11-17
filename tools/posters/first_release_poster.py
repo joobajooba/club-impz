@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parents[2]
 HEROES_3D = "--3d" in sys.argv
 OUT = ROOT / ("docs/images/posters/first_release_poster_3d.png" if HEROES_3D else "docs/images/posters/first_release_poster.png")
 RENDERS = ROOT / "docs/images/posters/first_release_impz_3d"
-FONT = ROOT / "godot-game/ui/fonts/PixelifySans.ttf"
+FONT = ROOT / "tools/posters/fonts/LilitaOne-Regular.ttf"   # title and headers (SIL OFL, fonts/OFL.txt)
+SANS = ROOT / "godot-game/ui/fonts/Arimo.ttf"              # small labels (the game's plain "Arial" text style)
 ITEMS = ROOT / "godot-game/assets/sprites/source/items"
 PICKAXES = ROOT / "godot-game/assets/sprites/source/pickaxes"
 BODIES = ROOT / "docs/imp-traits/bodies"
@@ -70,10 +71,11 @@ draw = ImageDraw.Draw(img)
 draw.fontmode = "1"     # no anti-aliasing on text
 
 
-def font(size, bold=False):
-    f = ImageFont.truetype(str(FONT), size)
-    if bold:
-        f.set_variation_by_name("Bold")   # Pixelify Sans is a variable font, 400 to 700
+def font(size, bold=False, sans=False):
+    """Arimo is variable (weight 400 to 700). Text is drawn at full resolution, so `size` may be fractional."""
+    f = ImageFont.truetype(str(SANS if sans else FONT), round(size * SCALE))
+    if bold and sans:
+        f.set_variation_by_name("Bold")
     return f
 
 
@@ -193,16 +195,27 @@ def pill(x0, y0, w, h, fill, lip=2):
             put(x0 + x, y0 + y, col)
 
 
-def text(x, y, s, size, color, shadow=2, anchor="la", bold=False):
-    f = font(size, bold)
-    if shadow:
-        draw.text((x + shadow, y + shadow), s, font=f, fill=OUTLINE, anchor=anchor)
-    draw.text((x, y), s, font=f, fill=color, anchor=anchor)
+texts = []   # drawn last, on the full 1920 x 1080 image, smooth and sharp (art coordinates x SCALE)
 
 
-def text_w(s, size, bold=False):
-    b = font(size, bold).getbbox(s)
-    return b[2] - b[0]
+def text(x, y, s, size, color, shadow=2, anchor="la", bold=False, sans=False, stroke=0):
+    texts.append((x, y, s, size, color, shadow, anchor, bold, sans, stroke))
+
+
+def text_w(s, size, bold=False, sans=False):
+    b = font(size, bold, sans).getbbox(s)
+    return (b[2] - b[0]) / SCALE
+
+
+def draw_texts(big):
+    d = ImageDraw.Draw(big)
+    for x, y, s, size, color, shadow, anchor, bold, sans, stroke in texts:
+        f = font(size, bold, sans)
+        X, Y = round(x * SCALE), round(y * SCALE)
+        if shadow:
+            o = shadow * 3      # a solid drop shadow, down and right
+            d.text((X + o, Y + o), s, font=f, fill=OUTLINE[:3], anchor=anchor, stroke_width=stroke, stroke_fill=OUTLINE[:3])
+        d.text((X, Y), s, font=f, fill=color[:3], anchor=anchor, stroke_width=stroke, stroke_fill=OUTLINE[:3])
 
 
 def paste(im, x, y, scale=1):
@@ -213,10 +226,10 @@ def paste(im, x, y, scale=1):
 
 def gold_tab(x, y, s, size=16):
     """A menu title: gold text with the dark drop shadow, on a small dark tab."""
-    w = text_w(s, size) + 14
+    w = round(text_w(s, size, bold=True)) + 16
     h = size + 6
     panel(x, y, w, h, fill=BG, studs=False)
-    text(x + 7, y + h // 2 + 1, s, size, GOLD, shadow=1, anchor="lm")
+    text(x + 8, y + h / 2, s, size, RARE, shadow=1, anchor="lm")
     return w, h
 
 
@@ -255,8 +268,7 @@ shot_slots = []          # (art x, art y, art w, art h, file): pasted at full si
 
 def place_tile(x, y, w, h, name, shot):
     """Small gold title above, gold frame below; the screenshot goes inside the frame."""
-    tw = text_w(name, 12)
-    text(x + w // 2 - tw // 2, y, name, 12, RARE, shadow=1)
+    text(x + w / 2, y + 6, name, 11, RARE, shadow=1, anchor="mm", bold=True, sans=True)
     ty = y + 13
     inset = panel(x, ty, w, h, fill=None)
     shot_slots.append((x + inset, ty + inset, w - 2 * inset, h - 2 * inset, SHOTS / f"{shot}.png"))
@@ -327,20 +339,19 @@ for n, (a, b, icon) in enumerate(FEATURES):
     slot(cx + 2, FY + 12, 52, 52)
     paste(icon, cx + 4, FY + 14)
     for k, s in enumerate((a, b)):
-        text(cx + CW // 2 - text_w(s, 12) // 2, FY + 64 + k * 11, s, 12, KEY, shadow=1)
+        text(cx + CW / 2, FY + 70 + k * 11, s, 10, KEY, shadow=1, anchor="mm", bold=True, sans=True)
 
 # ---------------------------------------------------------------- left: title
 
 LX, LW = 8, 236
-tw = text_w("CLUB IMPZ", 48, bold=True)
-text(LX + LW // 2 - tw // 2, 0, "CLUB IMPZ", 48, GOLD, shadow=2, bold=True)
+text(LX + LW / 2, 26, "CLUB IMPZ", 50, RARE, shadow=2, anchor="mm", stroke=5)
 sub = "A SOCIAL MMO"
-text(LX + LW // 2 - text_w(sub, 12) // 2, 48, sub, 12, MUTED, shadow=1)
+text(LX + LW / 2, 56, sub, 11, MUTED, shadow=1, anchor="mm", bold=True, sans=True)
 # COMING DECEMBER! on a raised amber pill
 cd = "COMING DECEMBER!"
-pw = text_w(cd, 24) + 20
+pw = round(text_w(cd, 22)) + 28
 pill(LX + LW // 2 - pw // 2, 64, pw, 30, ENERGY, lip=3)
-draw.text((LX + LW // 2, 64 + 13), cd, font=font(24), fill=OUTLINE, anchor="mm")
+text(LX + LW / 2, 64 + 13.5, cd, 22, OUTLINE, shadow=0, anchor="mm", bold=True)
 
 # ---------------------------------------------------------------- left: heroes
 
@@ -388,6 +399,7 @@ for x, y, w, h, f in shot_slots:      # the screenshots stay sharp: full screen 
 for f, x, y, size in hero_slots:
     r = Image.open(f).convert("RGBA").resize((size * SCALE, size * SCALE), Image.LANCZOS)
     big.paste(r, (x * SCALE, y * SCALE), r)
+draw_texts(big)
 tmp = OUT.with_name(OUT.stem + ".tmp.png")
 big.save(tmp)
 tmp.replace(OUT)
