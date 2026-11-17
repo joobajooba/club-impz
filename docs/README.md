@@ -36,5 +36,6 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | How XP, skill levels, the player level and prestige work (draft) | [xp_system.md](xp_system.md) |
 | How a short request becomes a Blockbench build spec | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) |
 | How the menus and HUD should look and work, studied from other games | [game_menus.md](game_menus.md) |
+| How to make PNG update posters in the menu pixel-art style | [posters.md](posters.md) |
 
 How to run the game, and the GitHub workflow, stay at the repo root: [README.md](../README.md) and [CLAUDE.md](../CLAUDE.md).
