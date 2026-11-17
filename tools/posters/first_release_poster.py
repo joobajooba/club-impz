@@ -4,17 +4,22 @@ Follows docs/posters.md: drawn on a 640 x 360 art canvas in the menu look
 (ui_kit.gd colours, gold bevelled frames, Pixelify Sans), then scaled x3 with
 nearest-neighbour to 1920 x 1080.
 
-    python tools/posters/first_release_poster.py
+    python tools/posters/first_release_poster.py         # 2D pixel Impz (the collection art)
+    python tools/posters/first_release_poster.py --3d    # 3D Impz (Blockbench renders)
 
-Writes docs/images/posters/first_release_poster.png.
+Writes docs/images/posters/first_release_poster.png, or first_release_poster_3d.png with --3d.
+The 3D renders come from tools/posters/render_impz.gd.
 """
 from pathlib import Path
 import random
+import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "docs/images/posters/first_release_poster.png"
+HEROES_3D = "--3d" in sys.argv
+OUT = ROOT / ("docs/images/posters/first_release_poster_3d.png" if HEROES_3D else "docs/images/posters/first_release_poster.png")
+RENDERS = ROOT / "docs/images/posters/first_release_impz_3d"
 FONT = ROOT / "godot-game/ui/fonts/PixelifySans.ttf"
 ITEMS = ROOT / "godot-game/assets/sprites/source/items"
 PICKAXES = ROOT / "godot-game/assets/sprites/source/pickaxes"
@@ -65,8 +70,11 @@ draw = ImageDraw.Draw(img)
 draw.fontmode = "1"     # no anti-aliasing on text
 
 
-def font(size):
-    return ImageFont.truetype(str(FONT), size)
+def font(size, bold=False):
+    f = ImageFont.truetype(str(FONT), size)
+    if bold:
+        f.set_variation_by_name("Bold")   # Pixelify Sans is a variable font, 400 to 700
+    return f
 
 
 # ---------------------------------------------------------------- primitives
@@ -185,15 +193,15 @@ def pill(x0, y0, w, h, fill, lip=2):
             put(x0 + x, y0 + y, col)
 
 
-def text(x, y, s, size, color, shadow=2, anchor="la"):
-    f = font(size)
+def text(x, y, s, size, color, shadow=2, anchor="la", bold=False):
+    f = font(size, bold)
     if shadow:
         draw.text((x + shadow, y + shadow), s, font=f, fill=OUTLINE, anchor=anchor)
     draw.text((x, y), s, font=f, fill=color, anchor=anchor)
 
 
-def text_w(s, size):
-    b = font(size).getbbox(s)
+def text_w(s, size, bold=False):
+    b = font(size, bold).getbbox(s)
     return b[2] - b[0]
 
 
@@ -324,8 +332,8 @@ for n, (a, b, icon) in enumerate(FEATURES):
 # ---------------------------------------------------------------- left: title
 
 LX, LW = 8, 236
-tw = text_w("CLUB IMPZ", 48)
-text(LX + LW // 2 - tw // 2, 0, "CLUB IMPZ", 48, GOLD, shadow=2)
+tw = text_w("CLUB IMPZ", 48, bold=True)
+text(LX + LW // 2 - tw // 2, 0, "CLUB IMPZ", 48, GOLD, shadow=2, bold=True)
 sub = "A SOCIAL MMO"
 text(LX + LW // 2 - text_w(sub, 12) // 2, 48, sub, 12, MUTED, shadow=1)
 # COMING DECEMBER! on a raised amber pill
@@ -361,27 +369,15 @@ def cut_out(path):
     return im
 
 
-def ground(cx, top, half, depth):
-    """A small floating grass island for the heroes to stand on."""
-    for j in range(depth):
-        hw = half - (j * j) // max(depth // 2, 1) if j > 3 else half
-        for i in range(-hw, hw + 1):
-            if j < 3:
-                c = hexc("#6ab04a") if j else hexc("#8ad060")
-            else:
-                c = hexc("#7a4e30") if (i + j) % 6 else hexc("#5a3820")
-            put(cx + i, top + j, c)
-        put(cx - hw - 1, top + j, OUTLINE)
-        put(cx + hw + 1, top + j, OUTLINE)
-
-
-ground(LX + LW // 2, 330, 108, 22)
-left = cut_out(BODIES / "body_gold_408.png")
-right = cut_out(BODIES / "body_diamond_158.png")
-hero = cut_out(BODIES / "body_cyan_111.png")
-paste(left, LX - 8, 330 - 134, 2)
-paste(right, LX + LW - 120, 330 - 134, 2)
-paste(hero, LX + LW // 2 - 96, 330 - 186, 3)
+hero_slots = []          # 3D renders: (file, art x, art y, art size), pasted at full size after the x3 scale
+if HEROES_3D:
+    hero_slots += [(RENDERS / "gold_408.png", LX - 20, 188, 140),
+                   (RENDERS / "diamond_158.png", LX + LW - 124, 188, 140),
+                   (RENDERS / "cyan_111.png", LX + LW // 2 - 92, 168, 176)]
+else:
+    paste(cut_out(BODIES / "body_gold_408.png"), LX - 8, 330 - 134, 2)
+    paste(cut_out(BODIES / "body_diamond_158.png"), LX + LW - 120, 330 - 134, 2)
+    paste(cut_out(BODIES / "body_cyan_111.png"), LX + LW // 2 - 96, 330 - 186, 3)
 
 # ---------------------------------------------------------------- save
 
@@ -389,6 +385,9 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 big = img.convert("RGB").resize((W * SCALE, H * SCALE), Image.NEAREST)
 for x, y, w, h, f in shot_slots:      # the screenshots stay sharp: full screen resolution, not art pixels
     big.paste(Image.open(f).convert("RGB").resize((w * SCALE, h * SCALE), Image.LANCZOS), (x * SCALE, y * SCALE))
+for f, x, y, size in hero_slots:
+    r = Image.open(f).convert("RGBA").resize((size * SCALE, size * SCALE), Image.LANCZOS)
+    big.paste(r, (x * SCALE, y * SCALE), r)
 tmp = OUT.with_name(OUT.stem + ".tmp.png")
 big.save(tmp)
 tmp.replace(OUT)
