@@ -5,7 +5,7 @@ extends Node
 ## merchant: ui/merchant_menu.gd, buy refills, inventory rows and stable slots, sell what you gathered).
 ## E, F or Esc closes it again (ui/modal.gd). A shop counter is any Node3D in the "shop" group with the meta
 ## "kind" (the menu it opens: the menu is in the group "menu_<kind>") and "label"; hub_town.gd puts one at
-## the merchant's stall.
+## the merchant's stall. Crate chests are in the group too (kind "crate", meta "prompt" and "crate"; hub_town.gd).
 
 const REACH := 2.6               # metres from the counter marker (behind the counter) to the Imp
 
@@ -31,7 +31,7 @@ func _physics_process(_delta: float) -> void:
 				best = d
 				target = s
 	if target:
-		_set_prompt("E", "Shop: %s" % String(target.get_meta("label", "Shop")))
+		_set_prompt("E", String(target.get_meta("prompt", "Shop: %s" % String(target.get_meta("label", "Shop")))))
 	else:
 		_set_prompt("", "")
 
@@ -45,7 +45,10 @@ func use() -> bool:
 	if menu == null:
 		push_warning("shop: no menu for %s" % kind)
 		return false
-	menu.open(kind)
+	if menu.has_method("open_for"):                     # a crate menu wants the chest itself (which crate, its lid)
+		menu.open_for(target)
+	else:
+		menu.open(kind)
 	return true
 
 

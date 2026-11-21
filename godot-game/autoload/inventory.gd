@@ -404,6 +404,32 @@ func spend(n: int) -> bool:
 	return true
 
 
+# --- crates (J00BA, 2026-11-21; GameData.CRATES) ----------------------------------
+
+## Why this crate can't be opened now, or "".
+func crate_blocker(crate: String) -> String:
+	var c: Dictionary = GameData.CRATES[crate]
+	if count(c.key) < 1:
+		return "You need a %s" % c.key_label
+	for d in c.drops:
+		if not has_room(d.id):
+			return "Make room in your inventory first"
+	return ""
+
+
+## Spends one key and gives a weighted drop. Returns the drop ({id, n, weight, rarity}), or {} if blocked.
+## The item is added now, so closing the menu mid-spin can't lose it; the menu reveals it when the reel stops.
+func open_crate(crate: String) -> Dictionary:
+	var why := crate_blocker(crate)
+	if why != "":
+		message.emit(why)
+		return {}
+	remove(GameData.CRATES[crate].key, 1)
+	var drop := GameData.crate_roll(crate)
+	add(drop.id, drop.n)
+	return drop
+
+
 # --- TEST tools, for reviewers to try every tier quickly. Remove before launch. ---
 
 func test_refill_energy() -> void:
@@ -433,6 +459,10 @@ func test_clear_items() -> void:
 	for kind in owned:
 		owned[kind] = [held[kind]]
 	sync_tools()
+
+
+func test_add_keys(crate: String, n := 1) -> void:
+	add(GameData.CRATES[crate].key, n)
 
 
 func test_add_coins(n := 1000) -> void:
