@@ -181,8 +181,19 @@ forest ─▶ mountain ─▶ frost ─▶ plains ─▶ swamp ─▶ void ─�
 | Runewood | T8 | Swamp |
 | Gembark | T9 | Plains |
 | Worldbark | T10 | Forest |
+| Minnow | T1 | Forest, frost, plains, swamp |
+| Perch | T2 | Forest |
+| Trout | T3 | Forest |
+| Catfish | T4 | Forest |
+| Goldfin carp | T5 | Plains |
+| Shadow eel | T6 | Swamp |
+| Frostscale pike | T7 | Frost |
+| Bloodfin snapper | T8 | Swamp |
+| Void angler | T9 | Shoal events, any water |
+| Starfin koi | T10 | Shoal events, any water |
 
-- Plants, fish and mobs for each biome will be added once their tables are in `resource_gathering.md` and `world_mobs.md`.
+- The fish rows are **Proposed**, waiting for J00BA (`resource_gathering.md` section 7.3).
+- Plants and mobs for each biome will be added once their tables are in `resource_gathering.md` and `world_mobs.md`.
 - The existing mob models (`cow`, `pig`, `highland_cow`, `wolf`, `ogre`, `dragon`, `pale_dragon`) still need to be placed in biomes. Section 4.8 has suggestions.
 
 ### 4.7 Biome look and feel: shared rules
