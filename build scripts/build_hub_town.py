@@ -47,7 +47,8 @@ for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
 
-MODELS["rare_chest"] = ("res://assets/models/props/chests/rare_chest.glb", "assets/models/props/chests/rare_chest.bbmodel", 1.0)
+for n in ("rare_chest", "legendary_chest"):
+    MODELS[n] = (f"res://assets/models/props/chests/{n}.glb", f"assets/models/props/chests/{n}.bbmodel", 1.0)
 MODELS["rose"] = ("res://assets/models/foliage/rose_flower.glb", "assets/models/foliage/rose_flower.bbmodel", 1.0)
 MODELS["wizard_tower"] = ("res://assets/models/buildings/wizard_tower.glb", "assets/models/buildings/wizard_tower.bbmodel", 1.5)
 for n in ("arcane_circle", "crystal_cluster", "crystal_cluster_small", "spellbook_lectern", "arcane_lamp"):
@@ -217,8 +218,6 @@ for sx in (-1, 1):
     place("plaza_lamp", sx * 14.5, -38.5, "S")
     place("urn_planter", sx * 14.5, -48.5, "S", s=1.3)
     place("planter_trough_flowers", sx * 10.0, -51.8, "S")
-# the brown and silver chest on the avenue, in line with the castle steps, 15 m out from the princess (z -48.6)
-place("rare_chest", 0, -48.6 + 15.0, "S")
 
 # ================================================================ 3. grand avenue and town square (centre)
 street(-4.5, -36.0, 4.5, 56.0)                          # avenue: castle -> square -> portal plaza
@@ -548,6 +547,13 @@ for sx in (-1, 1):
         place("urn_planter", bx, bz, 0, s=1.2)
 
 
+# ---- two chests at the forecourt end of the walk into the wizard's garden (z -45), facing each other across it
+# (J00BA's marked screenshot, 2026-11-21). Brown/silver in front of the west plaza lamp (-14.5, -38.5), 2 m towards the
+# walk, lock facing north to it; green in front of the forecourt face of the hedge (x -19.48, z -51..-48), 3.1 m out so it
+# stays on the cobbles (they end at x -17), lock facing south to it. Both 4 m from the walk's centre line, so the walk stays clear. The hub is flat: y = 0.
+PATH_Z = -45.0
+place("rare_chest", -14.5, PATH_Z + 4.5, "N")
+place("legendary_chest", -16.4, PATH_Z - 3.5, "S")
 # ================================================================ 8. residential lanes (south)
 L1 = (20.0, 26.0)     # Rose Lane
 L2 = (42.0, 48.0)     # Orchard Lane
