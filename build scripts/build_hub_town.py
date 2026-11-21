@@ -47,6 +47,7 @@ for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
 
+MODELS["rare_chest"] = ("res://assets/models/props/chests/rare_chest.glb", "assets/models/props/chests/rare_chest.bbmodel", 1.0)
 MODELS["rose"] = ("res://assets/models/foliage/rose_flower.glb", "assets/models/foliage/rose_flower.bbmodel", 1.0)
 MODELS["wizard_tower"] = ("res://assets/models/buildings/wizard_tower.glb", "assets/models/buildings/wizard_tower.bbmodel", 1.5)
 for n in ("arcane_circle", "crystal_cluster", "crystal_cluster_small", "spellbook_lectern", "arcane_lamp"):
@@ -216,6 +217,8 @@ for sx in (-1, 1):
     place("plaza_lamp", sx * 14.5, -38.5, "S")
     place("urn_planter", sx * 14.5, -48.5, "S", s=1.3)
     place("planter_trough_flowers", sx * 10.0, -51.8, "S")
+# the brown and silver chest on the avenue, in line with the castle steps, 15 m out from the princess (z -48.6)
+place("rare_chest", 0, -48.6 + 15.0, "S")
 
 # ================================================================ 3. grand avenue and town square (centre)
 street(-4.5, -36.0, 4.5, 56.0)                          # avenue: castle -> square -> portal plaza
