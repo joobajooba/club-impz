@@ -14,6 +14,7 @@ extends Node
 ##                               the axe head lands   --axe=bronze_axe  hold that axe (testing: owned or not)
 ##   --shot_loading              also save loading_screen.png next to --shot, half way through loading
 ##   --inventory_open            open the inventory (I) once the world has loaded   --give=maple_log,pine_log  add 3 of each
+##   --crate_open=4  open the nearest crate chest's menu after 4 s   --crate_spin  and spin it (with a TEST key)
 ##   --skill_tree=mining         open the Profile menu and that skill's tree popup
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
@@ -88,6 +89,9 @@ func _ready() -> void:
 	var merchant_menu: CanvasLayer = preload("res://ui/merchant_menu.gd").new()   # the merchant's shop: E at the stall
 	merchant_menu.name = "merchant_menu"
 	add_child(merchant_menu)
+	var crate_menu: CanvasLayer = preload("res://ui/crate_menu.gd").new()   # a crate chest: E at the chest (J00BA, 2026-11-21)
+	crate_menu.name = "crate_menu"
+	add_child(crate_menu)
 	var start: String = args.get("world", "hub")
 	busy = true
 	player.frozen = true
@@ -181,6 +185,17 @@ func _ready() -> void:
 					player.global_position = n.global_position + Vector3.UP * 0.3
 			await get_tree().create_timer(0.5).timeout
 			print("DROP after walking onto it: ", Inventory.count("pine_log")))
+	if args.has("crate_open"):                             # testing: --crate_open=4 (seconds): E at the nearest crate chest, then
+		get_tree().create_timer(float(args["crate_open"])).timeout.connect(func():   # --crate_spin spins it at once
+			var best: Node3D = null
+			for c: Node3D in get_tree().get_nodes_in_group("shop"):
+				if c.has_meta("crate") and (best == null or c.global_position.distance_to(player.global_position) < best.global_position.distance_to(player.global_position)):
+					best = c
+			if best:
+				crate_menu.call("open_for", best)
+				if args.has("crate_spin"):
+					Inventory.test_add_keys(String(best.get_meta("crate")))
+					crate_menu.call("_spin"))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
 	if args.has("skill_tree"):                             # testing: open the Profile menu and that skill's tree popup

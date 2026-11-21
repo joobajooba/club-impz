@@ -294,6 +294,14 @@ func _place_animated(path: String, p: Array) -> void:
 				cache[key] = _material(src.albedo_texture, glow)
 			mi.set_surface_override_material(si, cache[key])
 	var players := inst.find_children("*", "AnimationPlayer", true, false)
+	if GameData.CRATES.has(p[0]):                # a crate chest: E opens its menu (shop_keeper.gd, ui/crate_menu.gd)
+		inst.add_to_group("shop")
+		inst.set_meta("kind", "crate")
+		inst.set_meta("crate", p[0])
+		inst.set_meta("label", GameData.CRATES[p[0]].label)
+		inst.set_meta("prompt", "Open " + GameData.CRATES[p[0]].label)
+		if not players.is_empty():
+			inst.set_meta("anim", players[0])     # the menu plays "open" and "close" on the lid
 	if not players.is_empty():
 		var ap := players[0] as AnimationPlayer
 		if ap.has_animation("idle"):
