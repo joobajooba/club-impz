@@ -549,11 +549,11 @@ for sx in (-1, 1):
 
 # ---- two chests at the forecourt end of the walk into the wizard's garden (z -45), facing each other across it
 # (J00BA's marked screenshot, 2026-11-21). Brown/silver in front of the west plaza lamp (-14.5, -38.5), 2 m towards the
-# walk, lock facing north to it; green in front of the forecourt face of the hedge (x -19.48, z -51..-48), 3.1 m out so it
+# walk, lock facing south (away from the castle, J00BA 2026-11-21); green in front of the forecourt face of the hedge (x -19.48, z -51..-48), 3.1 m out so it
 # stays on the cobbles (they end at x -17), lock facing south to it. Both 4 m from the walk's centre line, so the walk stays clear. The hub is flat: y = 0.
 PATH_Z = -45.0
-place("rare_chest", -14.5, PATH_Z + 4.5, "N")
-place("legendary_chest", -16.4, PATH_Z - 3.5, "S")
+place("rare_chest", -14.5, PATH_Z + 4.5, "S")
+place("legendary_chest", -14.5, PATH_Z - 2.2, "S")   # J00BA: in line with the brown chest (same x), same way; just clear of the urn at z -48.5
 # ================================================================ 8. residential lanes (south)
 L1 = (20.0, 26.0)     # Rose Lane
 L2 = (42.0, 48.0)     # Orchard Lane
