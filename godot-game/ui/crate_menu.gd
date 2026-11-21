@@ -5,9 +5,9 @@ extends Modal
 ## item at once) and spins the reel CS:GO style: a strip of random weighted items slides under a centre line,
 ## slowing down, and stops on the prize. The chest's lid opens with it and shuts when the menu closes.
 
-const TILE := 92.0               # one reel tile
+const TILE := 104.0               # one reel tile
 const GAP := 6.0
-const VIEW_W := 640.0            # the reel window
+const VIEW_W := 700.0            # the reel window
 const STRIP := 44                # tiles on the strip
 const WIN_AT := 37               # the tile the reel stops on
 const SPIN_TIME := 5.6
@@ -196,6 +196,7 @@ func _tile(d: Dictionary) -> Control:
 
 func _build() -> void:
 	super._build()
+	_panel.custom_minimum_size = Vector2(780, 0)
 	var vbox := _panel.get_child(0) as VBoxContainer
 	var holder := VBoxContainer.new()
 	holder.add_theme_constant_override("separation", 6)
@@ -227,7 +228,7 @@ func _build() -> void:
 	_result = UIKit.label("", UIKit.MUTED, 18)
 	_result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	holder.add_child(_result)
-	(vbox.get_child(vbox.get_child_count() - 1) as Control).custom_minimum_size = Vector2(0, 196)   # the list's scroll
+	(vbox.get_child(vbox.get_child_count() - 1) as Control).custom_minimum_size = Vector2(0, 250)   # the list's scroll
 
 
 func _lid(anim: String) -> void:

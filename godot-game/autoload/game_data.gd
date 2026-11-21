@@ -250,7 +250,7 @@ func _init() -> void:
 ## chest shows what's inside and the odds (ui/crate_menu.gd); Open spends one key and a CS:GO style reel lands on the
 ## prize. Drops are TEST: five items with weights out of 100. rarity -> [label, colour] in CRATE_RARITY.
 const CRATES := {
-	rare_chest = {label = "Rare Chest", key = "rare_key", key_label = "Rare Chest Key",
+	rare_chest = {label = "Daily Crate", key = "rare_key", key_label = "Daily Crate Key",
 			key_icon = "res://sprites/items/key_rare.png", drops = [
 		{id = "iron_ingot", n = 5, weight = 45.0, rarity = "common"},
 		{id = "gold_ingot", n = 3, weight = 28.0, rarity = "uncommon"},

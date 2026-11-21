@@ -302,6 +302,9 @@ func _place_animated(path: String, p: Array) -> void:
 		inst.set_meta("prompt", "Open " + GameData.CRATES[p[0]].label)
 		if not players.is_empty():
 			inst.set_meta("anim", players[0])     # the menu plays "open" and "close" on the lid
+		var holo := preload("res://scripts/world/crate_hologram.gd").new()   # "Daily Crate" and the player's keys over it
+		holo.crate = p[0]
+		inst.add_child(holo)
 	if not players.is_empty():
 		var ap := players[0] as AnimationPlayer
 		if ap.has_animation("idle"):
