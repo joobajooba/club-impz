@@ -12,6 +12,7 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | What to design next | [ROADMAP.md](ROADMAP.md) |
 | What is built in the game | [BUILD-ROADMAP.md](BUILD-ROADMAP.md) |
 | How tools are crafted from parts (roadmap, Proposed) | [TOOL-CRAFTING-ROADMAP.md](TOOL-CRAFTING-ROADMAP.md) |
+| How the Imp uses tools and how crafting looks (animations, Proposed) | [TOOL-ANIMATIONS.md](TOOL-ANIMATIONS.md) |
 | How the 3D world should look | [ART-DIRECTION.md](ART-DIRECTION.md) |
 | How tools, creatures and items are modelled (Blockbench) | [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md) |
 | How the pros make Blockbench models, studied from our 26 references | [BLOCKBENCH-STUDY.md](BLOCKBENCH-STUDY.md) |
