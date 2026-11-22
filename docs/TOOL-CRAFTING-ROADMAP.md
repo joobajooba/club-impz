@@ -352,6 +352,8 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 - **B5. Headless test.** For every tool, its parts add up to the decided cost plus its fitting; a traded part can't be assembled below its unlock level (M6).
 - **B6. Take apart, re-haft and inlays** (after T6 and T7). A gem slot on each owned tool in the save, the ×1.25 rare-drop roll on the server (it judges every drop, `GODOT.md`), and the returned part on take apart. Then the ×2.5 cap on every rare-drop roll (E2), pearls in the socket (E3) and the rack with its five full-rack rewards (E5). The reel factor (E4) goes in with fishing, which isn't built in Godot yet.
 
+**Built (PR #113, 2026-11-22):** B1; B3 with E1; B4 in the device save; B5 (`tests/test_tool_parts.tscn`); B6 except the tool rack and its rewards (E5) and the reel factor (E4). B2 only in part: a workbench in the test landscape (`demo_landscape.tscn`), while the hub's anvil and workbench are still placeholders. Rods take exactly their listed reel; "or a better one" and the free swap (D-135) wait for E4. The rare-drop rolls are still made in the game, not on the server.
+
 ## 6. What needs to be made
 
 The models are not on this list (P8).
