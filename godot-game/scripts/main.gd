@@ -88,6 +88,9 @@ func _ready() -> void:
 	var merchant_menu: CanvasLayer = preload("res://ui/merchant_menu.gd").new()   # the merchant's shop: E at the stall
 	merchant_menu.name = "merchant_menu"
 	add_child(merchant_menu)
+	var station_menu: CanvasLayer = preload("res://ui/station_menu.gd").new()   # the hub's crafting stations: E at the anvil, workbench…
+	station_menu.name = "station_menu"
+	add_child(station_menu)
 	var start: String = args.get("world", "hub")
 	busy = true
 	player.frozen = true
