@@ -138,7 +138,7 @@ How crafting behaves for the player, step by step. The build facts each rule sta
 | M8 | **Take apart** | Any crafted tool you don't have in hand can be taken apart for its returned part (3.4). Starter tools have no parts and stay with you, so no one is ever left without a tool. |
 | M9 | **Gem inlay** | One gem socket per crafted tool, filled at the workbench (3.5). The gem is used up. |
 | M10 | **Part sell price** | Parts sell to the merchant under D-074 read literally: *the raw items they took, plus 25%*, counted once. Not +25% per step, which would pay about +95% for a part three steps from the ore. Crafted tools still can't be sold (they have no price, `game_data.gd:490`). |
-| M11 | **XP on the tool, not the parts** | Making parts and fittings gives no XP. The first assembly of each tool gives its first-craft XP (`xp_system.md`, Proposed: 500 × tier, no XP for processing). So spare parts can't be used to farm XP. |
+| M11 | **XP on the tool, not the parts** | Making parts and fittings gives no XP. The first assembly of each tool gives its first-craft XP (D-121: 500 × tier). D-121's processing XP counts raw items used, and parts are made from processed ones, so they give none. So spare parts can't be used to farm XP. |
 
 No durability: tools don't wear out today, and nothing here adds wear.
 
