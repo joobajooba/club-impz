@@ -7,6 +7,8 @@
 > **2026-11-22, later:** at the user's request, stage 2 of the mechanics is added (section 3.6: E1 to E5, and the ideas for later settled; calls 9 to 12). The animations are left as they are.
 
 > **2026-11-22, decided:** the user said yes to calls 1 to 12 (section 7). They are **D-125 to D-136** in `DECISIONS.md`, and the labels below say which part each one covers. Everything else here stays Proposed. J00BA has not agreed yet.
+>
+> **2026-11-22, pass T1:** P6 and P8 are Decided too (D-145, D-146), and P1 to P8, the fittings, the stations and the decided mechanics are written into the new `crafting.md`, which now leads for those rules. This roadmap keeps the trees (section 3) and the passes still to come.
 
 **Labels:** **Decided** (in `DECISIONS.md`, with its D-number), **Proposed** (Claude's suggestion, waiting for you), **Open question** (not settled).
 
@@ -60,7 +62,7 @@ The 58 tool models (plus 5 lineup files) are in `godot-game/assets/models/tools/
 
 ---
 
-## 2. The parts model (Decided: D-125 to D-128; P6 and P8 Proposed)
+## 2. The parts model (Decided: D-125 to D-128, D-145, D-146; written into `crafting.md` in pass T1)
 
 ### 2.1 Three parts per tool
 
@@ -83,9 +85,9 @@ Why these parts: they are what a real tool of that kind is made of, each one com
 - **P3. Fittings come only from tier-1 resources,** gathered with the starter tools: Nettle, Hare, tier-1 trees, Tin and Copper. So no skill's tools are locked behind another skill's progress. A miner needs a few minutes of foraging and hunting, not a Steel sickle.
 - **P4. Parts are real inventory items.** They stack, and they can be traded like any item (D-081). Fittings are shared across trees; heads, blades, blanks and wraps belong to one tool.
 - **P5. Each part is made at the station of its material; every tool is assembled at the workbench** (section 2.4). No energy for any step (D-056).
-- **P6. A part's recipe unlocks with its tool,** at the same skill level. Fittings are always unlocked.
+- **P6. A part's recipe unlocks with its tool,** at the same skill level. Fittings are always unlocked. Decided (D-145).
 - **P7. Starter tools have no parts** (Stone tools, Driftwood Rod, Hare Bow), the same as today.
-- **P8. Parts are icons, not models.** The assembled tool keeps the model it has today (section 1.3). Parts appear only as 48×48 inventory icons (D-015), and their colours come from the icons of their materials.
+- **P8. Parts are icons, not models.** The assembled tool keeps the model it has today (section 1.3). Parts appear only as 48×48 inventory icons (D-015), and their colours come from the icons of their materials. Decided (D-146).
 
 ### 2.3 Fittings
 
@@ -329,7 +331,7 @@ Each pass is design only, ends with a report (`docs/CLAUDE.md` section 6), and n
 | Pass | Goal | Items | Needs | Done when |
 |---|---|---|---|---|
 | **T0** ✔ | This roadmap | Status, parts model, five trees, passes; then crafting mechanics, take apart, inlays and what needs to be made (2026-11-22); then stage 2 (3.6) | Your requests (2026-11-21, 2026-11-22) | This doc is in review |
-| **T1** | Parts rules decided | Calls 1 to 4 in section 7; record D-numbers; write P1 to P8 into `crafting.md` (new doc, needs your yes) | You; J00BA for `crafting.md` | Each rule is Decided or dropped |
+| **T1** | Parts rules decided | Calls 1 to 4 in section 7; record D-numbers; write P1 to P8 into `crafting.md` (new doc, needs your yes) | You; J00BA for `crafting.md` | Each rule is Decided or dropped. **Done 2026-11-22:** P1 to P8 Decided (D-125 to D-128, D-145, D-146) and written into `crafting.md`; J00BA hasn't agreed yet |
 | **T2** | Pickaxes, the pilot tree | Head ids and recipes, bindings, icon plan (no model changes, P8); the menu that unfolds (E1) | T1 | The 3.1 pickaxe column is Decided |
 | **T3** | Axes and sickles | The same pattern; settle the Steel tier and the Stone sickle's reach between D-063 and section 2.1 | T2; both collaborators | 3.1 is Decided for all three tools |
 | **T4** | Rods | Blanks, reels, line; settle the tree list; the reel and the bite window (E4) | T1; both collaborators | 3.2 is Decided |
