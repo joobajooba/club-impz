@@ -2,6 +2,8 @@
 
 > **Proposed** by Claude on 2026-11-21, at the user's request: tools should be crafted from several parts that make sense, and the five tool trees should be expanded. Nothing here is decided. Where a proposal touches a decision in `DECISIONS.md`, it says which one. The full recipes will live in `crafting.md` once that doc exists (it is planned in `game_direction.md` section 12).
 
+> **2026-11-22:** at the user's request, the crafting mechanics are added (section 2.6, take apart in 3.4, gem inlays in 3.5, what needs to be made in section 6, calls 5 to 8). The user also set two limits: the existing Blockbench models stay as they are, and the work focuses on mechanics. The tool animations are in `TOOL-ANIMATIONS.md`.
+
 **Labels:** **Decided** (in `DECISIONS.md`, with its D-number), **Proposed** (Claude's suggestion, waiting for you), **Open question** (not settled).
 
 **The five trees** are the five gathering tool ladders: pickaxes, axes, sickles, fishing rods and bows. Weapons come last (pass T9).
@@ -42,6 +44,8 @@ The 58 tool models (plus 5 lineup files) are in `godot-game/assets/models/tools/
 | Bows | `handle`, `head` (older outliner layout) | **No string.** |
 | `demon_pickaxe`, `lunar_pickaxe` | One group each, not split | Not in any doc (added from J00BA's sprites, commit 9976470). |
 
+**The models stay as they are** (your direction, 2026-11-21). No `binding`, `reel` or `string` group is added; the gaps above are kept only as a record. Parts are shown as icons (rule P8), and the bow string is drawn in code (`TOOL-ANIMATIONS.md`).
+
 ### 1.4 Gaps and conflicts this roadmap has to work around
 
 1. **Two tool ladders.** D-063 and the build have a Steel tier and one sickle per plant tier. J00BA's ladder (`resource_gathering.md` section 2.1) has no Steel, and its starter tools reach tiers 1 to 3. The tables below follow `DECISIONS.md` and the build.
@@ -63,7 +67,7 @@ Every crafted tool is put together from three parts: the **working part** that d
 | Pickaxe | **Head**: the D-006 / D-060 ingots | The decided hilt | **Binding**: cord or leather strip |
 | Axe | **Head**: the D-106 ingots | The decided hilt | **Binding** |
 | Sickle | **Blade**: the D-063 ingots | The decided hilt | **Binding** |
-| Rod | **Blank** (the pole): the D-110 planks The grip, part of the blank | **Reel** (ingots) and **line** (cord) |
+| Rod | **Blank** (the pole): the D-110 planks | The grip, part of the blank | **Reel** (ingots) and **line** (cord) |
 | Bow | **Wrap** (hide backing and grip): the D-069 leather | Part of the wrap | **Stave** (planks) and **string** (cord) |
 
 Why these parts: they are what a real tool of that kind is made of, each one comes from a different skill, and each maps to a group the models already have (section 1.3). The leather wrap is what makes a Wolf Bow a Wolf Bow, so the animal still names and themes the bow (D-115).
@@ -77,7 +81,7 @@ Why these parts: they are what a real tool of that kind is made of, each one com
 - **P5. Each part is made at the station of its material; every tool is assembled at the workbench** (section 2.4). No energy for any step (D-056).
 - **P6. A part's recipe unlocks with its tool,** at the same skill level. Fittings are always unlocked.
 - **P7. Starter tools have no parts** (Stone tools, Driftwood Rod, Hare Bow), the same as today.
-- **P8. Each part is a named group in the tool's model** (`head`, `handle`, `binding`, `reel`, `line`, `string`), so the assembled tool shows its parts. Colours still come from the icons (`MODELS-BLOCKBENCH.md`).
+- **P8. Parts are icons, not models.** The assembled tool keeps the model it has today (section 1.3). Parts appear only as 48×48 inventory icons (D-015), and their colours come from the icons of their materials.
 
 ### 2.3 Fittings
 
@@ -113,6 +117,26 @@ All of it is gathered with starter tools. Counts are gathering actions.
 | Bows (15) | 15 staves, 15 cords | 90 | About 560 hides for 150 leather (D-068) | ~16% |
 
 The pickaxe figure counts ore and Coal for the ingots (D-054, D-055). The fittings are a small extra on every tree; their job is to make each tool a thing you assemble and to link the skills (D-085, "skills feed each other"), not to slow anyone down.
+
+### 2.6 Crafting mechanics (Proposed)
+
+How crafting behaves for the player, step by step. The build facts each rule starts from are in brackets.
+
+| # | Mechanic | Rule |
+|---|---|---|
+| M1 | **Part rows** | At the workbench each tool row shows its three parts, each with *have / need* and the station that makes it. A part you are missing shows the materials it takes. (The build's tool row already shows icon, reach, lock, cost and Craft/Owned: `ui/station_menu.gd:74-96`.) |
+| M2 | **Instant, no energy** | Every craft and assembly is done the moment you press the button, as in the build, with no energy (D-056). The animation plays alongside and never holds the item back (`TOOL-ANIMATIONS.md`, rule A1). |
+| M3 | **One of each tool, any number of parts** | You own at most one copy of each tool, as now (`Inventory.owns`; tools live in `GameData.tools`, not the bag). Parts are bag items: you can make spares, stack them and trade them (P4, D-081). Assembling a tool you already own is blocked. |
+| M4 | **Make what's missing** | The workbench's *Make missing parts* button builds any missing part from **processed** materials in your bag (ingots, planks, leather, bundles). It never smelts, saws, tans or dries: raw materials still go through their station (D-107, D-086). If something is short, it shows the full shopping list instead. This is how B3's one-click promise works. |
+| M5 | **Batches** | Fittings craft ×1, ×5 or ×all, since they are shared and stack. Heads, blades, blanks and wraps craft one at a time, since each belongs to one tool. |
+| M6 | **Unlocks hold for traded parts** | A part's recipe unlocks with its tool (P6). Assembly needs the tool's unlock level too, so a part bought from another player cannot skip a level (the build unlocks tier N at level 5 × (N−1), `game_data.gd:142-148`). Without this, coins could buy progress. |
+| M7 | **Re-haft when upgrading** | When you assemble tier N and own tier N−1 of the same kind, the workbench offers *Re-haft*: it takes N−1 apart (3.4) and moves its hilt, reel or stave straight into the new tool. One click, nothing to carry. |
+| M8 | **Take apart** | Any crafted tool you don't have in hand can be taken apart for its returned part (3.4). Starter tools have no parts and stay with you, so no one is ever left without a tool. |
+| M9 | **Gem inlay** | One gem socket per crafted tool, filled at the workbench (3.5). The gem is used up. |
+| M10 | **Part sell price** | Parts sell to the merchant under D-074 read literally: *the raw items they took, plus 25%*, counted once. Not +25% per step, which would pay about +95% for a part three steps from the ore. Crafted tools still can't be sold (they have no price, `game_data.gd:490`). |
+| M11 | **XP on the tool, not the parts** | Making parts and fittings gives no XP. The first assembly of each tool gives its first-craft XP (`xp_system.md`, Proposed: 500 × tier, no XP for processing). So spare parts can't be used to farm XP. |
+
+No durability: tools don't wear out today, and nothing here adds wear.
 
 ---
 
@@ -172,6 +196,41 @@ One table, because the three metal tools share their metals, hilts and bindings.
 - The stave is tier-1 wood for every bow (rule P3). The model themes it on the bow's animal anyway (D-115), so an Eclipse Dragon Bow still looks like one.
 - **Ideas for later:** legendary bows take one trophy of their animal, which gives trophies a use beyond the cabinet (D-103); an arrow-head slot if arrows ever matter (they aren't used up, D-070). Both need a decision.
 
+### 3.4 Take apart and re-haft (pass T6, Proposed)
+
+Taking a tool apart gives back the part that carries on to the next tier. Everything else is used up.
+
+| Tree | You get back | Used up | Saved over the full tree | Net with the fittings (2.5) |
+|---|---|---|---|---|
+| Pickaxes, axes, sickles (each) | The hilt | Head or blade, binding | 60 chops: one Ash and one Oak hilt serve all seven wood-hilt tiers, 25 chops instead of 85 (D-107: Ash planks take 2 logs, Oak 3) | 42 actions **cheaper** than today |
+| Rods | The reel | Blank, line | 16 mines: one reel of each metal instead of three | 26 actions dearer |
+| Bows | The stave | Wrap, string | 56 chops: one stave instead of fifteen | 34 actions dearer |
+
+- A returned hilt only helps while the next tier takes the same one: Ash for tiers 2 to 5, Oak for 6 to 8. Void and Cosmic hilts each serve one tier (D-058), so they come back but have no next tool. They can be sold under M10 or kept for trade.
+- With take apart, the metal trees end up cheaper than the decided recipes and rods and bows a little dearer. That changes the hilt totals in D-006, D-060, D-063 and D-106, so it needs its own D-number (call 5).
+- **Push-back:** fewer hilts needed means less demand for Ash and Oak planks and, while lumbering isn't live, fewer wood hilts bought from the merchant (D-075), which is one of the few coin sinks. It's small (five fewer hilts per tree), but it's a sink lost.
+
+### 3.5 Gem inlays (pass T7, Proposed)
+
+Gems have two uses today: selling (D-074) and the Void and Cosmic hilts (D-058). An inlay gives them a third that stays in play.
+
+- **One socket per crafted tool.** Starter tools have none.
+- **Which gem fits.** A gem of tier N−1 or higher, by the mining table in `02-resources.md` (Topaz 1, Sapphire 2, Amethyst 3, Ruby 4, Emerald 5, Jade 6, Diamond 7, Painite 8, Arcanium 9, Eclipsium 10). A Bronze pickaxe (tier 2) takes Topaz or better; a Stellarite pickaxe takes Arcanium or Eclipsium. Bows from tier 11 take Eclipsium.
+- **What it does.** The tool's rare-drop chance ×1.25. One perk for every tree, so there's nothing to balance per tool:
+
+| Tool | Its rare drop | Base chance |
+|---|---|---|
+| Pickaxe | Gem | 10% at Tin to 1% at Stellarite (D-012); ×2 with the Stellarite pickaxe (D-059), so ×2.5 with an inlay too |
+| Axe | Sap | `resource_gathering.md` 5.1 (Proposed, PR #107) |
+| Sickle | Seed | `resource_gathering.md` section 6 (Proposed) |
+| Rod | Pearl | `02-resources.md`, fishing |
+| Bow | Trophy | D-103 |
+
+- **What it's worth.** Rare drops sell for 10× their tier's raw item (D-074), so the inlay adds about **+12% coin income** from that tool's gathering at a 10% drop chance, **+2%** at 1%, and **+17%** on a Tin vein with the Stellarite pickaxe. A Topaz pays for itself in about 40 Tin mines.
+- **The gem is lost** when the tool is taken apart (3.4) or re-hafted (M7), so inlays are a steady gem sink. You can't swap a gem out.
+- **Fair to everyone.** Gems only come from play, so Imp holders get no edge beyond what they mine (D-085).
+- **Push-back:** it's a real income boost, so almost everyone will inlay. That's fine as a sink, but if the merchant base price (D-074, not set) runs high, ×1.10 is the safer size (call 6).
+
 ---
 
 ## 4. Passes
@@ -180,14 +239,14 @@ Each pass is design only, ends with a report (`docs/CLAUDE.md` section 6), and n
 
 | Pass | Goal | Items | Needs | Done when |
 |---|---|---|---|---|
-| **T0** ✔ | This roadmap | Status, parts model, five trees, passes | Your request (2026-11-21) | This doc is in review |
+| **T0** ✔ | This roadmap | Status, parts model, five trees, passes; then crafting mechanics, take apart, inlays and what needs to be made (2026-11-22) | Your requests (2026-11-21, 2026-11-22) | This doc is in review |
 | **T1** | Parts rules decided | Calls 1 to 4 in section 7; record D-numbers; write P1 to P8 into `crafting.md` (new doc, needs your yes) | You; J00BA for `crafting.md` | Each rule is Decided or dropped |
-| **T2** | Pickaxes, the pilot tree | Head ids and recipes, bindings, icon plan, model split (add `binding`) | T1 | The 3.1 pickaxe column is Decided |
+| **T2** | Pickaxes, the pilot tree | Head ids and recipes, bindings, icon plan (no model changes, P8) | T1 | The 3.1 pickaxe column is Decided |
 | **T3** | Axes and sickles | The same pattern; settle the Steel tier and the Stone sickle's reach between D-063 and section 2.1 | T2; both collaborators | 3.1 is Decided for all three tools |
 | **T4** | Rods | Blanks, reels, line; settle the tree list | T1; both collaborators | 3.2 is Decided |
-| **T5** | Bows | Wraps, staves, strings; legendary bows; strings in the models | T1, T4 (the stave wood) | 3.3 is Decided |
-| **T6** | Re-hafting and salvage | Move a hilt or reel from an outgrown tool to the next one; break a tool down for some of its parts | T2 to T5 | Decided or dropped. It lowers the decided totals, so it needs its own D-number. |
-| **T7** | Gem inlays | An optional gem socket per tool for a small perk. Besides selling (D-074), gems have one use today: the Void and Cosmic hilts. | T6 | Perks and limits Decided. Gems come from play, so holders get no extra power (D-085). |
+| **T5** | Bows | Wraps, staves, strings; legendary bows; the string drawn in code (`TOOL-ANIMATIONS.md`) | T1, T4 (the stave wood) | 3.3 is Decided |
+| **T6** | Re-hafting and salvage | Move a hilt or reel from an outgrown tool to the next one; break a tool down for some of its parts. Drafted in 3.4 and M7, M8. | T2 to T5 | Decided or dropped. It lowers the decided totals, so it needs its own D-number. |
+| **T7** | Gem inlays | An optional gem socket per tool for a small perk. Besides selling (D-074), gems have one use today: the Void and Cosmic hilts. Drafted in 3.5 and M9. | T6 | Perks and limits Decided. Gems come from play, so holders get no extra power (D-085). |
 | **T8** | Demon and lunar pickaxes | Find out from J00BA what they are (skins, event rewards, another tier). No design until then. | J00BA | Their purpose is Decided |
 | **T9** | Weapons | 77 models (11 tiers × sword, staff, spear, shield, mace, dagger, battle axe). Parts sketch: blade or head, hilt, guard or grip. | Combat designed (mobs don't fight yet; `world_mobs.md` isn't written) | Out of scope until then |
 
@@ -199,14 +258,58 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 
 - **B1. Data.** Parts and fittings tables in `game_data.gd`, and `_add_tool` (`:351-364`) split into part recipes plus an assembly recipe.
 - **B2. Stations in the live world.** The hub anvil and workbench do real work. The sawbench, tanning rack and drying rack exist only in the test scene.
-- **B3. Crafting menu with part slots.** One button crafts any missing part the player has the materials for, so assembling stays one click for players who don't care about parts.
-- **B4. Saving.** Parts in the saved inventory. The device save is a test and Supabase isn't connected yet (M6).
-- **B5. Headless test.** For every tool, its parts add up to the decided cost plus its fitting.
+- **B3. Crafting menu with part slots.** Part rows (M1), batches (M5) and the *Make missing parts* button (M4), so assembling stays one click for players who don't care about parts.
+- **B4. Saving.** Parts in the saved inventory. The device save is a test and Supabase isn't connected yet (build milestone M6).
+- **B5. Headless test.** For every tool, its parts add up to the decided cost plus its fitting; a traded part can't be assembled below its unlock level (M6).
+- **B6. Take apart, re-haft and inlays** (after T6 and T7). A gem slot on each owned tool in the save, the ×1.25 rare-drop roll on the server (it judges every drop, `GODOT.md`), and the returned part on take apart.
 
-## 6. Art track
+## 6. What needs to be made
 
-- **Models (D-044, D-047):** add a `binding` group to the 27 metal tools, give the rods' reel cubes a `reel` group, and add a `string` to the 16 bows. Run the `ART-DIRECTION.md` checklist on each and note it in the PR.
-- **Icons (D-015, 48×48 pixel art):** a full set is 27 heads and blades, 9 blanks, 15 wraps, 2 fittings, 3 reels and 1 stave: 57 icons. **Proposed:** draw one icon per part kind and recolour it per tier from that tier's icon, the way the placeholder pickaxe sprites were made (`02-resources.md`, pickaxe pictures). That is 9 drawings instead of 57.
+The models are not on this list (P8).
+
+### 6.1 Items
+
+57 new bag items, all Proposed.
+
+| Kind | Count | Ids |
+|---|---|---|
+| Pickaxe heads | 9 | `bronze_pickaxe_head` … `stellarite_pickaxe_head` |
+| Axe heads | 9 | `bronze_axe_head` … `stellarite_axe_head` |
+| Sickle blades | 9 | `bronze_sickle_blade` … `stellarite_sickle_blade` |
+| Rod blanks | 9 | `ash_rod_blank` … `voidwood_rod_blank` |
+| Bow wraps | 15 | `fox_bow_wrap` … `eclipse_dragon_bow_wrap` |
+| Fittings | 6 | `nettle_cord`, `hare_leather_strip`, `tin_reel`, `copper_reel`, `bronze_reel`, `bow_stave` |
+
+### 6.2 Icons
+
+57 icons at 48×48 (D-015). **Proposed:** 9 drawings, each recoloured per tier from an icon that already exists, the way the placeholder pickaxes were made (`02-resources.md`, pickaxe pictures).
+
+| Drawing | Icons | Colours from |
+|---|---|---|
+| Pickaxe head | 9 | The pickaxe sprites in `sprites/source/pickaxes/` (Stone, Bronze and Iron are drawn; the rest are placeholders) |
+| Axe head | 9 | `items/tool_<metal>_axe.png` |
+| Sickle blade | 9 | `items/tool_<metal>_sickle.png` |
+| Rod blank | 9 | `items/plank_<wood>.png` |
+| Bow wrap | 15 | `items/leather_<animal>.png` (rolled leather with a strap) |
+| Nettle Cord | 1 | `items/bundle_nettle.png` (green leaves tied with twine) |
+| Hare Leather Strip | 1 | `items/leather_hare.png` (a tan roll) |
+| Reel | 3 | `items/ingot_tin.png`, `items/ingot_copper.png`; Bronze from `items/tool_bronze_axe.png`, as there's no Bronze ingot |
+| Bow Stave | 1 | `items/plank_ash.png` |
+
+- Titanite and Dreadstone metal colours are in the `mithril` and `adamantite` files (`02-resources.md`, mining table).
+- Some source icons carry a mark: the Void swirl, the Stellarite stars, and the marks on the Starwyrm, Voidstalker, Stormhorn Ram and Eclipse Dragon leathers. A flat recolour loses it, so 11 icons need a hand touch-up (the Void and Stellarite heads and blades, the Voidwood blank and those four wraps).
+- **Inlaid tools** show the gem as a small pip in the corner of the tool's icon: the `gemstone_*` icon scaled down in the UI. No new drawings.
+
+### 6.3 Stations in the world
+
+- **Workbench and anvil:** in the hub as placeholders (`scenes/hub/workbench_placeholder.tscn`, `anvil_placeholder.tscn`). They need to work (B2).
+- **Sawbench, tanning rack, drying rack:** the models exist (`assets/models/props/stations/`), but they're placed only in the test scene (`demo_landscape.tscn`). They need a place in the live world (B2).
+
+### 6.4 Code, animations and docs
+
+- **Code:** B1 to B6 (section 5).
+- **Animations:** crafting, assembly, take apart and inlay moments, plus the bow string. See `TOOL-ANIMATIONS.md`.
+- **Docs:** once T1 is decided, the recipes move to `crafting.md` (planned in `game_direction.md` section 12), and each call gets its D-number.
 
 ## 7. Risks and calls
 
@@ -215,7 +318,8 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 - **More steps.** A tool goes from one craft to up to four. B3's "craft missing parts" button keeps it to one click.
 - **Inventory space costs coins** (D-077), and parts take slots. Parts stack, and a head is usually made just before it is assembled.
 - **Linking skills harder.** Higher-tier fittings (say, Obsidian bindings from Wolf leather) would make a miner hunt to tier 4 first. That hurts steady progress (D-085) for players who like one skill. P3 avoids it.
-- **Art scope** for two people. The recolour plan cuts the icons from 57 to 9 drawings; the model edits are small.
+- **Art scope** for two people. The recolour plan cuts the icons from 57 to 9 drawings plus 11 touch-ups, and there are no model edits (P8).
+- **Traded parts and coins.** Parts can be bought, so coins could buy progress. M6 stops it: assembly still needs the level.
 - **Two doc sets.** The tables follow `DECISIONS.md` and the build. If J00BA's ladder or tree list wins, the names and the Steel row change, not the parts model.
 
 **Calls for you** (these block pass T1)
@@ -224,3 +328,10 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 2. **Parts as real items** (Proposed, P4), or only slots in the crafting menu?
 3. **Assemble at the hub workbench** (Proposed, P5), or at each tool's own station?
 4. **Tier-1 fittings only** (Proposed, P3), or tiered fittings that link the skills harder?
+
+**Calls for you** (these block passes T6 and T7, and the build's B3)
+
+5. **Take apart and re-haft** (3.4, M7, M8): the hilt, reel or stave comes back. It lowers the hilt totals in D-006, D-060, D-063 and D-106. Yes or no?
+6. **Gem inlays** (3.5, M9): one gem per tool, used up, rare-drop chance ×1.25. Yes, yes at ×1.10, or no?
+7. **Make missing parts at the workbench** (M4), from processed materials only? Or must every part be made at its own station?
+8. **Parts sell for their raw items plus 25%, once** (M10, reading D-074 literally)? Or can't parts be sold?
