@@ -43,7 +43,7 @@ func state() -> Dictionary:
 		inventory = {
 			items = Inventory.items, owned = Inventory.owned, held = Inventory.held,
 			in_hand = Inventory.in_hand, coins = Inventory.coins, extra_rows = Inventory.extra_rows,
-			refill_period = Inventory.refill_period,
+			refill_period = Inventory.refill_period, sockets = Inventory.sockets, unfolded = Inventory.unfolded,
 		},
 		stable = {
 			animals = Stable.animals, follower = Stable.follower, team = Stable.team,
@@ -63,8 +63,14 @@ func equip(kind: String, id: String) -> void:
 	profile_changed.emit()
 
 
+## Off while a headless test runs (tests/), so it never overwrites the player's save.
+var enabled := true
+
+
 func write() -> void:
 	_timer.stop()
+	if not enabled:
+		return
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(state()))
@@ -105,6 +111,15 @@ func _apply_inventory(inv: Dictionary) -> void:
 		var held: String = inv.get("held", {}).get(kind, "")
 		if held in list:
 			Inventory.held[kind] = held
+	var sockets := {}                                     # inlays (D-130, D-134); sync_tools drops those of tools not owned
+	for id in inv.get("sockets", {}):
+		var gem := str(inv.sockets[id])
+		if GameData.tools.has(id) and GameData.items.has(gem):
+			sockets[id] = gem
+	Inventory.sockets = sockets
+	Inventory.unfolded = {}
+	for flag in inv.get("unfolded", {}):
+		Inventory.unfolded[str(flag)] = true
 	Inventory.sync_tools()                                # one equipped per kind, the rest in the grid
 	if inv.get("in_hand", "") in GameData.TOOL_KINDS:
 		Inventory.in_hand = inv.in_hand

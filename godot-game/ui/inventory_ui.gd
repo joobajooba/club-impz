@@ -105,7 +105,7 @@ func _render() -> void:
 		var b := _buttons[i]
 		var id: String = ids[i] if i < ids.size() else ""
 		_style_slot(b)
-		var tex := GameData.item_icon(id) if id else null
+		var tex := Inventory.icon_of(id) if id else null
 		b.icon = tex
 		b.text = "" if tex or not id else GameData.item_label(id)   # hilts have no picture yet
 		var tool := id != "" and Inventory.is_tool(id)
@@ -183,7 +183,7 @@ func _render_tools() -> void:
 		var b: Button = _tool_slots[kind]
 		var id: String = Inventory.held[kind]
 		_style_slot(b, kind == Inventory.in_hand)
-		b.icon = GameData.tool_icon(id)
+		b.icon = Inventory.icon_of(id)
 		b.tooltip_text = "%s%s" % [GameData.tools[id].label, "  (in hand)" if kind == Inventory.in_hand else ""]
 
 
@@ -196,7 +196,7 @@ func _grid_id(i: int) -> String:
 
 func _drag_preview(b: Button, id: String) -> void:
 	var tr := TextureRect.new()
-	tr.texture = GameData.tool_icon(id)
+	tr.texture = Inventory.icon_of(id)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	tr.size = Vector2(SLOT_SIZE, SLOT_SIZE)
