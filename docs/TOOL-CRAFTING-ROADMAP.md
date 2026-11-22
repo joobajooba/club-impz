@@ -6,6 +6,8 @@
 
 > **2026-11-22, later:** at the user's request, stage 2 of the mechanics is added (section 3.6: E1 to E5, and the ideas for later settled; calls 9 to 12). The animations are left as they are.
 
+> **2026-11-22, decided:** the user said yes to calls 1 to 12 (section 7). They are **D-125 to D-136** in `DECISIONS.md`, and the labels below say which part each one covers. Everything else here stays Proposed. J00BA has not agreed yet.
+
 **Labels:** **Decided** (in `DECISIONS.md`, with its D-number), **Proposed** (Claude's suggestion, waiting for you), **Open question** (not settled).
 
 **The five trees** are the five gathering tool ladders: pickaxes, axes, sickles, fishing rods and bows. Weapons come last (pass T9).
@@ -58,7 +60,7 @@ The 58 tool models (plus 5 lineup files) are in `godot-game/assets/models/tools/
 
 ---
 
-## 2. The parts model (Proposed)
+## 2. The parts model (Decided: D-125 to D-128; P6 and P8 Proposed)
 
 ### 2.1 Three parts per tool
 
@@ -77,7 +79,7 @@ Why these parts: they are what a real tool of that kind is made of, each one com
 ### 2.2 Rules
 
 - **P1. Three parts per tool,** as in 2.1.
-- **P2. The decided material pays for the working part, unchanged.** The ingots, planks, leather and hilts in D-006, D-058, D-060, D-063, D-069, D-106, D-107 and D-110 stay exactly as they are. **The fitting is the only new cost.** That still changes the total those decisions give, so it needs your yes (call 1 in section 7).
+- **P2. The decided material pays for the working part, unchanged.** The ingots, planks, leather and hilts in D-006, D-058, D-060, D-063, D-069, D-106, D-107 and D-110 stay exactly as they are. **The fitting is the only new cost.** That still changes the total those decisions give: Decided (D-125).
 - **P3. Fittings come only from tier-1 resources,** gathered with the starter tools: Nettle, Hare, tier-1 trees, Tin and Copper. So no skill's tools are locked behind another skill's progress. A miner needs a few minutes of foraging and hunting, not a Steel sickle.
 - **P4. Parts are real inventory items.** They stack, and they can be traded like any item (D-081). Fittings are shared across trees; heads, blades, blanks and wraps belong to one tool.
 - **P5. Each part is made at the station of its material; every tool is assembled at the workbench** (section 2.4). No energy for any step (D-056).
@@ -100,11 +102,11 @@ Why these parts: they are what a real tool of that kind is made of, each one com
 
 | Station | Makes | Status |
 |---|---|---|
-| Anvil (blacksmith) | Heads, blades, reels; hilts | Hilts at the blacksmith are Decided (D-058, D-107). The rest is Proposed. |
-| Sawbench | Rod blanks, bow staves | Proposed. The build already crafts rods here. |
-| Tanning rack | Bow wraps, leather strips | Proposed. The build already crafts bows here. |
-| Drying rack | Nettle Cord | Proposed. |
-| Workbench (hub) | Assembles every tool from its three parts | Proposed. Gives the hub's placeholder workbench its job. |
+| Anvil (blacksmith) | Heads, blades, reels; hilts | Hilts at the blacksmith are Decided (D-058, D-107). The rest is Decided (D-127). |
+| Sawbench | Rod blanks, bow staves | Decided (D-127). The build already crafts rods here. |
+| Tanning rack | Bow wraps, leather strips | Decided (D-127). The build already crafts bows here. |
+| Drying rack | Nettle Cord | Decided (D-127). |
+| Workbench (hub) | Assembles every tool from its three parts | Decided (D-127). Gives the hub's placeholder workbench its job. |
 
 ### 2.5 What the fittings add
 
@@ -120,7 +122,7 @@ All of it is gathered with starter tools. Counts are gathering actions.
 
 The pickaxe figure counts ore and Coal for the ingots (D-054, D-055). The fittings are a small extra on every tree; their job is to make each tool a thing you assemble and to link the skills (D-085, "skills feed each other"), not to slow anyone down.
 
-### 2.6 Crafting mechanics (Proposed)
+### 2.6 Crafting mechanics (Proposed; M4 and M7 to M10 Decided: D-129 to D-132)
 
 How crafting behaves for the player, step by step. The build facts each rule starts from are in brackets.
 
@@ -142,7 +144,7 @@ No durability: tools don't wear out today, and nothing here adds wear.
 
 ---
 
-## 3. The five trees (Proposed)
+## 3. The five trees (Proposed; the fitting each tier takes is Decided, D-125)
 
 Ids follow the build's pattern (`<tier>_<kind>`), with the part name added.
 
@@ -198,7 +200,7 @@ One table, because the three metal tools share their metals, hilts and bindings.
 - The stave is tier-1 wood for every bow (rule P3). The model themes it on the bow's animal anyway (D-115), so an Eclipse Dragon Bow still looks like one.
 - **Ideas for later:** a trophy in the legendary bows and an arrow-head slot are both dropped in 3.6, with the reasons.
 
-### 3.4 Take apart and re-haft (pass T6, Proposed)
+### 3.4 Take apart and re-haft (pass T6, Decided: D-129)
 
 Taking a tool apart gives back the part that carries on to the next tier. Everything else is used up.
 
@@ -209,10 +211,10 @@ Taking a tool apart gives back the part that carries on to the next tier. Everyt
 | Bows | The stave | Wrap, string | 56 chops: one stave instead of fifteen | 34 actions dearer |
 
 - A returned hilt only helps while the next tier takes the same one: Ash for tiers 2 to 5, Oak for 6 to 8. Void and Cosmic hilts each serve one tier (D-058), so they come back but have no next tool. They can be sold under M10 or kept for trade.
-- With take apart, the metal trees end up cheaper than the decided recipes and rods and bows a little dearer. That changes the hilt totals in D-006, D-060, D-063 and D-106, so it needs its own D-number (call 5).
+- With take apart, the metal trees end up cheaper than the decided recipes and rods and bows a little dearer. That changes the hilt totals in D-006, D-060, D-063 and D-106: Decided (D-129).
 - **Push-back:** fewer hilts needed means less demand for Ash and Oak planks and, while lumbering isn't live, fewer wood hilts bought from the merchant (D-075), which is one of the few coin sinks. It's small (five fewer hilts per tree), but it's a sink lost.
 
-### 3.5 Gem inlays (pass T7, Proposed)
+### 3.5 Gem inlays (pass T7, Decided: D-130)
 
 Gems have two uses today: selling (D-074) and the Void and Cosmic hilts (D-058). An inlay gives them a third that stays in play.
 
@@ -231,9 +233,9 @@ Gems have two uses today: selling (D-074) and the Void and Cosmic hilts (D-058).
 - **What it's worth.** Rare drops sell for 10× their tier's raw item (D-074), so the inlay adds about **+12% coin income** from that tool's gathering at a 10% drop chance, **+2%** at 1%, and **+17%** on a Tin vein with the Stellarite pickaxe. A Topaz pays for itself in about 40 Tin mines.
 - **The gem is lost** when the tool is taken apart (3.4) or re-hafted (M7), so inlays are a steady gem sink. You can't swap a gem out.
 - **Fair to everyone.** Gems only come from play, so Imp holders get no edge beyond what they mine (D-085).
-- **Push-back:** it's a real income boost, so almost everyone will inlay. That's fine as a sink, but if the merchant base price (D-074, not set) runs high, ×1.10 is the safer size (call 6).
+- **Push-back:** it's a real income boost, so almost everyone will inlay. That's fine as a sink, but if the merchant base price (D-074, not set) runs high, ×1.10 is the safer size. The user chose ×1.25 (D-130).
 
-### 3.6 Stage 2: how the mechanics grow (Proposed)
+### 3.6 Stage 2: how the mechanics grow (E1 Proposed; E2 to E5 Decided: D-133 to D-136)
 
 Sections 2.6, 3.4 and 3.5 are stage 1: what crafting does. Stage 2 is what happens around it: how a player meets each mechanic, how the boosts add up, and what to do with a tool you've outgrown. It adds no new items and no new stations.
 
@@ -260,7 +262,7 @@ Four things raise a rare-drop chance, and only one pair has a stacking rule so f
 | Stellarite pickaxe | Gems | ×2 | Decided (D-059) |
 | A tamed animal tracking | Trophies | ×1.5 | Decided (D-072) |
 | Potion | One per skill | ×1.15 to ×1.6 | Proposed (`02-resources.md`, potions) |
-| Inlay | The tool's rare drop | ×1.25 | Proposed (3.5) |
+| Inlay | The tool's rare drop | ×1.25 | Decided (D-130) |
 
 - **Rule:** the boosts multiply, and the total is capped at **×2.5** for every rare drop. This takes the potion cap (×2.5, gems only) and applies it to all five rare drops. Mint token chances never change (D-045, D-076).
 - **What it means:**
@@ -282,7 +284,7 @@ Pearls have no use besides selling (`resource_gathering.md` 5.1, open question).
 
 #### E4. The reel sets the bite window
 
-Fishing is the only skill with a timing moment (D-109). So far the reel only adds cost. **Proposed:** the window narrows as the fish get harder, and the reel wins it back.
+Fishing is the only skill with a timing moment (D-109). So far the reel only adds cost. **Decided (D-135):** the window narrows as the fish get harder, and the reel wins it back.
 
 - **Window** for a fish of tier T: W × (1 − 0.04 × (T − 1)). A Minnow gets the full W, a Starfin Koi 0.64 W. W is set when fishing is built in Godot; it isn't built yet.
 - **Reel:** no reel (the Driftwood rod) ×1.0, Tin ×1.1, Copper ×1.25, Bronze ×1.4.
@@ -410,23 +412,19 @@ The models are not on this list (P8).
 - **Traded parts and coins.** Parts can be bought, so coins could buy progress. M6 stops it: assembly still needs the level.
 - **Two doc sets.** The tables follow `DECISIONS.md` and the build. If J00BA's ladder or tree list wins, the names and the Steel row change, not the parts model.
 
-**Calls for you** (these block pass T1)
+**Calls answered** (the user said yes to all twelve on 2026-11-22; J00BA has not agreed yet)
 
-1. **Fittings add a small cost** on top of the decided recipes (section 2.5). This supersedes only the "costs" part of D-006, D-060, D-063, D-069, D-106 and D-110. Yes or no? Without it, metal tools are head + hilt and rods and bows stay single parts.
-2. **Parts as real items** (Proposed, P4), or only slots in the crafting menu?
-3. **Assemble at the hub workbench** (Proposed, P5), or at each tool's own station?
-4. **Tier-1 fittings only** (Proposed, P3), or tiered fittings that link the skills harder?
+1. **Fittings add a small cost** on top of the decided recipes (section 2.5): yes, **D-125**.
+2. **Parts as real items** (P4): yes, **D-126**.
+3. **Assemble at the hub workbench** (P5): yes, **D-127**.
+4. **Tier-1 fittings only** (P3): yes, **D-128**.
+5. **Take apart and re-haft** (3.4, M7, M8): yes, **D-129**.
+6. **Gem inlays** (3.5, M9) at ×1.25: yes, **D-130**.
+7. **Make missing parts at the workbench** (M4), from processed materials only: yes, **D-131**.
+8. **Parts sell for their raw items plus 25%, once** (M10): yes, **D-132**.
+9. **One ×2.5 cap for every boost** (E2): yes, **D-133**.
+10. **Pearls in the socket** (E3): yes, **D-134**.
+11. **The reel sets the bite window** (E4): yes, **D-135**.
+12. **The tool rack** (E5): yes, **D-136**.
 
-**Calls for you** (these block passes T6 and T7, and the build's B3)
-
-5. **Take apart and re-haft** (3.4, M7, M8): the hilt, reel or stave comes back. It lowers the hilt totals in D-006, D-060, D-063 and D-106. Yes or no?
-6. **Gem inlays** (3.5, M9): one gem per tool, used up, rare-drop chance ×1.25. Yes, yes at ×1.10, or no?
-7. **Make missing parts at the workbench** (M4), from processed materials only? Or must every part be made at its own station?
-8. **Parts sell for their raw items plus 25%, once** (M10, reading D-074 literally)? Or can't parts be sold?
-
-**Calls for you** (stage 2, section 3.6; they block nothing before T4)
-
-9. **One cap for every boost** (E2): boosts multiply, capped at ×2.5 for all five rare drops. Yes, or a different cap?
-10. **Pearls in the socket** (E3), as well as gems? Yes or no.
-11. **The reel sets the bite window** (E4): the window narrows 4% a fish tier and the reel wins it back. Yes, or keep one window for every fish?
-12. **The tool rack** (E5): a full rack of one kind gives a cosmetic and a title, like a trophy set. Yes or no?
+Calls 1 to 4 unblock pass T1; calls 5 and 6 unblock T6, T7 and the build's B3.
