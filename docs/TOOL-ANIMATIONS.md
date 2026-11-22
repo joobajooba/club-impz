@@ -4,6 +4,8 @@
 
 > **2026-11-22, decided:** the user said yes to calls A to D (section 7). They are **D-137 to D-140** in `DECISIONS.md`. Everything else here stays Proposed. J00BA, who built the animations, has not agreed yet.
 
+> **2026-11-22, built (PR #118, in review):** the hit-stop and the *Reduce motion* setting (D-137), and the fishing loop's poses (pass A2: cast, the rod held out while waiting, raised and trembling on a bite, the cast again on a catch; fishing itself is PR #117). The same PR reworks the Imp's body motion in `imp_visual.gd`, which this doc didn't cover: knees, elbows, head and tail now move, walk and run share one clock with the bounce and footsteps, and swings start from the current pose and run on a smooth curve. The section 1 description of `_run_action` and the line numbers below are from before that change. Blinks aren't built: the eyes are painted into the face texture, so a blink needs lid art. Test: `tests/test_imp_animation.tscn`.
+
 **Labels:** **Decided** (in `DECISIONS.md`, with its D-number), **Proposed** (Claude's suggestion, waiting for you), **Open question** (not settled).
 
 ---

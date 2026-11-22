@@ -109,6 +109,7 @@ func stop() -> void:
 	_float.visible = false
 	(_line.mesh as ImmediateMesh).clear_surfaces()
 	_show_held_float(true)
+	_hold("")
 
 
 func catch_time() -> float:
@@ -130,6 +131,13 @@ func _cast(from: Vector3) -> void:
 	_float.global_position = from
 	_show_held_float(false)
 	visual.play_action("rod")
+	_hold("rod_wait")                                  # after the cast: the rod out over the water
+
+
+## The Imp's held pose while fishing (imp_visual.gd HOLDS).
+func _hold(pose: String) -> void:
+	if visual.has_method("set_hold"):
+		visual.set_hold(pose)
 
 
 func _tip() -> Vector3:
@@ -204,6 +212,7 @@ func _process(delta: float) -> void:
 				_t = 0.0
 				_window = window_override if window_override > 0.0 else Fishing.bite_window(spot.row, Inventory.held.rod)
 				spot.bite()
+				_hold("rod_bite")                          # the rod comes up, tense, trembling with the pull
 				_play("fish_splash", _surface(), 0.8)
 				ToolFx.burst(get_tree().current_scene, _surface(), SPLASH, 8, 1.8, 0.04)
 			Fishing.progress[key] = done
@@ -220,6 +229,7 @@ func _process(delta: float) -> void:
 				_t = 0.0
 				_nibbles = 0
 				spot.pull = Fishing.MISS_KEEP
+				_hold("rod_wait")
 	_draw_line()
 
 
