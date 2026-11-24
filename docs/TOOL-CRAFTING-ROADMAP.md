@@ -356,6 +356,8 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 
 **Built (PR #113, 2026-11-22):** B1; B3 with E1; B4 in the device save; B5 (`tests/test_tool_parts.tscn`); B6 except the tool rack and its rewards (E5) and the reel factor (E4). B2 only in part: a workbench in the test landscape (`demo_landscape.tscn`), while the hub's anvil and workbench are still placeholders. Rods take exactly their listed reel; "or a better one" and the free swap (D-135) wait for E4. The rare-drop rolls are still made in the game, not on the server.
 
+**Built (PR #117, 2026-11-22):** the reel factor (E4) with fishing in the live world: the bite window is W × (1 − 0.04 × (T − 1)) × the rod's reel, with W = 1.5 s (Proposed). Rods still take exactly their listed reel; the free reel swap at the workbench isn't built.
+
 ## 6. What needs to be made
 
 The models are not on this list (P8).

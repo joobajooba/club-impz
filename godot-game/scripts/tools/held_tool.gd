@@ -49,6 +49,17 @@ func _swing_line(delta: float) -> void:
 	_line.global_basis = Basis(x * s.x, y * s.y, z * s.z)
 
 
+## The rod tip (the line's pivot), or null for a tool without a line. scripts/player/fisher.gd casts from it.
+func rod_tip() -> Node3D:
+	return _line
+
+
+## While a line is cast the hanging float is hidden: the fisher draws the cast line and its own float.
+func show_float(on: bool) -> void:
+	if _line:
+		_line.visible = on
+
+
 static func manifest() -> Dictionary:
 	if _manifest.is_empty():
 		var data = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST))

@@ -64,6 +64,21 @@ const WATER_BIRDS := [
 ## Voidstone and stellarite veins are world events (autoload/ore_events.gd): they appear on one of these
 ## spots, the same list on every client (fixed seed, any biome), which the server picks by index.
 const EVENT_SPOTS := 48
+const FISH_SPOT := preload("res://scripts/world/fish_spot.gd")
+## Fishing spots (resource_gathering.md section 7.3, Proposed): [water name, spots, fish]. 4 along each shore and
+## 8 in the swamp; each spot holds one fish, the water's list in turn. The upper forest pool is the swan pond.
+## Mountain water has no fish yet, and void angler and starfin koi wait for shoal events (section 7.4).
+const FISH_WATERS := [
+	["forest_river", 4, ["minnow", "perch", "trout"]],
+	["forest_upper_pool", 4, ["minnow", "trout", "catfish"]],
+	["frost_open_pool", 4, ["minnow", "frostscale_pike"]],
+	["plains_watering_hole", 4, ["minnow", "goldfin_carp"]],
+	["swamp_water", 8, ["minnow", "shadow_eel", "bloodfin_snapper"]],
+]
+const FISH_GAP := 6.0            # metres between two spots
+const FISH_APART := 5.0          # a spot's shore is this far from every other spot (past the fishing reach)
+const FISH_SHORE := [1.2, 4.0]   # a spot sits this far out from dry, flat shore to fish from
+const FISH_DEPTH := 0.15         # water at least this deep (the swamp is only about 0.3 m deep)
 
 var world: GameWorld
 var data: WorldData
@@ -100,6 +115,7 @@ func populate(w: GameWorld) -> void:
 	_log_bridge()
 	_giant_titanwood(lm["giant_titanwood"])
 	_place_ores()
+	_place_fish_spots()
 	_place_mobs()
 	_place_birds()
 
@@ -224,6 +240,71 @@ func _place_ores() -> void:
 	OreEvents.ended.connect(_on_event_end)
 	for ev in OreEvents.events.values():               # events already running when this world loaded
 		_on_event(ev)
+
+
+func _place_fish_spots() -> void:
+	## Open water a short way out from a dry, flat bit of shore, so the Imp can stand there and cast.
+	var root := Node3D.new()
+	root.name = "fish_spots"
+	add_child(root)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5151
+	var shores: Array = []
+	var all_spots: Array = []
+	var counts := {}
+	for spec in FISH_WATERS:
+		var w := {}
+		for ww in data.layout.get("water", []):
+			if ww["name"] == spec[0]:
+				w = ww
+		if w.is_empty():
+			continue
+		var r: Array = w["rect"]
+		var lvl := float(w["level"])
+		var taken: Array[Vector2] = []
+		var area := (float(r[2]) - float(r[0])) * (float(r[3]) - float(r[1]))
+		for tries in clampi(int(area * 0.4), 6000, 80000):   # the swamp's water is the whole biome, mostly marsh
+			if taken.size() >= int(spec[1]):
+				break
+			var p := Vector2(rng.randf_range(r[0], r[2]), rng.randf_range(r[1], r[3]))
+			if not data.in_bounds(p.x, p.y, 8.0) or data.height(p.x, p.y) > lvl - FISH_DEPTH:
+				continue
+			if all_spots.any(func(q): return q.distance_to(p) < FISH_GAP) \
+					or shores.any(func(q): return q.distance_to(p) < FISH_APART):
+				continue
+			var stand := _fish_shore(p, lvl, rng)
+			if stand == Vector2.INF or all_spots.any(func(q): return q.distance_to(stand) < FISH_APART):
+				continue
+			var fish: String = spec[2][taken.size() % spec[2].size()]
+			var s := FISH_SPOT.new()
+			s.name = "fish_%s_%d" % [spec[0], taken.size()]
+			s.setup(fish)
+			s.water = spec[0]
+			s.set_meta("stand", Vector3(stand.x, data.height(stand.x, stand.y), stand.y))
+			root.add_child(s)
+			s.global_position = Vector3(p.x, lvl, p.y)
+			taken.append(p)
+			all_spots.append(p)
+			shores.append(stand)
+			counts[fish] = int(counts.get(fish, 0)) + 1
+	print("FISH SPOTS: %d %s" % [shores.size(), counts])
+	if world.scatter:
+		world.scatter.add_blockers(shores, 1.6)       # no tree or rock where the Imp stands to fish
+
+
+## A dry, flat shore point between FISH_SHORE metres from the spot, or Vector2.INF.
+func _fish_shore(p: Vector2, lvl: float, rng: RandomNumberGenerator) -> Vector2:
+	var a0 := rng.randf() * TAU
+	for i in 16:
+		var a := a0 + i * TAU / 16.0
+		for d in [FISH_SHORE[0], (FISH_SHORE[0] + FISH_SHORE[1]) * 0.5, FISH_SHORE[1]]:
+			var q := p + Vector2(cos(a), sin(a)) * float(d)
+			if not data.in_bounds(q.x, q.y, 6.0):
+				continue
+			var h := data.height(q.x, q.y)
+			if h > lvl + 0.04 and h < lvl + 1.4 and data.normal(q.x, q.y).y > 0.8 and data.water_level(q.x, q.y) < h:
+				return q
+	return Vector2.INF
 
 
 func _event_spots(placed: Array[Vector2]) -> void:
