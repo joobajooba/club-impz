@@ -4,6 +4,8 @@
 
 > **2026-11-22:** at the user's request, the crafting mechanics are added (section 2.6, take apart in 3.4, gem inlays in 3.5, what needs to be made in section 6, calls 5 to 8). The user also set two limits: the existing Blockbench models stay as they are, and the work focuses on mechanics. The tool animations are in `TOOL-ANIMATIONS.md`.
 
+> **2026-11-22, later:** at the user's request, stage 2 of the mechanics is added (section 3.6: E1 to E5, and the ideas for later settled; calls 9 to 12). The animations are left as they are.
+
 **Labels:** **Decided** (in `DECISIONS.md`, with its D-number), **Proposed** (Claude's suggestion, waiting for you), **Open question** (not settled).
 
 **The five trees** are the five gathering tool ladders: pickaxes, axes, sickles, fishing rods and bows. Weapons come last (pass T9).
@@ -163,7 +165,7 @@ One table, because the three metal tools share their metals, hilts and bindings.
 
 - Part ids: `gold_pickaxe_head`, `gold_axe_head`, `gold_sickle_blade`.
 - Cord for the light Ash-hilt tools, a leather grip for the heavy heads from Obsidian up. The model shows the binding in the tier's own colours.
-- **Ideas for later:** a pickaxe gem socket (pass T7); axe heads that matter for felling (`resource_gathering.md` 5.2); a sickle blade edge that raises the seed chance. Each needs its own decision.
+- **Ideas for later:** the gem socket became 3.5. The axe-head and sickle-edge ideas are dropped in 3.6, with the reasons.
 
 ### 3.2 Rods
 
@@ -182,7 +184,7 @@ One table, because the three metal tools share their metals, hilts and bindings.
 
 - Part ids: `ash_rod_blank` … `voidwood_rod_blank`. The float stays part of the model, not a crafted part.
 - The blank woods follow whichever tree list wins (section 1.4, item 2).
-- **Ideas for later:** the reel widens the bite window (D-109), so a better reel makes fishing easier, not just possible; a lure slot for bait (fishing expansion idea 9). Both change fishing balance and need a decision.
+- **Ideas for later:** the reel and the bite window are worked out in 3.6 (E4). The lure slot stays blocked (3.6, dropped ideas).
 
 ### 3.3 Bows
 
@@ -194,7 +196,7 @@ One table, because the three metal tools share their metals, hilts and bindings.
 
 - Part ids: `fox_bow_wrap` … `eclipse_dragon_bow_wrap`.
 - The stave is tier-1 wood for every bow (rule P3). The model themes it on the bow's animal anyway (D-115), so an Eclipse Dragon Bow still looks like one.
-- **Ideas for later:** legendary bows take one trophy of their animal, which gives trophies a use beyond the cabinet (D-103); an arrow-head slot if arrows ever matter (they aren't used up, D-070). Both need a decision.
+- **Ideas for later:** a trophy in the legendary bows and an arrow-head slot are both dropped in 3.6, with the reasons.
 
 ### 3.4 Take apart and re-haft (pass T6, Proposed)
 
@@ -231,6 +233,91 @@ Gems have two uses today: selling (D-074) and the Void and Cosmic hilts (D-058).
 - **Fair to everyone.** Gems only come from play, so Imp holders get no edge beyond what they mine (D-085).
 - **Push-back:** it's a real income boost, so almost everyone will inlay. That's fine as a sink, but if the merchant base price (D-074, not set) runs high, ×1.10 is the safer size (call 6).
 
+### 3.6 Stage 2: how the mechanics grow (Proposed)
+
+Sections 2.6, 3.4 and 3.5 are stage 1: what crafting does. Stage 2 is what happens around it: how a player meets each mechanic, how the boosts add up, and what to do with a tool you've outgrown. It adds no new items and no new stations.
+
+#### E1. One mechanic at a time
+
+A new player shouldn't meet parts, re-hafting and sockets all at once. Each one appears the first time it can matter. The flags live in the save (B4).
+
+| When | What appears | Until then |
+|---|---|---|
+| Your first crafted tool in any tree (tier 2) | One **Craft** button: it runs *Make missing parts* (M4), then assembles. If a raw material is short, the shopping list says where it comes from, for example "1 Nettle Bundle: drying rack, from 2 Nettle (stone sickle)". | The tool row looks as it does in the build today. |
+| The first time a part or fitting is in your bag | The part rows (M1) open by default from then on. | Part rows are folded under "Parts". |
+| Your second crafted tool of one kind (tier 3) | *Re-haft* (M7) and *Take apart* (M8), with one line on what moves over. | Hidden, since there is nothing to move yet. |
+| You hold a gem or pearl that fits a tool you own (E3) | The socket on that tool's row (M9). | No empty socket is shown. |
+
+- The first Nettle Cord is the first time one skill feeds another (D-085): a miner's Bronze pickaxe needs one bundle from foraging. The shopping list makes that a pointer, not a wall.
+- E1 needs no call of its own. It is how B3's menu shows calls 2, 5, 6 and 7.
+
+#### E2. One rule for stacking boosts
+
+Four things raise a rare-drop chance, and only one pair has a stacking rule so far:
+
+| Boost | Rare drop | Size | Status |
+|---|---|---|---|
+| Stellarite pickaxe | Gems | ×2 | Decided (D-059) |
+| A tamed animal tracking | Trophies | ×1.5 | Decided (D-072) |
+| Potion | One per skill | ×1.15 to ×1.6 | Proposed (`02-resources.md`, potions) |
+| Inlay | The tool's rare drop | ×1.25 | Proposed (3.5) |
+
+- **Rule:** the boosts multiply, and the total is capped at **×2.5** for every rare drop. This takes the potion cap (×2.5, gems only) and applies it to all five rare drops. Mint token chances never change (D-045, D-076).
+- **What it means:**
+  - **Gems with the Stellarite pickaxe and an inlay:** 2 × 1.25 = 2.5, at the cap. A Prospector's Draught adds nothing on top, so the menu should say "at cap" rather than let a player waste a potion.
+  - **Trophies with tracking and an inlay:** 1.5 × 1.25 = 1.875. A Tracker's Brew from a tier-5 bundle up (×1.35) reaches the cap.
+  - **Pearls, seeds and sap:** an inlay and the strongest potion make 1.25 × 1.6 = 2.0, under the cap.
+- **Why a cap:** rare drops sell for 10× their tier's raw item (D-074). At the cap, a Tin vein with its 10% gem chance pays 2.5× its ore's value in gems, 3.5× in total. With no cap, the Stellarite pickaxe, an inlay and the strongest potion make ×4, and the vein pays 5×.
+- **Push-back:** with the cap, the gem potion is useless to anyone holding an inlaid Stellarite pickaxe. That is the price of D-059 being so strong. The other way out, leaving the inlay off the Stellarite pickaxe's gem roll, is harder to explain to players.
+
+#### E3. Pearls fit the socket too
+
+Pearls have no use besides selling (`resource_gathering.md` 5.1, open question). They have the gem chances (D-112) and ten tiers, so they fit 3.5 without a new rule.
+
+- A socket takes a **gem or a pearl** of tier N−1 or higher. Pearl tiers: River 1, Sand 2, Moss 3, Black 4, Golden 5, Shadow 6, Frost 7, Blood 8, Void 9, Star 10 (`02-resources.md`, fishing).
+- The effect is the same ×1.25, and the pearl is lost on take apart or re-haft, the same as a gem.
+- Fishing then feeds every tool the way mining does (D-085). A player who fishes can inlay without mining, so gems stop being the only route.
+- The pip on the icon is the `pearl_*` icon scaled down (6.2). All ten are in `sprites/source/items/`.
+- **Not sap or trophies.** Pine Resin and Birch Sap aren't stones, so only the Amber tiers would fit, which makes a split rule. Trophies fill cabinet sets (D-103), and seeds wait for farming (D-065). What sap is for stays open.
+
+#### E4. The reel sets the bite window
+
+Fishing is the only skill with a timing moment (D-109). So far the reel only adds cost. **Proposed:** the window narrows as the fish get harder, and the reel wins it back.
+
+- **Window** for a fish of tier T: W × (1 − 0.04 × (T − 1)). A Minnow gets the full W, a Starfin Koi 0.64 W. W is set when fishing is built in Godot; it isn't built yet.
+- **Reel:** no reel (the Driftwood rod) ×1.0, Tin ×1.1, Copper ×1.25, Bronze ×1.4.
+- **A rod takes its listed reel (3.2) or a better one.** Swapping costs nothing at the workbench, and the old reel goes back to the bag.
+
+| Fish tier, with the rod of that tier | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Listed reel | none | Tin | Tin | Tin | Copper | Copper | Copper | Bronze | Bronze | Bronze |
+| Window (× W) | 1.00 | 1.06 | 1.01 | 0.97 | 1.05 | 1.00 | 0.95 | 1.01 | 0.95 | 0.90 |
+
+- So the newest fish you can catch is always about as hard to time as your first Minnow, and the fish below it get easier as you climb: a Minnow on a Bronze reel gets 1.4 W. Only the top fish tightens a little. That is steady progress you can feel (D-085).
+- **Push-back:** this is a web game, and the server judges every drop (`GODOT.md`). A narrow window on a slow connection loses fish the player timed right. W has to be wide enough to survive web latency, measured once fishing is built. A bot times any window perfectly, so this does nothing against bots.
+
+#### E5. Keep it on the rack, or take it apart
+
+Take apart (3.4) saves 42 actions per metal tree, so everyone will do it, and an outgrown tool is only salvage. The rack makes it a choice.
+
+- The tool rack beside the hub workbench shows every tool you still own, inlays included. The model exists (`assets/models/props/workshop/tool_rack`). Your profile shows the rack the way it shows trophies (D-103).
+- **A full rack** means owning every tier of one kind at the same time: Stone to Stellarite pickaxes, say, or every bow from Hare to Eclipse Dragon. Each of the five gives a cosmetic and a title, the same reward as a trophy set (D-103). Which cosmetic and title is open, as it is for trophies.
+- A full rack costs exactly the decided recipes, since no hilt was taken back. The take-apart saving becomes something you can spend on a goal, and players who don't care lose nothing.
+- It also brings back the hilt demand and the merchant hilt sales that take apart cut (3.4, push-back).
+
+#### Considered and dropped
+
+The ideas for later in 3.1 to 3.3, and why stage 2 leaves them out:
+
+| Idea | Why not |
+|---|---|
+| A sickle blade edge that raises the seed chance | The inlay and the Green Thumb Tonic already raise it, and E2's cap would eat a third boost. |
+| Axe heads that matter for felling | Felling is one bar per tree, then a stump for 5 minutes (`resource_gathering.md` 5.2). The only levers are gather time (2.3) and drops (the inlay), and both are taken. |
+| Legendary bows that take a trophy | The legendary bows already take about 21 days online (`resource_gathering.md` 8.3). A trophy at a 1 to 4% chance adds days, and it takes the trophy out of its cabinet set (D-103). |
+| An arrow-head slot | Arrows aren't used up (D-070). A slot would be a second bow fitting with a speed or drop perk, and both are taken. |
+| A bait or lure slot | Still blocked, as in the fishing report (idea 9): speed bait drifts the pace, and pearl bait copies the Angler's Tonic. |
+| Wear and repair | Tools don't wear (2.6). Repairs would turn a finished tool into a chore. |
+
 ---
 
 ## 4. Passes
@@ -239,14 +326,14 @@ Each pass is design only, ends with a report (`docs/CLAUDE.md` section 6), and n
 
 | Pass | Goal | Items | Needs | Done when |
 |---|---|---|---|---|
-| **T0** ✔ | This roadmap | Status, parts model, five trees, passes; then crafting mechanics, take apart, inlays and what needs to be made (2026-11-22) | Your requests (2026-11-21, 2026-11-22) | This doc is in review |
+| **T0** ✔ | This roadmap | Status, parts model, five trees, passes; then crafting mechanics, take apart, inlays and what needs to be made (2026-11-22); then stage 2 (3.6) | Your requests (2026-11-21, 2026-11-22) | This doc is in review |
 | **T1** | Parts rules decided | Calls 1 to 4 in section 7; record D-numbers; write P1 to P8 into `crafting.md` (new doc, needs your yes) | You; J00BA for `crafting.md` | Each rule is Decided or dropped |
-| **T2** | Pickaxes, the pilot tree | Head ids and recipes, bindings, icon plan (no model changes, P8) | T1 | The 3.1 pickaxe column is Decided |
+| **T2** | Pickaxes, the pilot tree | Head ids and recipes, bindings, icon plan (no model changes, P8); the menu that unfolds (E1) | T1 | The 3.1 pickaxe column is Decided |
 | **T3** | Axes and sickles | The same pattern; settle the Steel tier and the Stone sickle's reach between D-063 and section 2.1 | T2; both collaborators | 3.1 is Decided for all three tools |
-| **T4** | Rods | Blanks, reels, line; settle the tree list | T1; both collaborators | 3.2 is Decided |
+| **T4** | Rods | Blanks, reels, line; settle the tree list; the reel and the bite window (E4) | T1; both collaborators | 3.2 is Decided |
 | **T5** | Bows | Wraps, staves, strings; legendary bows; the string drawn in code (`TOOL-ANIMATIONS.md`) | T1, T4 (the stave wood) | 3.3 is Decided |
-| **T6** | Re-hafting and salvage | Move a hilt or reel from an outgrown tool to the next one; break a tool down for some of its parts. Drafted in 3.4 and M7, M8. | T2 to T5 | Decided or dropped. It lowers the decided totals, so it needs its own D-number. |
-| **T7** | Gem inlays | An optional gem socket per tool for a small perk. Besides selling (D-074), gems have one use today: the Void and Cosmic hilts. Drafted in 3.5 and M9. | T6 | Perks and limits Decided. Gems come from play, so holders get no extra power (D-085). |
+| **T6** | Re-hafting and salvage | Move a hilt or reel from an outgrown tool to the next one; break a tool down for some of its parts. Drafted in 3.4 and M7, M8; the tool rack in E5. | T2 to T5 | Decided or dropped. It lowers the decided totals, so it needs its own D-number. |
+| **T7** | Gem inlays | An optional gem socket per tool for a small perk. Besides selling (D-074), gems have one use today: the Void and Cosmic hilts. Drafted in 3.5 and M9; pearls (E3) and the stacking cap (E2) in 3.6. | T6 | Perks and limits Decided. Gems come from play, so holders get no extra power (D-085). |
 | **T8** | Demon and lunar pickaxes | Find out from J00BA what they are (skins, event rewards, another tier). No design until then. | J00BA | Their purpose is Decided |
 | **T9** | Weapons | 77 models (11 tiers × sword, staff, spear, shield, mace, dagger, battle axe). Parts sketch: blade or head, hilt, guard or grip. | Combat designed (mobs don't fight yet; `world_mobs.md` isn't written) | Out of scope until then |
 
@@ -258,10 +345,10 @@ Milestones to move into `BUILD-ROADMAP.md` once T1 and T2 are decided. Only deci
 
 - **B1. Data.** Parts and fittings tables in `game_data.gd`, and `_add_tool` (`:351-364`) split into part recipes plus an assembly recipe.
 - **B2. Stations in the live world.** The hub anvil and workbench do real work. The sawbench, tanning rack and drying rack exist only in the test scene.
-- **B3. Crafting menu with part slots.** Part rows (M1), batches (M5) and the *Make missing parts* button (M4), so assembling stays one click for players who don't care about parts.
+- **B3. Crafting menu with part slots.** Part rows (M1), batches (M5) and the *Make missing parts* button (M4), so assembling stays one click for players who don't care about parts. The rows unfold one mechanic at a time (E1).
 - **B4. Saving.** Parts in the saved inventory. The device save is a test and Supabase isn't connected yet (build milestone M6).
 - **B5. Headless test.** For every tool, its parts add up to the decided cost plus its fitting; a traded part can't be assembled below its unlock level (M6).
-- **B6. Take apart, re-haft and inlays** (after T6 and T7). A gem slot on each owned tool in the save, the ×1.25 rare-drop roll on the server (it judges every drop, `GODOT.md`), and the returned part on take apart.
+- **B6. Take apart, re-haft and inlays** (after T6 and T7). A gem slot on each owned tool in the save, the ×1.25 rare-drop roll on the server (it judges every drop, `GODOT.md`), and the returned part on take apart. Then the ×2.5 cap on every rare-drop roll (E2), pearls in the socket (E3) and the rack with its five full-rack rewards (E5). The reel factor (E4) goes in with fishing, which isn't built in Godot yet.
 
 ## 6. What needs to be made
 
@@ -304,6 +391,7 @@ The models are not on this list (P8).
 
 - **Workbench and anvil:** in the hub as placeholders (`scenes/hub/workbench_placeholder.tscn`, `anvil_placeholder.tscn`). They need to work (B2).
 - **Sawbench, tanning rack, drying rack:** the models exist (`assets/models/props/stations/`), but they're placed only in the test scene (`demo_landscape.tscn`). They need a place in the live world (B2).
+- **Tool rack (E5):** the model exists (`assets/models/props/workshop/tool_rack`). It needs a place beside the hub workbench, holding the tools you own.
 
 ### 6.4 Code, animations and docs
 
@@ -335,3 +423,10 @@ The models are not on this list (P8).
 6. **Gem inlays** (3.5, M9): one gem per tool, used up, rare-drop chance ×1.25. Yes, yes at ×1.10, or no?
 7. **Make missing parts at the workbench** (M4), from processed materials only? Or must every part be made at its own station?
 8. **Parts sell for their raw items plus 25%, once** (M10, reading D-074 literally)? Or can't parts be sold?
+
+**Calls for you** (stage 2, section 3.6; they block nothing before T4)
+
+9. **One cap for every boost** (E2): boosts multiply, capped at ×2.5 for all five rare drops. Yes, or a different cap?
+10. **Pearls in the socket** (E3), as well as gems? Yes or no.
+11. **The reel sets the bite window** (E4): the window narrows 4% a fish tier and the reel wins it back. Yes, or keep one window for every fish?
+12. **The tool rack** (E5): a full rack of one kind gives a cosmetic and a title, like a trophy set. Yes or no?
