@@ -13,8 +13,8 @@ extends Modal
 ## (D-124 replaces those parts of D-075, D-077 and D-095).
 
 const TABS := [["Ores", "mining"], ["Lumber", "lumbering"], ["Plants", "foraging"], ["Fish", "fishing"], ["Hunting", "hunting"]]
-const KIND_LABEL := {raw = "Raw", made = "Processed", rare = "Rare"}
-const KIND_ORDER := {raw = 0, made = 1, rare = 2}
+const KIND_LABEL := {raw = "Raw", made = "Processed", rare = "Rare", hilt = "Hilt", part = "Tool part"}
+const KIND_ORDER := {raw = 0, made = 1, rare = 2, hilt = 3, part = 4}
 const SLOT_SIZE := 56
 const COLUMNS := 6
 
@@ -40,11 +40,14 @@ func open(station_kind: String) -> void:
 	super.open(station_kind)
 
 
-## The tab's items: the skill's items that the merchant trades, by tier, then raw, processed, rare.
+## The tab's items: the skill's items that the merchant trades, by tier, then raw, processed, rare. Hilts
+## and tool parts show only while the player has some: the merchant buys them back (D-132) but doesn't sell them.
 func _items_for(skill: String) -> Array:
 	var out := []
 	for id in GameData.items:
 		var it: Dictionary = GameData.items[id]
+		if it.kind in ["hilt", "part"] and Inventory.count(id) == 0:
+			continue
 		if it.skill == skill and GameData.sell_price(id) > 0:
 			out.append(id)
 	out.sort_custom(func(a, b):
@@ -161,7 +164,7 @@ func _build_info() -> Control:
 	var buy := GameData.buy_price(id)
 	_info_row(v, "You have", str(have), Color.WHITE)
 	_info_row(v, "Merchant buys for", "%d coins each" % sell, UIKit.GOOD)
-	_info_row(v, "Merchant sells for", "%d coins each" % buy, UIKit.RARE)
+	_info_row(v, "Merchant sells for", ("%d coins each" % buy) if buy > 0 else "Doesn't sell these", UIKit.RARE)
 	v.add_child(UIKit.divider())
 
 	# quantity: -10 -1 [n] +1 +10, and Max (as many as you can sell, or else afford)
@@ -178,7 +181,7 @@ func _build_info() -> Control:
 		q.add_child(_small_button("+%d" % d, _change_qty.bind(d)))
 	q.add_child(_small_button("Max", _max_qty))
 
-	var can_buy := Inventory.coins >= buy * _qty and Inventory.has_room(id)
+	var can_buy := buy > 0 and Inventory.coins >= buy * _qty and Inventory.has_room(id)
 	var can_sell := have >= _qty
 	var bb := UIKit.button("Buy %d for %d coins" % [_qty, buy * _qty], can_buy, _buy)
 	bb.size_flags_horizontal = Control.SIZE_EXPAND_FILL

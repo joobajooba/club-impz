@@ -45,6 +45,61 @@ static func icon(t: Dictionary) -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
+## Stand-in icons for the tool parts (D-126): one small shape per kind of part, in the colour of its
+## material (P8). TEST art until the nine drawings in TOOL-CRAFTING-ROADMAP 6.2 exist; a drawn
+## `sprites/items/part_<id>.png` replaces it (GameData.item_icon).
+static func part_icon(part: Dictionary) -> ImageTexture:
+	var img := Image.create(24, 24, false, Image.FORMAT_RGBA8)
+	var c := Color(part.colour)
+	var dark := c.darkened(0.35)
+	var wood := Color("#76644a")
+	match part.shape:
+		"pickaxe_head":                      # a curved pick with the hole for the hilt in the middle
+			for x in range(2, 22):
+				var y := 11 - roundi(4.0 * sin(PI * (x - 2) / 19.0))
+				_dot(img, Vector2(x, y), c, 3)
+			_line(img, Vector2(11, 9), Vector2(11, 12), dark, 2)
+		"axe_head":                          # a blade flaring out from the neck that holds the hilt
+			for x in range(4, 21):
+				var half := 2 if x < 11 else 2 + roundi((x - 11) * 0.8)
+				for y in range(12 - half, 12 + half + 1):
+					_px(img, x, y, c)
+			_line(img, Vector2(6, 11), Vector2(6, 13), dark, 2)
+		"sickle_blade":                      # a crescent with a short tang
+			for a in range(200, 381, 5):
+				_dot(img, Vector2(13, 12) + Vector2.from_angle(deg_to_rad(a)) * 8.0, c, 2)
+			_line(img, Vector2(4, 20), Vector2(7, 17), dark, 2)
+		"rod_blank":                         # a long pole with a wrapped grip
+			_line(img, Vector2(4, 20), Vector2(20, 4), c, 2)
+			_line(img, Vector2(4, 20), Vector2(8, 16), dark, 2)
+		"bow_wrap":                          # a roll of leather with a strap round it
+			for x in range(4, 20):
+				for y in range(8, 17):
+					_px(img, x, y, c)
+			_line(img, Vector2(12, 7), Vector2(12, 17), dark, 2)
+			_dot(img, Vector2(18, 11), dark, 2)
+		"cord":                              # a coil of twine
+			for r in [3.0, 5.5, 8.0]:
+				for a in range(0, 360, 12):
+					_dot(img, Vector2(12, 12) + Vector2.from_angle(deg_to_rad(a)) * r, c if r != 5.5 else dark, 1)
+			_line(img, Vector2(18, 16), Vector2(21, 21), c, 1)
+		"strip":                             # a long band of leather
+			for x in range(2, 22):
+				_dot(img, Vector2(x, 10 + roundi(2.0 * sin(x * 0.6))), c, 3)
+		"reel":                              # a spool with spokes and a crank
+			for a in range(0, 360, 10):
+				_dot(img, Vector2(12, 12) + Vector2.from_angle(deg_to_rad(a)) * 7.0, c, 2)
+			for a in [0, 60, 120]:
+				var d := Vector2.from_angle(deg_to_rad(a)) * 6.0
+				_line(img, Vector2(12, 12) - d, Vector2(12, 12) + d, dark, 1)
+			_line(img, Vector2(19, 12), Vector2(22, 12), wood, 2)
+		"stave":                             # a bow's limb, not yet strung
+			for i in 21:
+				_dot(img, Vector2(8 + roundi(6.0 * sin(PI * i / 20.0)), 2 + i), c, 2)
+	_outline(img)
+	return ImageTexture.create_from_image(img)
+
+
 static func _px(img: Image, x: int, y: int, c: Color) -> void:
 	if x >= 0 and y >= 0 and x < img.get_width() and y < img.get_height():
 		img.set_pixel(x, y, c)

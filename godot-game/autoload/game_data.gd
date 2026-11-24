@@ -148,8 +148,8 @@ const RECIPE_SKILL := {"pickaxe": "mining", "sickle": "foraging", "bow": "huntin
 const RECIPE_EVERY := 5
 const SKILL_TREE_MAX := 100                     # skill trees: a node every 5 levels up to the skill cap
 
-## Where each tool kind is crafted. Bows at the tanning rack and rods at the sawbench are Proposed:
-## the docs say what they cost (D-069, D-110) but not where.
+## Where each tool kind's working part is made (D-127): heads and blades at the anvil, rod blanks at the
+## sawbench, bow wraps at the tanning rack. Every tool except the sword is then assembled at the workbench.
 const TOOL_KINDS := {
 	"pickaxe": {label = "Pickaxe", skill = "mining", station = "blacksmith"},
 	"sickle": {label = "Sickle", skill = "foraging", station = "blacksmith"},
@@ -167,6 +167,32 @@ const HILTS := {
 	"cosmic_hilt": {label = "Cosmic Hilt", cost = {stellarite_ingot = 2, eclipsium = 1}},
 }
 
+## Tools are assembled from three parts (D-125): the working part, paid for by the decided material (a
+## tool's `cost`), the hilt or what stands in for it, and a fitting. Parts are bag items (D-126).
+## Fittings (TOOL-CRAFTING-ROADMAP table 2.3) come only from tier-1 resources (D-128), each made at the
+## station of its material (D-127). Colours are from the material's picture: the icons are TEST art drawn
+## in code (ToolArt.part_icon) until the drawings in 6.2 exist.
+const FITTINGS := {
+	"nettle_cord": {label = "Nettle Cord", cost = {nettle_bundle = 1}, station = "drying_rack", skill = "foraging", colour = "#7a9a3a", shape = "cord"},
+	"hare_leather_strip": {label = "Hare Leather Strip", cost = {hare_leather = 1}, station = "tanning_rack", skill = "hunting", colour = "#b4846c", shape = "strip"},
+	"tin_reel": {label = "Tin Reel", cost = {tin_ingot = 1}, station = "blacksmith", skill = "mining", colour = "#9eaab6", shape = "reel"},
+	"copper_reel": {label = "Copper Reel", cost = {copper_ingot = 1}, station = "blacksmith", skill = "mining", colour = "#e08a5a", shape = "reel"},
+	"bronze_reel": {label = "Bronze Reel", cost = {tin_ingot = 1, copper_ingot = 1}, station = "blacksmith", skill = "mining", colour = "#c0703c", shape = "reel"},
+	"bow_stave": {label = "Bow Stave", cost = {ash_plank = 2}, station = "sawbench", skill = "lumbering", colour = "#8a8478", shape = "stave"},
+}
+## Each kind's working part: its id is the tool's id plus `suffix` (`bronze_pickaxe_head`, `fox_bow_wrap`;
+## ids Proposed, TOOL-CRAFTING-ROADMAP 3.1 to 3.3) and it is made at `station` (D-127).
+const PARTS_OF := {
+	"pickaxe": {suffix = "head", label = "head", station = "blacksmith", shape = "pickaxe_head"},
+	"axe": {suffix = "head", label = "head", station = "blacksmith", shape = "axe_head"},
+	"sickle": {suffix = "blade", label = "blade", station = "blacksmith", shape = "sickle_blade"},
+	"rod": {suffix = "blank", label = "Blank", station = "sawbench", shape = "rod_blank"},
+	"bow": {suffix = "wrap", label = "Wrap", station = "tanning_rack", shape = "bow_wrap"},
+}
+## Rare-drop boosts multiply and the total is capped (D-133). An inlaid gem or pearl gives x1.25 (D-130, D-134).
+const INLAY_BOOST := 1.25
+const RARE_BOOST_CAP := 2.5
+
 # --- stations and the camp -----------------------------------------------------
 
 const STATIONS := {
@@ -176,6 +202,7 @@ const STATIONS := {
 	"sawbench": {label = "Sawbench", verb = "Use sawbench", skill = "lumbering"},
 	"campfire": {label = "Campfire", verb = "Cook at campfire", skill = "fishing"},
 	"blacksmith": {label = "Blacksmith", verb = "Use anvil", skill = ""},
+	"workbench": {label = "Workbench", verb = "Use workbench", skill = ""},   # assembles every tool (D-127)
 	"merchant": {label = "Merchant", verb = "Trade with merchant", skill = ""},
 	"stable": {label = "Stable", verb = "Open stable", skill = ""},
 	"arena": {label = "Battle Board", verb = "Find a battle", skill = ""},
@@ -225,9 +252,11 @@ const BUY_MARKUP := 2            # the merchant sells an item for 2x what it pay
 ## skill id -> Array of tier rows: {skill, id, label, tier, raw, made, rare, rare_chance, per,
 ## fuel, fuel_count, ...look fields}.
 var tiers := {}
-## item id -> {label, icon (path or ""), tier, skill, kind ("raw" / "made" / "rare" / "hilt")}.
+## item id -> {label, icon (path or ""), tier, skill, kind ("raw" / "made" / "rare" / "hilt" / "part")}.
+## Hilts and parts also have {cost, station}; parts have {fitting, colour, shape} and, for working parts, {tool}.
 var items := {}
 ## tool id -> {id, kind, label, tier, reach, cost, hilt, colour fields}; tools_of[kind] is in tier order.
+## Crafted tools that are assembled (not swords) also have {part, parts, returns}: see _build_parts.
 var tools := {}
 var tools_of := {}
 
@@ -239,9 +268,12 @@ func _init() -> void:
 	_build_lumbering()
 	_add_chopped_logs()
 	_build_fishing()
-	for id in HILTS:
-		items[id] = {label = HILTS[id].label, icon = "res://sprites/items/hilt_%s.png" % id, tier = 0, skill = "", kind = "hilt"}
+	for id in HILTS:   # filed under the skill of their main material, so the merchant can buy them back (D-132)
+		var main: String = HILTS[id].cost.keys()[0]
+		items[id] = {label = HILTS[id].label, icon = "res://sprites/items/hilt_%s.png" % id, tier = items[main].tier,
+				skill = items[main].skill, kind = "hilt", cost = HILTS[id].cost, station = "blacksmith"}
 	_build_tools()
+	_build_parts()
 
 
 ## The gem/seed/sap/pearl ladder (D-012, D-025, D-108, D-112): 10% falling 1% per tier.
@@ -372,6 +404,53 @@ func _add_tool(kind: String, metal: String, label: String, tier: int, reach: int
 	tools_of[kind].append(t)
 
 
+## The parts each crafted tool is assembled from (D-125) and the bag items they are (D-126). Adds to each
+## crafted tool: `part` (its working part, paid for by its decided `cost`), `parts` (what assembly takes: that
+## part, the hilt and the fittings) and `returns` (what taking it apart gives back, D-129). Fittings: metal
+## tools a Nettle Cord at tiers 2 to 5 and a Hare Leather Strip from 6; rods a cord and the Tin, Copper or
+## Bronze reel; bows a Bow Stave and a cord. Starter tools have no parts (P7). Swords aren't in D-125, so
+## they keep their old recipe at the anvil.
+func _build_parts() -> void:
+	for id in FITTINGS:
+		var f: Dictionary = FITTINGS[id]
+		items[id] = {label = f.label, icon = "res://sprites/items/part_%s.png" % id, tier = 1, skill = f.skill, kind = "part",
+				fitting = true, cost = f.cost, station = f.station, colour = f.colour, shape = f.shape}
+	for kind in PARTS_OF:
+		var p: Dictionary = PARTS_OF[kind]
+		for t in tools_of[kind]:
+			if t.cost.is_empty():
+				continue
+			var part: String = t.id + "_" + p.suffix
+			items[part] = {label = t.label + " " + p.label, icon = "res://sprites/items/part_%s.png" % part, tier = t.tier,
+					skill = TOOL_KINDS[kind].skill, kind = "part", fitting = false, tool = t.id, cost = t.cost,
+					station = p.station, colour = t.head, shape = p.shape}
+			t.part = part
+			t.parts = {part: 1}
+			match kind:
+				"rod":
+					t.returns = "tin_reel" if t.tier <= 4 else ("copper_reel" if t.tier <= 7 else "bronze_reel")
+					t.parts[t.returns] = 1
+					t.parts["nettle_cord"] = 1
+				"bow":
+					t.returns = "bow_stave"
+					t.parts["bow_stave"] = 1
+					t.parts["nettle_cord"] = 1
+				_:
+					t.returns = t.hilt
+					t.parts[t.hilt] = 1
+					t.parts["nettle_cord" if t.tier <= 5 else "hare_leather_strip"] = 1
+
+
+## True for a tool put together from parts at the workbench (not a starter tool, not a sword).
+func is_assembled(t: Dictionary) -> bool:
+	return t.has("parts")
+
+
+## What one of a hilt or part is made from, or {}.
+func part_cost(id: String) -> Dictionary:
+	return items[id].get("cost", {}) if items.has(id) else {}
+
+
 # --- lookups ----------------------------------------------------------------------
 
 func item_label(id: String) -> String:
@@ -382,6 +461,10 @@ func item_icon(id: String) -> Texture2D:
 	if tools.has(id):
 		return tool_icon(id)
 	var path: String = items[id].icon if items.has(id) else ""
+	if items.has(id) and items[id].kind == "part" and not ResourceLoader.exists(path):   # TEST art until drawn (6.2)
+		if not _icon_cache.has(id):
+			_icon_cache[id] = ToolArt.part_icon(items[id])
+		return _icon_cache[id]
 	if path == "" or not ResourceLoader.exists(path):
 		return null
 	if items[id].has("tint"):                        # a recoloured picture (_add_chopped_logs)
@@ -465,7 +548,13 @@ func skill_level(skill: String) -> int:
 
 var _icon_cache := {}
 
-func tool_icon(id: String) -> Texture2D:
+## `gem`: the gem or pearl inlaid in the tool, shown as a pip in the corner of its icon (6.2), or "".
+func tool_icon(id: String, gem := "") -> Texture2D:
+	if gem != "" and items.has(gem):
+		var key := id + "+" + gem
+		if not _icon_cache.has(key):
+			_icon_cache[key] = _with_pip(tool_icon(id), item_icon(gem))
+		return _icon_cache[key]
 	var t: Dictionary = tools[id]
 	if t.kind == "pickaxe":
 		return load("res://sprites/pickaxes/%s_pickaxe.png" % t.skin)
@@ -477,31 +566,71 @@ func tool_icon(id: String) -> Texture2D:
 	return _icon_cache[id]
 
 
+## The tool's picture with the gem's picture shrunk into its bottom-right corner.
+static func _with_pip(tool_tex: Texture2D, gem_tex: Texture2D) -> Texture2D:
+	if tool_tex == null or gem_tex == null:
+		return tool_tex
+	var src := tool_tex.get_image()
+	var gem_src := gem_tex.get_image()
+	if src == null or src.is_empty() or gem_src == null or gem_src.is_empty():
+		return tool_tex
+	var img := src.duplicate() as Image
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	var gem := gem_src.duplicate() as Image
+	if gem.is_compressed():
+		gem.decompress()
+	gem.convert(Image.FORMAT_RGBA8)
+	var side := maxi(6, img.get_width() * 2 / 5)
+	gem.resize(side, side, Image.INTERPOLATE_NEAREST)
+	img.blend_rect(gem, Rect2i(0, 0, side, side), Vector2i(img.get_width() - side, img.get_height() - side))
+	return ImageTexture.create_from_image(img)
+
+
 # --- prices (TEST) ------------------------------------------------------------------
 
 ## What the merchant charges for one of an item: BUY_MARKUP x what it pays, so nothing can be bought and
 ## sold back for a profit (J00BA, 2026-11-15). 0 if the merchant doesn't trade it.
+## Proposed: the merchant buys hilts and parts back (D-132) but doesn't sell them; whether it should is open.
 func buy_price(id: String) -> int:
+	if items.has(id) and items[id].kind in ["hilt", "part"]:
+		return 0
 	return sell_price(id) * BUY_MARKUP
 
 
 ## What the merchant pays for one of an item (D-074 rules, BASE_PRICE is TEST): raw = base x tier;
-## made = the raw items it took (and its fuel) plus 25%; rare = 10 x that tier's raw item.
+## rare = 10 x that tier's raw item; made items, hilts and parts = the raw items they took (and fuel) plus
+## 25%, counted once however many steps it took (D-132).
 func sell_price(id: String) -> int:
-	if not items.has(id) or items[id].kind == "hilt":
+	if not items.has(id):
 		return 0
 	var it: Dictionary = items[id]
-	var raw_price: int = BASE_PRICE * it.tier
 	match it.kind:
 		"raw":
-			return raw_price
+			return BASE_PRICE * it.tier
 		"rare":
-			return raw_price * 10
-		_:
+			return BASE_PRICE * it.tier * 10
+	return roundi(raw_worth(id) * 1.25)
+
+
+## What the gathered items in one of an item are worth at the merchant, before the 25%: a raw or rare item
+## its own price; a made item its raw items and fuel; a hilt or part everything it was made from (D-132).
+func raw_worth(id: String) -> int:
+	var it: Dictionary = items[id]
+	match it.kind:
+		"raw", "rare":
+			return sell_price(id)
+		"made":
 			for row in tiers[it.skill]:
 				if row.made == id:
 					var fuel_price := 0
 					if row.fuel_count > 0:
 						fuel_price = row.fuel_count * BASE_PRICE * (4 if row.fuel == "coal_ore" else 1)
-					return roundi((row.per * raw_price + fuel_price) * 1.25)
-	return raw_price
+					return row.per * BASE_PRICE * it.tier + fuel_price
+			return BASE_PRICE * it.tier
+	var total := 0
+	var cost := part_cost(id)
+	for k in cost:
+		total += cost[k] * raw_worth(k)
+	return total

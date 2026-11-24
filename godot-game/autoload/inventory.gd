@@ -22,6 +22,8 @@ var energy := GameData.ENERGY_MAX
 var coins := 0               # TEST: coins from staking arrive with accounts (G6)
 var extra_rows := 0          # bought inventory rows (D-077)
 var refill_period := -1      # the reset period of the last bought refill (D-076: one per reset)
+var sockets := {}            # tool id -> the gem or pearl inlaid in it (D-130, D-134)
+var unfolded := {}           # crafting mechanics this player has met (E1, Proposed): "parts", "take_apart", "socket"
 var _period := 0
 
 
@@ -65,6 +67,8 @@ func add(id: String, n := 1) -> bool:
 		message.emit("Inventory full: no room for " + GameData.item_label(id))
 		return false
 	items[id] = count(id) + n
+	if GameData.items.has(id) and GameData.items[id].kind == "part":
+		unfolded["parts"] = true                      # E1: the workbench shows part rows from now on
 	changed.emit()
 	return true
 
@@ -185,6 +189,9 @@ func sync_tools() -> void:
 		for id in owned[kind]:
 			if id != held[kind] and not items.has(id):
 				items[id] = 1
+	for id in sockets.keys():                     # an inlay goes with its tool
+		if not GameData.tools.has(id) or not owns(id):
+			sockets.erase(id)
 	changed.emit()
 
 
@@ -231,13 +238,30 @@ func gather(skill: String, row: Dictionary) -> void:
 	_set_energy(energy - GameData.GATHER_ENERGY)
 	if add(row.raw):
 		looted.emit(row.raw, 1, false)
-	var chance: float = row.rare_chance
-	if skill == "mining" and held.pickaxe == GameData.GEM_BOOST_TOOL:
-		chance *= 2.0                                    # D-059
-	if skill == "hunting" and Stable.tracker_tier() >= row.tier:
-		chance *= 1.5                                    # D-072
-	if randf() < chance and add(row.rare):
+	if randf() < row.rare_chance * rare_boost(skill, row.tier) and add(row.rare):
 		looted.emit(row.rare, 1, true)
+
+
+## How much the rare-drop chance is raised for this skill (D-133): the Stellarite pickaxe x2 for gems (D-059),
+## a tracking animal x1.5 for trophies of its tier or below (D-072) and an inlay x1.25 on the tool in use
+## (D-130), multiplied and capped at x2.5. Potions aren't built. Mint token chances never change (D-045).
+func rare_boost(skill: String, tier := 0) -> float:
+	var boost := 1.0
+	if skill == "mining" and held.pickaxe == GameData.GEM_BOOST_TOOL:
+		boost *= 2.0
+	if skill == "hunting" and tier > 0 and Stable.tracker_tier() >= tier:
+		boost *= 1.5
+	if sockets.has(held[GameData.SKILLS[skill].tool]):
+		boost *= GameData.INLAY_BOOST
+	return minf(boost, GameData.RARE_BOOST_CAP)
+
+
+## The boost a tool gives on its own while held (D-059, D-130), capped (D-133): what the workbench shows.
+func tool_boost(t: Dictionary) -> float:
+	var boost := 2.0 if t.id == GameData.GEM_BOOST_TOOL else 1.0
+	if sockets.has(t.id):
+		boost *= GameData.INLAY_BOOST
+	return minf(boost, GameData.RARE_BOOST_CAP)
 
 
 # --- stations: furnace, drying rack, tanning rack, sawbench, campfire -----------
@@ -290,20 +314,41 @@ func process(row: Dictionary, n: int) -> void:
 	looted.emit(row.made, n, false)
 
 
-# --- crafting (D-006, D-058, D-060, D-063, D-069, D-106, D-107, D-110) -----------
+# --- crafting (D-006, D-058, D-060, D-063, D-069, D-106, D-107, D-110; parts D-125 to D-134) ---------
+## Hilts and parts are made at the station of their material (D-127) and every tool except the sword is
+## put together at the workbench from its parts (D-125). Nothing costs energy (D-056).
 
-func can_craft_hilt(id: String) -> bool:
-	return has_all(GameData.HILTS[id].cost) and has_room(id)
-
-
-func craft_hilt(id: String) -> void:
-	if can_craft_hilt(id):
-		_pay(GameData.HILTS[id].cost)
-		add(id)
-		looted.emit(id, 1, false)
+## Why this hilt or part can't be made yet ("Unlocks at Mining 5"), or "". A working part unlocks with its
+## tool (P6, Proposed); hilts and fittings are always open.
+func part_lock(id: String) -> String:
+	var tool_id: String = GameData.items[id].get("tool", "")
+	return recipe_lock(GameData.tools[tool_id]) if tool_id != "" else ""
 
 
-## A tool's full cost: its materials plus its hilt.
+## How many of this hilt or part the player can make now: 0 if it's locked or a new item has no slot.
+func makeable(id: String) -> int:
+	var cost := GameData.part_cost(id)
+	if cost.is_empty() or part_lock(id) != "" or not has_room(id):
+		return 0
+	var n := 1 << 30
+	for k in cost:
+		n = mini(n, count(k) / int(cost[k]))
+	return n
+
+
+## Makes n of a hilt or part (fittings in batches of 1, 5 or all, M5; the menu offers the rest one at a time).
+func make(id: String, n := 1) -> void:
+	n = mini(n, makeable(id))
+	if n < 1:
+		return
+	var cost := GameData.part_cost(id)
+	for k in cost:
+		remove(k, cost[k] * n)
+	add(id, n)
+	looted.emit(id, n, false)
+
+
+## A tool's materials plus its hilt: the sword's whole recipe (it isn't assembled from parts).
 func tool_cost(t: Dictionary) -> Dictionary:
 	var cost: Dictionary = t.cost.duplicate()
 	if t.hilt:
@@ -311,8 +356,215 @@ func tool_cost(t: Dictionary) -> Dictionary:
 	return cost
 
 
-func can_craft_tool(t: Dictionary) -> bool:
-	return not t.cost.is_empty() and not owns(t.id) and recipe_lock(t) == "" and has_all(tool_cost(t)) and has_room(t.id)
+## A tool's whole recipe as the workbench shows it before parts unfold (E1): its decided materials and
+## hilt, as the menu showed them before parts, plus what its fittings are made from.
+func flat_cost(t: Dictionary) -> Dictionary:
+	if not GameData.is_assembled(t):
+		return tool_cost(t)
+	var out := {}
+	for p in t.parts:
+		var src: Dictionary = {p: 1} if GameData.items[p].kind == "hilt" else GameData.part_cost(p)
+		for k in src:
+			out[k] = out.get(k, 0) + src[k] * t.parts[p]
+	return out
+
+
+## What Craft takes from the bag (M4, D-131): the parts already in it, and for each missing part the
+## processed materials it's made from (ingots, planks, leather, bundles; never raw ones). `moved` is a part
+## that comes across by re-hafting (M7), so it isn't needed. {use, short}, both {item: count}.
+func _plan(t: Dictionary, moved := "") -> Dictionary:
+	var use := {}
+	for p in t.parts:
+		if p == moved:
+			continue
+		var need: int = t.parts[p]
+		var have := mini(count(p), need)
+		if have > 0:
+			use[p] = have
+		if need > have:
+			var cost := GameData.part_cost(p)
+			for k in cost:
+				use[k] = use.get(k, 0) + cost[k] * (need - have)
+	var short := {}
+	for k in use:
+		if count(k) < use[k]:
+			short[k] = use[k] - count(k)
+	return {use = use, short = short}
+
+
+## Why Craft can't put this tool together now, or "". Assembly needs the tool's unlock level as well as its
+## parts (M6), so a bought or traded part never skips a level.
+func craft_blocker(t: Dictionary, moved := "") -> String:
+	if not GameData.is_assembled(t):
+		return "Not made at the workbench"
+	if owns(t.id):
+		return "Owned"
+	var lock := recipe_lock(t)
+	if lock != "":
+		return lock
+	if not _plan(t, moved).short.is_empty():
+		return "Missing materials"
+	if moved == "" and not has_room(t.id):        # a re-hafted tool takes the old one's place
+		return "Inventory full"
+	return ""
+
+
+## The shopping list when something is short (D-131, E1): a line per missing material saying where it's made
+## and from what, e.g. "1 Nettle bundle: drying rack, from 2 Nettle (Stone sickle)".
+func shopping_list(t: Dictionary, moved := "") -> Array:
+	var lines := []
+	var short: Dictionary = _plan(t, moved).short
+	for k in short:
+		lines.append(_where_from(k, short[k]))
+	return lines
+
+
+func _where_from(id: String, n: int) -> String:
+	var it: Dictionary = GameData.items[id]
+	var text := "%d %s" % [n, it.label]
+	if not GameData.SKILLS.has(it.skill):
+		return text
+	var skill: Dictionary = GameData.SKILLS[it.skill]
+	var row := GameData.row_by_tier(it.skill, it.tier)
+	match it.kind:
+		"made":
+			var from := "%d %s" % [n * row.per, GameData.item_label(row.raw)]
+			if row.fuel_count > 0 and row.fuel != GameData.ANY_LOG:
+				from += " and %d %s" % [n * row.fuel_count, GameData.item_label(row.fuel)]
+			return "%s: %s, from %s (%s)" % [text, GameData.STATIONS[skill.station].label.to_lower(), from,
+					GameData.tool_for_tier(skill.tool, row.tier).label]
+		"rare":
+			return "%s: a rare find when you %s %s" % [text, skill.verb.to_lower(), row.label]
+		"raw":
+			return "%s: %s %s (%s)" % [text, skill.verb.to_lower(), row.label, GameData.tool_for_tier(skill.tool, row.tier).label]
+	return text
+
+
+## The owned tool that Re-haft would take apart for this one (M7, D-129): the tier below, of the same kind,
+## when the part it gives back (hilt, reel or stave) is one this tool takes. "" if there is none.
+func rehaft_from(t: Dictionary) -> String:
+	if not GameData.is_assembled(t) or owns(t.id) or t.tier < 3:
+		return ""
+	var below: Dictionary = GameData.tools_of[t.kind][t.tier - 2]
+	if owns(below.id) and GameData.is_assembled(below) and t.parts.has(below.returns):
+		return below.id
+	return ""
+
+
+## Craft (E1): makes any missing part from the processed materials in the bag (M4), then assembles the tool
+## and equips it. With `rehaft`, the tool of the tier below is taken apart and its hilt, reel or stave goes
+## straight into the new one (M7); the rest of it, and any inlay, is used up. False if it can't.
+func craft(t: Dictionary, rehaft := false) -> bool:
+	var from := rehaft_from(t) if rehaft else ""
+	if rehaft and from == "":
+		return false
+	var moved: String = GameData.tools[from].returns if from != "" else ""
+	var why := craft_blocker(t, moved)
+	if why != "":
+		message.emit(why)
+		return false
+	_pay(_plan(t, moved).use)
+	owned[t.kind].append(t.id)
+	owned[t.kind].sort_custom(func(a, b): return GameData.tools[a].tier < GameData.tools[b].tier)
+	if from == "":
+		items[t.id] = 1                              # into the grid, then equipped: the old one takes its slot
+		hold(t.id)
+	else:
+		owned[t.kind].erase(from)
+		sockets.erase(from)
+		if held[t.kind] == from:                     # it was in hand: the new one takes its place there
+			held[t.kind] = t.id
+			in_hand = t.kind
+			held_changed.emit(t.id)
+			changed.emit()
+		else:
+			_replace_item(from, t.id)
+			hold(t.id)
+	if owned[t.kind].filter(func(id): return GameData.is_assembled(GameData.tools[id])).size() >= 2 or from != "":
+		unfolded["take_apart"] = true
+	looted.emit(t.id, 1, true)
+	return true
+
+
+## Why this tool can't be taken apart (M8), or "". Starter tools and swords have no parts, and the tool on
+## the tool bar has to be swapped out first, so no one is ever left without a tool.
+func take_apart_blocker(id: String) -> String:
+	var t: Dictionary = GameData.tools[id]
+	if not owns(id) or not GameData.is_assembled(t):
+		return "It has no parts to take back"
+	if held[t.kind] == id:
+		return "Equip another %s first" % GameData.TOOL_KINDS[t.kind].label.to_lower()
+	return ""
+
+
+## Takes an owned tool apart (M8, D-129): its hilt, reel or stave goes back into the bag, into the tool's
+## slot; the rest, and any inlay, is used up.
+func take_apart(id: String) -> void:
+	if take_apart_blocker(id) != "":
+		return
+	var t: Dictionary = GameData.tools[id]
+	owned[t.kind].erase(id)
+	sockets.erase(id)
+	if items.has(t.returns):
+		items.erase(id)
+		items[t.returns] += 1
+	else:
+		_replace_item(id, t.returns)
+	changed.emit()
+	looted.emit(t.returns, 1, false)
+
+
+## True if this gem (D-130) or pearl (D-134) fits the tool's socket: tier N-1 or higher, so bows from tier
+## 11 take the top of each ladder (Eclipsium, Star Pearl).
+func socket_fits(t: Dictionary, gem: String) -> bool:
+	if not GameData.is_assembled(t) or not GameData.items.has(gem):
+		return false
+	var it: Dictionary = GameData.items[gem]
+	return it.kind == "rare" and it.skill in ["mining", "fishing"] and it.tier >= mini(t.tier - 1, 10)
+
+
+## The cheapest gem or pearl in the bag that fits this tool, or "". They all give the same x1.25.
+func inlay_choice(t: Dictionary) -> String:
+	var best := ""
+	for id in items:
+		if socket_fits(t, id) and (best == "" or GameData.sell_price(id) < GameData.sell_price(best)):
+			best = id
+	return best
+
+
+## Sets a gem or pearl into an owned tool's empty socket (M9). It's used up and can't be taken out again.
+func inlay(tool_id: String, gem: String) -> void:
+	var t: Dictionary = GameData.tools[tool_id]
+	if not owns(tool_id) or sockets.has(tool_id) or not socket_fits(t, gem) or count(gem) < 1:
+		return
+	sockets[tool_id] = gem
+	unfolded["socket"] = true
+	remove(gem, 1)
+	if held[t.kind] == tool_id:
+		held_changed.emit(tool_id)
+
+
+## Marks a crafting mechanic as met (E1) when a menu first shows it. The change is announced next frame,
+## so a menu can call this while it draws.
+func unfold(flag: String) -> void:
+	if not unfolded.has(flag):
+		unfolded[flag] = true
+		changed.emit.call_deferred()
+
+
+## E1: the workbench shows part rows from the first time a part or fitting is in the bag, however it got there.
+func parts_unfolded() -> bool:
+	if not unfolded.has("parts"):
+		for id in items:
+			if GameData.items.has(id) and GameData.items[id].kind == "part":
+				unfold("parts")
+				break
+	return unfolded.has("parts")
+
+
+## An item's or tool's picture for menus; an inlaid tool shows its gem in the corner.
+func icon_of(id: String) -> Texture2D:
+	return GameData.tool_icon(id, sockets.get(id, "")) if is_tool(id) else GameData.item_icon(id)
 
 
 ## Why the recipe is still locked ("Unlocks at Mining 15"), or "". A pickaxe needs mining level 5 per tier above
@@ -326,17 +578,6 @@ func recipe_lock(t: Dictionary) -> String:
 	if have < 0 or have >= need:
 		return ""
 	return "Unlocks at %s %d" % [GameData.SKILLS[skill].label, need]
-
-
-func craft_tool(t: Dictionary) -> void:
-	if not can_craft_tool(t):
-		return
-	_pay(tool_cost(t))
-	owned[t.kind].append(t.id)
-	owned[t.kind].sort_custom(func(a, b): return GameData.tools[a].tier < GameData.tools[b].tier)
-	items[t.id] = 1                                  # into the grid, then equipped: the old one takes its slot
-	hold(t.id)
-	looted.emit(t.id, 1, true)
 
 
 # --- the merchant (D-073 to D-077; prices are TEST) -------------------------------

@@ -2,7 +2,8 @@ extends Node3D
 ## One area of the world: a gathering skill's nodes and its station, or the camp. Everything stands
 ## on the World's terrain, so the node's own height doesn't matter. The World keeps a matching
 ## clearing (its `clearings` setting) free of grass and props; move both together. TEST layouts:
-## - mining: the Three.js test's layout, low tiers in the middle, plus the furnace and anvil,
+## - mining: the Three.js test's layout, low tiers in the middle, plus the furnace, anvil and workbench
+##   (TEST spot until the hub's workbench works, TOOL-CRAFTING-ROADMAP B2),
 ## - foraging, lumbering, hunting: the tiers in a spiral from the middle out, station in the middle,
 ## - fishing: spots on the water along the nearest shore (this node stands on it), and the campfire
 ##   on clear land nearby, away from the spots so F there doesn't open it,
@@ -28,7 +29,7 @@ const MINING_SPOTS := {
 }
 ## Stations by area, [kind, x, z, turn].
 const STATIONS := {
-	"mining": [["furnace", -1.7, 0.9, 0.5], ["blacksmith", 1.5, 1.2, -0.4]],
+	"mining": [["furnace", -1.7, 0.9, 0.5], ["blacksmith", 1.5, 1.2, -0.4], ["workbench", -0.1, 2.0, 0.2]],
 	"foraging": [["drying_rack", 0.0, 0.0, 0.3]],
 	"hunting": [["tanning_rack", 0.0, 0.0, 0.0]],
 	"lumbering": [["sawbench", 0.0, 0.0, 0.6]],
