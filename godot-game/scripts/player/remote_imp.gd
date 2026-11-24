@@ -15,7 +15,6 @@ var visual: Node3D
 var label: Label3D
 var _states: Array = []           # [time, position, yaw, moving], oldest first
 var _moving := 0
-var _bob := 0.0
 
 
 func _init(player_id: int, look: Dictionary, player_name: String) -> void:
@@ -107,21 +106,4 @@ func _process(delta: float) -> void:
 	velocity = (global_position - before) / maxf(delta, 0.0001)
 	if _moving == 0 and velocity.length() < 0.2:
 		velocity = Vector3.ZERO
-	_animate(delta)
-
-
-## The same walk bob and squash as the local Imp (imp_player.gd).
-func _animate(delta: float) -> void:
-	var body := visual.get_node_or_null("body_root") as Node3D
-	if body == null:
-		return
-	var speed := Vector2(velocity.x, velocity.z).length()
-	if _moving == 1 and speed > 0.3:
-		_bob += delta * speed * 3.2
-		body.position.y = abs(sin(_bob)) * 0.05
-		var squash := 1.0 + sin(_bob * 2.0) * 0.04
-		body.scale = Vector3(1.0 / sqrt(squash), squash, 1.0 / sqrt(squash))
-	else:
-		_bob = 0.0
-		body.position.y = lerp(body.position.y, 0.0, clampf(delta * 10.0, 0.0, 1.0))
-		body.scale = body.scale.lerp(Vector3.ONE, clampf(delta * 10.0, 0.0, 1.0))
+	# the walk, bounce, idle and jump are animated by imp_visual.gd from this velocity, as for the local Imp

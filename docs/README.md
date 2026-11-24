@@ -11,6 +11,9 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | A decision that was already made | [DECISIONS.md](DECISIONS.md) |
 | What to design next | [ROADMAP.md](ROADMAP.md) |
 | What is built in the game | [BUILD-ROADMAP.md](BUILD-ROADMAP.md) |
+| How tools are crafted from parts (roadmap, Proposed) | [TOOL-CRAFTING-ROADMAP.md](TOOL-CRAFTING-ROADMAP.md) |
+| Recipes, stations and tool progression (draft; tool rules decided in pass T1) | [crafting.md](crafting.md) |
+| How the Imp uses tools and how crafting looks (animations, Proposed) | [TOOL-ANIMATIONS.md](TOOL-ANIMATIONS.md) |
 | How the 3D world should look | [ART-DIRECTION.md](ART-DIRECTION.md) |
 | How tools, creatures and items are modelled (Blockbench) | [MODELS-BLOCKBENCH.md](MODELS-BLOCKBENCH.md) |
 | How the pros make Blockbench models, studied from our 26 references | [BLOCKBENCH-STUDY.md](BLOCKBENCH-STUDY.md) |
@@ -34,6 +37,7 @@ Markdown documents for the project: design docs, specs, plans and notes. Start h
 | The hub world and the resource world | [game_worlds.md](game_worlds.md) |
 | How every resource is gathered: tools, tiers, XP | [resource_gathering.md](resource_gathering.md) |
 | How XP, skill levels, the player level and prestige work (draft) | [xp_system.md](xp_system.md) |
+| Claude's own take on XP: the long tail after the last tool, rested XP, back-half nodes (Proposed) | [XP-INTERPRETATION.md](XP-INTERPRETATION.md) |
 | How a short request becomes a Blockbench build spec | [blockbench_detailed_prompts.md](blockbench_detailed_prompts.md) |
 | How the menus and HUD should look and work, studied from other games | [game_menus.md](game_menus.md) |
 | How to make PNG update posters in the menu pixel-art style | [posters.md](posters.md) |

@@ -1,6 +1,6 @@
 extends CharacterBody3D
 ## Third person imp controller: camera relative movement, smooth turning, gravity, jump,
-## walk / sprint, slopes up to ~45 degrees, and a small walk bob. The camera rig is a
+## walk / sprint, slopes up to ~45 degrees (the walk itself is animated in imp_visual.gd). The camera rig is a
 ## top level SpringArm3D that follows smoothly, orbits with the right mouse button and zooms with the wheel.
 
 @export var walk_speed := 4.0
@@ -22,13 +22,13 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var cam_yaw := 0.0
 var cam_pitch := -0.32
 var target_zoom := 7.5
-var bob_time := 0.0
 var frozen := false
 var fast_sprint := false
 var chopper: Node                 # scripts/player/tree_chopper.gd: chopping trees with the axe
 var miner: Node                   # scripts/player/ore_miner.gd: mining the ore veins
+var fisher: Node                  # scripts/player/fisher.gd: fishing at the spots on the water
 var shop: Node                    # scripts/player/shop_keeper.gd: E at a shop counter opens its menu
-## Footsteps (assets/sounds, made by build scripts/make_sounds.py): one per step of the walk bob, in the
+## Footsteps (assets/sounds, made by build scripts/make_sounds.py): one per footfall of the walk, in the
 ## ground's sound for the biome underfoot; running steps are quicker, louder and a little higher.
 const STEP_SOUNDS := {
 	"grass": ["step_grass_1", "step_grass_2", "step_grass_3", "step_grass_4"],
@@ -38,7 +38,6 @@ const STEP_SOUNDS := {
 const GROUND := {"frost": "snow", "mountain": "stone"}   # biome -> ground; everywhere else is grass
 var _steps := {}                  # ground -> Array[AudioStream]
 var _step_player: AudioStreamPlayer
-var _last_step := 0
 
 
 func _ready() -> void:
@@ -56,6 +55,9 @@ func _ready() -> void:
 	miner = preload("res://scripts/player/ore_miner.gd").new()
 	miner.name = "ore_miner"
 	add_child(miner)
+	fisher = preload("res://scripts/player/fisher.gd").new()
+	fisher.name = "fisher"
+	add_child(fisher)
 	shop = preload("res://scripts/player/shop_keeper.gd").new()
 	shop.name = "shop_keeper"
 	add_child(shop)
@@ -64,6 +66,7 @@ func _ready() -> void:
 	_step_player = AudioStreamPlayer.new()
 	_step_player.name = "footsteps"
 	add_child(_step_player)
+	visual.stepped.connect(_footstep)                  # imp_visual.gd: each footfall of the walk
 
 
 func _apply_settings() -> void:
@@ -97,8 +100,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if shop.use():                                    # E at a shop counter: open the shop
 			get_viewport().set_input_as_handled()            # so the menu it opened doesn't see the same E
 			return
-		if not chopper.use() and not miner.use():        # E by a tree / event vein: chop it / mine it
+		if not chopper.use() and not miner.use() and not fisher.use():   # E by a tree / vein / water: chop, mine, fish
 			visual.play_action(Inventory.in_hand)        # left click or E: swing the tool in hand
+	elif event.is_action_pressed("interact") and fisher.use():   # F fishes too (D-109)
+		get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion and Input.is_action_pressed("camera_orbit"):
 		var sens := orbit_sensitivity * Settings.mouse_sensitivity
 		cam_yaw -= event.relative.x * sens
@@ -131,26 +136,6 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 	if dir.length() > 0.05:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-dir.x, -dir.z), clamp(turn_speed * delta, 0.0, 1.0))
-	_animate(delta, Vector2(velocity.x, velocity.z).length())
-
-
-func _animate(delta: float, ground_speed: float) -> void:
-	var body := visual.get_node_or_null("body_root") as Node3D
-	if body == null:
-		return
-	if is_on_floor() and ground_speed > 0.3:
-		bob_time += delta * ground_speed * 3.2
-		var step := floori(bob_time / TAU)                # one footstep every other bob (~2 a second walking)
-		if step != _last_step:
-			_last_step = step
-			_footstep(ground_speed)
-		body.position.y = abs(sin(bob_time)) * 0.05
-		var squash := 1.0 + sin(bob_time * 2.0) * 0.04
-		body.scale = Vector3(1.0 / sqrt(squash), squash, 1.0 / sqrt(squash))
-	else:
-		bob_time = 0.0
-		body.position.y = lerp(body.position.y, 0.0, clamp(delta * 10.0, 0.0, 1.0))
-		body.scale = body.scale.lerp(Vector3.ONE, clamp(delta * 10.0, 0.0, 1.0))
 
 
 func _process(delta: float) -> void:

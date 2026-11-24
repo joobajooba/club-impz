@@ -112,6 +112,8 @@ K = 0.64
 
 
 class Pick:
+    PX_ = PX     # texels per unit and the size grid; a tool can paint finer (the fishing rods, J00BA 2026-11-15)
+
     def __init__(self, tid, cfg):
         self.id, self.cfg = tid, cfg
         self.name = f"{tid}_pickaxe"
@@ -124,7 +126,8 @@ class Pick:
         o = np.array(origin if origin is not None else (f + t) / 2, float)
         if not scaled:                      # design units -> built size, sizes kept on the 1 px (0.25) grid
             cen = (f + t) / 2 * K
-            size = np.maximum(np.round((t - f) * K * 4) / 4, .25)
+            g = self.PX_
+            size = np.maximum(np.round((t - f) * K * g) / g, 1 / g)
             f, t, o = cen - size / 2, cen + size / 2, o * K
         self.cubes.append(dict(group=group, name=name, mat=mat, f=f, t=t, rot=rot, o=o,
                                R=rz(rot[2]) @ ry(rot[1]) @ rx(rot[0]), **kw))
@@ -229,7 +232,7 @@ class Pick:
 
     # -- painting ----------------------------------------------------------------
     def fsize(self, c, face):
-        s = (c["t"] - c["f"]) * PX
+        s = (c["t"] - c["f"]) * self.PX_
         w, h = {"north": (s[0], s[1]), "south": (s[0], s[1]), "east": (s[2], s[1]), "west": (s[2], s[1]),
                 "up": (s[0], s[2]), "down": (s[0], s[2])}[face]
         return int(round(w)), int(round(h))

@@ -56,9 +56,10 @@ static func mine_time(ore: String, pick_id: String) -> float:
 	return float(ORES[ore].time) * maxf(0.2, 1.0 - SPEED_PER_TIER * above)
 
 
-## One ore into the inventory, and the gem roll (section 4.2: the ore is still received).
+## One ore into the inventory, and the gem roll (section 4.2: the ore is still received). The 1-in-gem_in
+## chance takes the same capped boosts as the gathering areas (Inventory.rare_boost: D-059, D-130, D-133).
 static func give(ore: String) -> void:
 	var o: Dictionary = ORES[ore]
 	Inventory.gain(o.item)
-	if randi() % int(o.gem_in) == 0 and Inventory.has_room(o.gem):
+	if randf() < Inventory.rare_boost("mining") / float(o.gem_in) and Inventory.has_room(o.gem):
 		Inventory.gain(o.gem, 1, true)

@@ -272,7 +272,39 @@ for wid, hexc, reel, glow in ROD_TIERS:
     ROD_CFG[wid] = dict(wood=f"{wid}_blank", reel=reel, glow=glow, style="chrome", head=reel, collar=reel)
 
 
+RAMPS["thread"] = R_("#0a0a0c", "#141418", "#202026", "#2e2e36", "#40404a", "#565662")      # guide wraps
+
+
+def _hash2(ix, iy, seed):
+    h = (ix * 374761393 + iy * 668265263 + seed * 2147483647) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
+    return (h & 0xffff) / 65535.0
+
+
+def vnoise(x, y, seed=0):
+    """Smooth value noise, about one feature per unit of x and y."""
+    ix, iy = np.floor(x).astype(np.int64), np.floor(y).astype(np.int64)
+    fx, fy = x - ix, y - iy
+    fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+    a, b = _hash2(ix, iy, seed), _hash2(ix + 1, iy, seed)
+    c_, d = _hash2(ix, iy + 1, seed), _hash2(ix + 1, iy + 1, seed)
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c_ * (1 - fx) + d * fx) * fy
+
+
+def lerp_ramp(name, t):
+    """A smooth (not banded) colour from a ramp, t from 0 (darkest) to 1 (lightest)."""
+    r = RAMPS[name]
+    v = np.clip(t, 0, 1) * (len(r) - 1)
+    i = np.floor(v).astype(int); j = np.minimum(i + 1, len(r) - 1); f = (v - i)[..., None]
+    return r[i] * (1 - f) + r[j] * f
+
+
 class Rod(Pick):
+    """Fishing rods in HD (J00BA, 2026-11-15): painted at 16 texels per unit on a 1/16 unit grid, with smooth
+    (unbanded) shading. Every round part is two crossed boxes so it reads round: a rubber butt cap, a cork grip with
+    ring seams, a reel seat with locking rings, a cork fore grip and winding check, a blank that tapers in 12 steps,
+    thread wraps and ring guides, a round reel with side plates, a spool of line, crank and knob, and a round float."""
+    PX_ = 16
     grip_y = 3.0
     LEAN = -35.0         # the rod leans forward like the sprite; the line hangs straight down
 
@@ -286,54 +318,126 @@ class Rod(Pick):
         piv = (0.0, self.grip_y, 0.0)
         return self.box(group, name, mat, f, t, rot=(0, 0, self.LEAN), origin=piv, **kw)
 
+    def round_y(self, group, name, mat, r, y0, y1, cx=0.0, cz=0.0, lean=True, **kw):
+        """A round part along y: two crossed boxes, the second a hair shorter so their end caps never overlap."""
+        put = self.lean if lean else self.box
+        e = .1
+        a = put(group, name, mat, (cx - r, y0, cz - r * .7), (cx + r, y1, cz + r * .7), axis="y", ctr=(cx, cz), rad=r, **kw)
+        b = put(group, name + "_x", mat, (cx - r * .7, y0 + e, cz - r), (cx + r * .7, y1 - e, cz + r), axis="y", ctr=(cx, cz), rad=r, **kw)
+        return a, b
+
+    def round_x(self, group, name, mat, r, x0, x1, cy, cz, **kw):
+        """A round disc or drum across x (the reel)."""
+        e = .1
+        self.lean(group, name, mat, (x0, cy - r, cz - r * .7), (x1, cy + r, cz + r * .7), axis="x", ctr=(cy, cz), rad=r, **kw)
+        self.lean(group, name + "_x", mat, (x0 + e, cy - r * .7, cz - r), (x1 - e, cy + r * .7, cz + r), axis="x", ctr=(cy, cz), rad=r, **kw)
+
     def build(self):
         c = self.cfg; wood = c["wood"]; reel = c["reel"]
-        self.lean("handle", "butt_cap", "cork_dark", (-.875, 0, -.875), (.875, .75, .875), cap=True)
-        self.lean("handle", "grip", "cork", (-.875, .75, -.875), (.875, 5.5, .875), cork=True)
-        self.lean("handle", "reel_seat", reel, (-.625, 5.5, -.625), (.625, 7.25, .625), socket=True)
-        self.lean("handle", "fore_grip", "cork", (-.625, 7.25, -.625), (.625, 9.0, .625), cork=True)
-        # reel hangs under the rod (+z side)
-        self.lean("details", "reel_foot", reel, (-.25, 5.75, .5), (.25, 7.0, 1.0), socket=True)
-        self.lean("details", "reel_body", reel, (-.875, 5.25, 1.0), (.875, 7.5, 2.75), socket=True)
-        self.lean("details", "reel_spool", "line", (-1.0, 5.75, 1.375), (1.0, 7.0, 2.375), cork=True)
-        self.lean("details", "reel_crank", reel, (.875, 6.125, 1.625), (1.875, 6.625, 2.125), socket=True)
-        self.lean("details", "reel_knob", "cork_dark", (1.625, 6.625, 1.625), (2.125, 7.375, 2.125), cap=True)
-        # the blank, tapering
-        segs = [(9.0, 14.25, 1.0), (14.0, 19.25, .875), (19.0, 23.75, .75), (23.5, 27.25, .5)]
-        for i, (y0, y1, w) in enumerate(segs, 1):
-            self.lean("handle", f"blank_{i}", wood, (-w / 2, y0, -w / 2), (w / 2, y1, w / 2), wood_part="shaft")
-        self.lean("handle", "tip_top_glow" if c.get("glow") else "tip_top", c.get("glow") or reel,
-                  (-.375, 27.25, -.375), (.375, 27.75, .375), **({} if c.get("glow") else {"socket": True}))
-        for k, y in enumerate((12.0, 17.0, 21.75, 25.5), 1):     # line guides under the blank
-            self.lean("details", f"guide_{k}", reel, (-.25, y, .375), (.25, y + .5, 1.0), share="guide", socket=True)
-        # line from the tip straight down to the float
+        # handle: rubber butt cap, cork grip, reel seat with locking rings, cork fore grip, winding check
+        self.round_y("handle", "butt_cap", "cork_dark", .95, 0, .75, kind="cap")
+        self.round_y("handle", "grip", "cork", .875, .75, 5.5, kind="cork")
+        self.round_y("handle", "reel_seat", reel, .65, 5.5, 7.25, kind="metal")
+        self.round_y("handle", "seat_ring_lo", reel, .78, 5.5, 5.875, kind="metal")
+        self.round_y("handle", "seat_ring_hi", reel, .78, 6.875, 7.25, kind="metal")
+        self.round_y("handle", "fore_grip", "cork", .7, 7.25, 8.25, kind="cork")
+        self.round_y("handle", "fore_grip_taper", "cork", .6, 8.25, 9.0, kind="cork")
+        self.round_y("handle", "winding_check", reel, .56, 9.0, 9.375, kind="metal")
+        # the blank: 12 steps from 0.48 to 0.16 radius, so the taper reads smooth
+        n = 12
+        ys = np.linspace(9.25, 27.25, n + 1)
+        for i in range(n):
+            r = .48 - (.48 - .17) * i / (n - 1)
+            self.round_y("handle", f"blank_{i + 1}", wood, r, ys[i], ys[i + 1] + .1, kind="wood")
+        # line guides: a thread wrap on the blank and a ring standing under it, smaller toward the tip
+        for k, y in enumerate((12.0, 17.0, 21.75, 25.5), 1):
+            rb = .48 - (.48 - .17) * (y - 9.25) / 18.0
+            s = 1 - .14 * (k - 1)
+            self.round_y("details", f"guide_wrap_{k}", "thread", rb + .08, y - .35, y + .85, kind="wrap")
+            self.lean("details", f"guide_foot_{k}", reel, (-.12, y, rb), (.12, y + .5, rb + .3), kind="metal")
+            z0 = rb + .3; z1 = z0 + .75 * s; hw = .4 * s
+            self.lean("details", f"guide_ring_{k}_a", reel, (-hw, y + .1, z0), (-hw + .12, y + .3, z1), kind="metal")
+            self.lean("details", f"guide_ring_{k}_b", reel, (hw - .12, y + .1, z0), (hw, y + .3, z1), kind="metal")
+            self.lean("details", f"guide_ring_{k}_c", reel, (-hw, y + .1, z1 - .12), (hw, y + .3, z1), kind="metal")
+            self.lean("details", f"guide_ring_{k}_d", reel, (-hw, y + .1, z0), (hw, y + .3, z0 + .12), kind="metal")
+        if c.get("glow"):
+            self.round_y("handle", "tip_top_glow", c["glow"], .24, 27.25, 27.75, kind="glow")
+        else:
+            self.round_y("handle", "tip_top", reel, .24, 27.25, 27.75, kind="metal")
+        # the reel hangs under the rod (+z side): a foot, two round side plates, a spool of line, crank and knob
+        cy, cz = 6.375, 2.0
+        self.lean("details", "reel_foot", reel, (-.3, 5.75, .5), (.3, 7.0, 1.0), kind="metal")
+        self.lean("details", "reel_stem", reel, (-.2, 6.0, .9), (.2, 6.75, 1.1), kind="metal")
+        self.round_x("details", "reel_plate_l", reel, 1.15, -.95, -.65, cy, cz, kind="metal")
+        self.round_x("details", "reel_plate_r", reel, 1.15, .65, .95, cy, cz, kind="metal")
+        self.round_x("details", "reel_spool", "line", .85, -.65, .65, cy, cz, kind="spool")
+        self.round_x("details", "reel_hub", reel, .35, .95, 1.2, cy, cz, kind="metal")
+        self.lean("details", "reel_crank", reel, (1.2, cy - .15, cz - .15), (1.45, cy + .15, cz + 1.0), kind="metal")
+        self.round_x("details", "reel_knob", "cork_dark", .26, 1.45, 2.05, cy, cz + .95, kind="cap")
+        # the line from the tip straight down to a round float
         a = math.radians(self.LEAN)
         tip = np.array([-math.sin(a) * (27.75 - self.grip_y), self.grip_y + math.cos(a) * (27.75 - self.grip_y)])
-        self.group_origins = {"line": [round(tip[0] * K, 4), round(tip[1] * K, 4), 0.0]}   # the line hangs from the tip
+        self.group_origins = {"line": [round(tip[0] * K, 4), round(tip[1] * K, 4), 0.0]}
         x = tip[0]
-        self.box("line", "line", "line", (x - .125, 10.5, -.125), (x + .125, tip[1], .125), cork=True)
-        self.box("line", "float_bottom", "bobber_red", (x - .75, 8.0, -.75), (x + .75, 9.5, .75), bobber=True)
-        self.box("line", "float_top", "bobber_white", (x - .625, 9.5, -.625), (x + .625, 10.5, .625), bobber=True)
-        self.box("line", "float_stem", "bobber_red", (x - .25, 10.5, -.25), (x + .25, 11.0, .25), bobber=True)
+        self.box("line", "line", "line", (x - .1, 10.75, -.1), (x + .1, tip[1], .1), kind="line")
+        self.round_y("line", "float_bottom", "bobber_red", .75, 8.0, 9.6, cx=x, lean=False, kind="bobber")
+        self.round_y("line", "float_band", "black_wrap", .66, 9.6, 9.85, cx=x, lean=False, kind="wrap")
+        self.round_y("line", "float_top", "bobber_white", .62, 9.85, 10.6, cx=x, lean=False, kind="bobber")
+        self.round_y("line", "float_stem", "bobber_red", .2, 10.6, 11.2, cx=x, lean=False, kind="bobber")
         return self
 
     def paint(self, c, face):
         w, h = self.fsize(c, face)
-        if c.get("cork") or c.get("cap") or c.get("bobber"):
-            L, W, uu, vv = self.texels(c, face, w, h)
-            n = c["R"] @ np.array(bp.NORM[face], float)
-            light = float(n @ bp.LIGHT)
-            nx, ny = uu * 2 - 1, vv * 2 - 1
-            edge = smooth(.3, 1.1, (np.abs(nx) ** 3 + np.abs(ny) ** 3) ** (1 / 3))
-            top = len(RAMPS[c["mat"]]) - 1
-            v = top * .55 + .9 * light + .6 * (1 - edge) - .7 * edge
-            if c.get("cork"):
-                v += .5 * self.noise(h, w, .8)                         # cork pitting
-            if c.get("bobber"):
-                v += 1.0 * np.exp(-((nx + .35) ** 2 + (ny + .35) ** 2) / .12)   # glossy highlight
-            a = np.full((h, w), 255, np.uint8)
-            return self.rgba(col(c["mat"], v), a)
-        return super().paint(c, face)
+        L, W, uu, vv = self.texels(c, face, w, h)
+        n = c["R"] @ np.array(bp.NORM[face], float)
+        light = float(n @ bp.LIGHT)
+        Ld = L / K                                                          # design units
+        cx, cz = c["ctr"] if "ctr" in c else (0.0, 0.0)
+        r = c.get("rad", .5)
+        if c.get("axis") == "x":
+            if face in ("north", "south"): a = (Ld[..., 1] - cx) / r
+            elif face in ("up", "down"): a = (Ld[..., 2] - cz) / r
+            else: a = np.hypot(Ld[..., 1] - cx, Ld[..., 2] - cz) / r
+            along = Ld[..., 0]
+        else:
+            if face in ("east", "west"): a = (Ld[..., 2] - cz) / r
+            elif face in ("north", "south"): a = (Ld[..., 0] - cx) / r
+            else: a = np.hypot(Ld[..., 0] - cx, Ld[..., 2] - cz) / r
+            along = Ld[..., 1]
+        a = np.clip(a, -1, 1)
+        roundv = np.sqrt(np.clip(1 - a * a, 0, 1))
+        end = face in (("east", "west") if c.get("axis") == "x" else ("up", "down"))
+        kind = c.get("kind", "metal")
+        mat = c["mat"]
+        t = .32 + .3 * roundv + .16 * light
+        if end:
+            t = .4 + .16 * light + .12 * (1 - np.abs(a))
+        if kind == "wood":
+            g = a * 3 + 1.2 * vnoise(a * 2, along * .35, 41)
+            t = t + .1 * np.sin(g * 6.3) * (.5 + .5 * vnoise(a * 3, along * 1.2, 43)) - .1 * (vnoise(a * 18, along * 4, 47) > .8)
+            t = t + .26 * np.exp(-((a + .35) / .14) ** 2) + .06 * np.exp(-((a - .5) / .2) ** 2)   # varnish shine
+            t = t - .12 * np.clip((14 - along) / 5, 0, 1)                    # darker toward the grip
+        elif kind == "cork":
+            t = t + .12 * (vnoise(a * 6, along * 6, 51) - .5) - .1 * np.clip((vnoise(a * 12, along * 12, 53) - .62) * 5, 0, 1)   # soft cork pitting
+            t = t - .2 * (np.abs((along % .55) - .275) > .25)                 # the seams between cork rings
+        elif kind == "metal":
+            t = t + .32 * np.exp(-((a + .3) / .16) ** 2) - .14 * np.exp(-((a - .25) / .1) ** 2) + .04 * (vnoise(a * 20, along * 3, 61) - .5)
+            if end:
+                t = t + .2 * (np.abs(a) > .75)
+        elif kind == "wrap":
+            t = t + .12 * (np.sin(along * 60) > 0) + .18 * np.exp(-((a + .3) / .2) ** 2)
+        elif kind == "spool":
+            t = .35 + .25 * roundv + .12 * light + .1 * np.sin(along * 40)          # turns of line
+        elif kind == "bobber":
+            t = t + .45 * np.exp(-((a + .35) / .2) ** 2) * (1 if not end else .3)
+        elif kind == "glow":
+            t = .75 + .25 * roundv
+        elif kind == "cap":
+            t = t + .1 * np.exp(-((a + .3) / .2) ** 2)
+        elif kind == "line":
+            t = .55 + .2 * light + 0 * a
+        rgb = lerp_ramp(mat, t)
+        return self.rgba(rgb, np.full((h, w), 255, np.uint8))
 
 
 def run(kind, only=()):

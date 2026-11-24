@@ -127,6 +127,23 @@ func _build_blacksmith() -> void:
 	_part(_box(Vector3(0.06, 0.06, 0.12)), iron, Vector3(-0.18, 0.43, 0.27), Vector3(0, 0.5, 0))
 
 
+## A work table with a mallet and a tool's parts laid out on it, where every tool is put together (D-127).
+func _build_workbench() -> void:
+	radius = 0.55
+	var wood := _mat("#8a6a44")
+	var dark := _mat("#5e4630")
+	_part(_box(Vector3(1.1, 0.08, 0.55)), wood, Vector3(0, 0.74, 0))
+	for x in [-0.48, 0.48]:
+		for z in [-0.2, 0.2]:
+			_part(_box(Vector3(0.07, 0.7, 0.07)), dark, Vector3(x, 0.35, z))
+	_part(_box(Vector3(0.95, 0.05, 0.05)), dark, Vector3(0, 0.22, 0))
+	_part(_cylinder(0.02, 0.02, 0.32, 6), wood, Vector3(-0.25, 0.8, 0.08), Vector3(0, 0.4, PI / 2))   # a hilt
+	_part(_box(Vector3(0.22, 0.05, 0.07)), _mat("#c0703c", 0.8, 0.35), Vector3(0.12, 0.8, -0.05))       # a head
+	_part(_cylinder(0.05, 0.05, 0.03, 10), _mat("#7a9a3a"), Vector3(0.36, 0.795, 0.12))                 # a coil of cord
+	_part(_cylinder(0.015, 0.015, 0.22, 6), wood, Vector3(0.3, 0.8, -0.15), Vector3(0, -0.6, PI / 2))   # the mallet
+	_part(_box(Vector3(0.08, 0.07, 0.07)), dark, Vector3(0.39, 0.8, -0.21), Vector3(0, -0.6, 0))
+
+
 ## An A-frame of poles with bundles of herbs hanging from the top bar.
 func _build_drying_rack() -> void:
 	var wood := _mat("#7a5a38")

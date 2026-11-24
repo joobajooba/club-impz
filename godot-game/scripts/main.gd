@@ -18,6 +18,8 @@ extends Node
 ##   --skill_tree=mining         open the Profile menu and that skill's tree popup
 ##   --ore_event=void  start an ore event   --pickaxe=void_pickaxe  hold that pickaxe   --mine_chance=50  x50 per swing   --mine_time=3
 ##   --mine_at=4  start mining the vein in reach after 4 s
+##   --goto_fish=trout  stand on the shore by the first spot with that fish, rod out   --fish_time=5  every fish takes 5 s
+##   --fish_at=4  cast at the spot in reach after 4 s
 ##   --goto_mob=wolf  stand 7 m from the first mob of that kind   --follow --follow_dist=4 --follow_h=0.7  keep beside it   --look_at  a free camera on it
 ##   --goto_scatter=rock_swamp_l  stand by the first scattered mesh of that alias
 ##   --goto_ore=gold  stand next to the first vein of that ore (void / stellarite: the event vein)   --unlock_tools  own every tool   --equip=iron_axe  equip a tool from the grid
@@ -89,6 +91,9 @@ func _ready() -> void:
 	var merchant_menu: CanvasLayer = preload("res://ui/merchant_menu.gd").new()   # the merchant's shop: E at the stall
 	merchant_menu.name = "merchant_menu"
 	add_child(merchant_menu)
+	var station_menu: CanvasLayer = preload("res://ui/station_menu.gd").new()   # the hub's crafting stations: E at the anvil, workbench…
+	station_menu.name = "station_menu"
+	add_child(station_menu)
 	var crate_menu: CanvasLayer = preload("res://ui/crate_menu.gd").new()   # a crate chest: E at the chest (J00BA, 2026-11-21)
 	crate_menu.name = "crate_menu"
 	add_child(crate_menu)
@@ -108,6 +113,8 @@ func _ready() -> void:
 		Inventory.take_out("pickaxe")
 	if args.has("mine_time"):                              # testing: every ore takes this many seconds
 		player.miner.time_override = float(args["mine_time"])
+	if args.has("fish_time"):                              # testing: every fish takes this many seconds
+		player.fisher.time_override = float(args["fish_time"])
 	if args.has("mine_chance"):                            # testing: multiply the chance per swing
 		player.miner.chance_scale = float(args["mine_chance"])
 	if args.has("mob_list"):                               # testing: where every mob is
@@ -152,6 +159,16 @@ func _ready() -> void:
 			player.place_at(Transform3D(Basis(), p))
 			print("ORE at ", n.name, " ", n.global_position)
 			break
+	if args.has("goto_fish"):                              # testing: --goto_fish=trout stands on that spot's shore
+		for n in get_tree().get_nodes_in_group("fish_spot"):
+			if n.get("fish") == args["goto_fish"]:
+				player.place_at(Transform3D(Basis(), n.get_meta("stand") + Vector3.UP * 0.3))
+				player.visual.rotation.y = atan2(player.global_position.x - n.global_position.x,
+						player.global_position.z - n.global_position.z)
+				player.cam_yaw = player.visual.rotation.y        # the camera looks out over the water
+				Inventory.take_out("rod")
+				print("FISH at ", n.name, " ", n.global_position)
+				break
 	if args.has("at") and current_world.has_method("ground_height"):
 		await get_tree().process_frame
 		var xz: PackedStringArray = str(args["at"]).split(",")
@@ -251,6 +268,13 @@ func _ready() -> void:
 			Inventory.looted.connect(func(id, n, rare): print("MINE got ", id, " x", n, " rare" if rare else ""))
 			Inventory.message.connect(func(t): print("MINE message: ", t))
 			print("MINE use -> ", player.miner.use(), " target ", player.miner.target))
+	if args.has("fish_at"):                                # testing: cast at the spot in reach after that many seconds
+		get_tree().create_timer(float(args["fish_at"])).timeout.connect(func():
+			Inventory.take_out("rod")
+			await get_tree().process_frame
+			Inventory.looted.connect(func(id, n, rare): print("FISH got ", id, " x", n, " rare" if rare else ""))
+			Inventory.message.connect(func(t): print("FISH message: ", t))
+			print("FISH use -> ", player.fisher.use(), " target ", player.fisher.target))
 	if args.has("chop_at"):
 		get_tree().create_timer(float(args["chop_at"])).timeout.connect(_chop_test)
 	if args.has("wallet") and not OS.has_feature("web"):   # desktop testing only: read that wallet's account
