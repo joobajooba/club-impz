@@ -7,6 +7,8 @@ extends Node
 ## "kind" (the menu it opens: the menu is in the group "menu_<kind>") and "label"; hub_town.gd puts one at
 ## the merchant's stall. Optional metas: "verb" (the prompt's first word, default "Shop"), "any_side" (no
 ## customers' side) and "reach". hub_town.gd's crafting stations use all three ("E  Use: Anvil").
+## Crate chests are in the group too (kind "crate", meta "prompt" and "crate"; hub_town.gd). "prompt" replaces
+## the whole "verb: label" prompt.
 
 const REACH := 2.6               # metres from the counter marker (behind the counter) to the Imp
 
@@ -32,7 +34,8 @@ func _physics_process(_delta: float) -> void:
 				best = d
 				target = s
 	if target:
-		_set_prompt("E", "%s: %s" % [String(target.get_meta("verb", "Shop")), String(target.get_meta("label", "Shop"))])
+		var verb_label := "%s: %s" % [String(target.get_meta("verb", "Shop")), String(target.get_meta("label", "Shop"))]
+		_set_prompt("E", String(target.get_meta("prompt", verb_label)))
 	else:
 		_set_prompt("", "")
 
@@ -46,7 +49,10 @@ func use() -> bool:
 	if menu == null:
 		push_warning("shop: no menu for %s" % kind)
 		return false
-	menu.open(kind)
+	if menu.has_method("open_for"):                     # a crate menu wants the chest itself (which crate, its lid)
+		menu.open_for(target)
+	else:
+		menu.open(kind)
 	return true
 
 

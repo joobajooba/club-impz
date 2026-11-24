@@ -274,6 +274,49 @@ func _init() -> void:
 				skill = items[main].skill, kind = "hilt", cost = HILTS[id].cost, station = "blacksmith"}
 	_build_tools()
 	_build_parts()
+	for c in CRATES.values():                    # each crate's key is an item (kept in the grid, not sold)
+		items[c.key] = {label = c.key_label, icon = c.key_icon, tier = 0, skill = "", kind = "key"}
+
+
+## Crates (J00BA, 2026-11-21): a chest in the hub that opens with its own key, like a Minecraft server crate. E at the
+## chest shows what's inside and the odds (ui/crate_menu.gd); Open spends one key and a CS:GO style reel lands on the
+## prize. Drops are TEST: five items with weights out of 100. rarity -> [label, colour] in CRATE_RARITY.
+const CRATES := {
+	rare_chest = {label = "Daily Crate", key = "rare_key", key_label = "Daily Crate Key",
+			key_icon = "res://sprites/items/key_rare.png", drops = [
+		{id = "iron_ingot", n = 5, weight = 45.0, rarity = "common"},
+		{id = "gold_ingot", n = 3, weight = 28.0, rarity = "uncommon"},
+		{id = "ruby", n = 1, weight = 15.0, rarity = "rare"},
+		{id = "golden_antler", n = 1, weight = 9.0, rarity = "epic"},
+		{id = "diamond", n = 1, weight = 3.0, rarity = "legendary"},
+	]},
+}
+const CRATE_RARITY := {
+	common = ["Common", Color("#b0b3b8")], uncommon = ["Uncommon", Color("#5fd35a")], rare = ["Rare", Color("#4b8dff")],
+	epic = ["Epic", Color("#b45cff")], legendary = ["Legendary", Color("#ffb52e")],
+}
+
+
+## The drop's chance, 0..1.
+func crate_chance(crate: String, drop: Dictionary) -> float:
+	var total := 0.0
+	for d in CRATES[crate].drops:
+		total += d.weight
+	return drop.weight / total
+
+
+## One weighted pick from the crate's drops.
+func crate_roll(crate: String) -> Dictionary:
+	var drops: Array = CRATES[crate].drops
+	var total := 0.0
+	for d in drops:
+		total += d.weight
+	var r := randf() * total
+	for d in drops:
+		r -= d.weight
+		if r < 0.0:
+			return d
+	return drops[-1]
 
 
 ## The gem/seed/sap/pearl ladder (D-012, D-025, D-108, D-112): 10% falling 1% per tier.
@@ -603,7 +646,7 @@ func buy_price(id: String) -> int:
 ## rare = 10 x that tier's raw item; made items, hilts and parts = the raw items they took (and fuel) plus
 ## 25%, counted once however many steps it took (D-132).
 func sell_price(id: String) -> int:
-	if not items.has(id):
+	if not items.has(id) or items[id].kind == "key":   # crate keys are kept, not sold
 		return 0
 	var it: Dictionary = items[id]
 	match it.kind:
