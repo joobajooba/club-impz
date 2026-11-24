@@ -1,6 +1,6 @@
 # XP System
 
-> Status: draft v1 · Owner: xpelicious · Last updated: 2026-11-08
+> Status: draft v1 · Owner: xpelicious · Last updated: 2026-11-22 (D-141 to D-144 folded in)
 >
 > How players earn XP, how it turns into skill levels, the player level and prestige, how levelling is shown, and how XP is kept safe on the server. This doc must agree with `game_direction.md`. Where the two differ, `game_direction.md` wins until it is updated.
 >
@@ -22,6 +22,10 @@
 | XP per ore, per gem (double its ore) and per log. | `resource_gathering.md` sections 4 and 5 |
 | Skill levels **unlock tool recipes** (bronze at 5, iron at 15 … stellarite at 90) through the skill tree. Resources have no level requirement; the tool is the only gate. | `resource_gathering.md` sections 2.1 and 2.2 |
 | Battle animals have **their own XP and levels**, separate from the player. | D-091, `05-skirmish.md` |
+| **Rested XP**: 10 minutes banked per hour away, up to 2 hours; double skill XP while it lasts (section 3.5). | D-141 |
+| Skill-tree nodes from level 50 add **yield and drops, not speed** (section 4). | D-142 |
+| First-craft XP counts the tool's **place in its tree** (section 3.2). | D-143 |
+| This doc stays the XP doc; `XP-INTERPRETATION.md` holds the reasoning behind D-141 to D-143. | D-144 |
 
 **What is built today:** nothing for player or skill XP. `GameData.SKILLS` lists the five skills and their stations, but no XP is earned or saved. Battle animals have XP on TEST numbers (`Stable.xp_to_next` is `50 × level`). The profile menu prompt (PR #57) shows player level, prestige and skill levels as TEST data only, because this system was not designed yet.
 
@@ -63,7 +67,7 @@ The player level is the "how much have you played" track. Skills already show "h
 | A finished gather | **1 per second the gather took**, after tool and skill tree speed bonuses | About **3,600 per hour** for everyone, at every tier |
 | A gem from that gather | The same amount again | A lucky moment should feel lucky on both bars |
 | Processing (furnace, sawbench, any station) | **10% of the base gather seconds** of the raw items used, rounded down | Small, and capped by what was gathered, so it can't be farmed on its own |
-| Crafting a tool for the **first time** | **500 × the tool tier** (bronze 1 … stellarite 8) | A milestone reward. Only the first craft of each tool counts, so crafting and selling tools can't be farmed |
+| Crafting a tool for the **first time** | **500 × the tool tier** (bronze 1 … stellarite 8). Read by D-143: the tier is the tool's place in its tree (Bronze 1 to Stellarite 9, Ash Rod 1 to Voidwood Rod 9, Fox Bow 1 to Eclipse Dragon Bow 15). Once per tool per account, by Craft or Re-haft; remaking a tool you took apart pays nothing, and parts pay nothing | A milestone reward. Only the first craft of each tool counts, so crafting and selling tools can't be farmed |
 | A challenge | Set per challenge in `challenges.md`. Suggested bands: easy 1,000, medium 5,000, hard 20,000 | Challenges pay once each |
 | A battle (later update) | 100 for a win, 30 for a loss, for the **first 10 battles per energy reset** | Matches the 10-win coin cap (D-092) so battles can't replace gathering |
 
@@ -79,6 +83,15 @@ The player level is the "how much have you played" track. Skills already show "h
 - **Checked on the server**, from the wallet's held Impz (`owned_imps`, `ACCOUNTS-AND-DATA.md`) at the moment the gather is accepted. If the wallet no longer holds an Imp, the bonus stops. XP already earned is kept.
 - Effect: Mining 100 takes about 71 days of nonstop play instead of 75.
 - This supersedes D-085's "never more power" for this one bonus. The rest of D-085 stands.
+
+### 3.5 Rested XP (Decided, D-141)
+
+- **While away, a player banks rested time:** 10 minutes for every hour since their last gather, up to **2 hours** (full after 12 hours away).
+- **While rested time lasts, every gather gives double skill XP**, gems included. The gather's seconds come off the bank. One bank for all five skills.
+- **Skill XP only.** Player XP stays at 1 per second (section 3.2).
+- **Order:** base XP × 2 (rested) × 1.05 (holder, section 3.3), rounded down once.
+- **Why:** a bot that never stops never banks anything, so the nonstop pace and the decided target don't move. A player on 2 hours a day gets all of them at double. The numbers are in `XP-INTERPRETATION.md` X1.
+- **On the server:** the bank is worked out from the time of the last accepted gather, so the game never sends it.
 
 ### 3.4 Energy and XP (Decided, D-123)
 
@@ -96,6 +109,7 @@ The player level is the "how much have you played" track. Skills already show "h
 - **XP keeps counting after level 100.** It is shown on the profile and can be ranked on later. The level stays at 100.
 - **Total level**: the five skill levels added up, 5 to 500. Shown on the profile next to the player level.
 - **Skill tree unlocks** come from the skill level (Decided). Which node sits at which level goes in `skill_trees.md`. This doc only promises that every tool recipe level (5, 15, 25, 35, 45, 55, 70, 90) is a node.
+- **From level 50, nodes add yield and drops, not speed** (Decided, D-142): a chance at a second raw item (no XP, never a mint token roll) and rare-drop boosts inside the ×2.5 cap (D-133). Speed comes only from the tool ladder, so the pace above holds. `XP-INTERPRETATION.md` X2 has a template; its numbers are placeholders for `skill_trees.md`.
 
 ---
 
@@ -183,6 +197,7 @@ For whoever builds it in Godot. Only decided or approved rules get built (`BUILD
 - One entry point per source: `add_gather(skill, item_id, seconds, gem)`, `add_processing(...)`, `add_first_craft(tool_id)`. No other code changes XP.
 - Signals `xp_gained(skill, amount)`, `skill_level_up(skill, level)`, `player_level_up(level)` and `prestiged(n)`. The HUD, toasts, chat lines and effects listen to them. The XP logic knows nothing about the UI.
 - A headless test that checks the curve against the decided table (`resource_gathering.md` section 3: level 2 is 83 XP, level 100 is 14,391,160).
+- Rested XP (D-141) needs one more saved value, the time of the last gather, and the test checks its arithmetic too.
 
 ---
 

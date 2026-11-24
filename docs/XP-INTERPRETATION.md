@@ -2,6 +2,8 @@
 
 > Status: draft · Written 2026-11-22, at the user's request ("write up in your own interpretation an XP system")
 >
+> **Calls answered 2026-11-22** (the user: "I'm fine with the XP calls"): X1, X2 and X3 are Decided (D-141 to D-143), and `xp_system.md` stays the XP doc with the answers folded in (D-144). X4 and X5 are still Proposed. J00BA hasn't agreed yet.
+>
 > `xp_system.md` is the existing XP draft. This doc is Claude's own take: it keeps every decided rule and the parts of that draft it agrees with, and proposes changes where the numbers show a problem. Nothing here changes a decision. Every line is labelled **Decided** (with its D-number or source doc), **Proposed** or **Open question**.
 
 ---
@@ -60,7 +62,7 @@ What this shows:
 
 ## 4. Proposals
 
-### X1. Rested XP: the bonus only people get (Proposed)
+### X1. Rested XP: the bonus only people get (Decided, D-141)
 
 - **While you're away, you bank rested time:** 10 minutes for every hour since your last gather, up to **2 hours** (full after 12 hours away, about one energy reset).
 - **While rested time lasts, every gather gives double skill XP**, gems included. The gather's seconds are taken from the bank. One bank for all five skills.
@@ -70,7 +72,7 @@ What this shows:
 - **Fits the decisions:** it isn't a new XP source (D-121), coins can't buy it, it isn't tied to energy (D-123), and everyone gets it the same.
 - **On the server:** the bank is worked out from the time of the last accepted gather, so the game never sends it.
 
-### X2. The back half unlocks yield, not speed (Proposed)
+### X2. The back half unlocks yield, not speed (Decided, D-142; the node numbers are placeholders)
 
 J00BA's nodes are "faster gathering or better drops" (`game_direction.md` 6.2). Faster gathering also means faster XP, which pulls the decided pace in again and has to be re-modelled each time a node changes. **Yield doesn't:** a chance at a second raw item makes the back half pay more without touching XP an hour.
 
@@ -93,7 +95,7 @@ A template for each skill's nodes from 50 (the recipe nodes 5 to 45 come first, 
 - The second item gives no XP and never rolls a mint token. Mint token chances never change (D-045).
 - Every number here is a placeholder for `skill_trees.md`. The proposal is the shape: yield and drops in the back half, speed only in the tool ladder.
 
-### X3. First-craft XP, read for the parts build (Proposed reading of D-121)
+### X3. First-craft XP, read for the parts build (Decided reading of D-121, D-143)
 
 - **"Tool tier" means its place among the crafted tools:** Bronze 1 to Stellarite 9 (D-121's example counts to Stellarite 8, from an older ladder; the build has nine crafted metal tools), Ash Rod 1 to Voidwood Rod 9, Fox Bow 1 to Eclipse Dragon Bow 15. Starter tools give nothing.
 - **Once per tool, per account,** however it was made: Craft, or Re-haft (M7). Taking a tool apart and making it again pays nothing. Parts and fittings pay nothing (M11).
@@ -141,9 +143,9 @@ The build has two ore ladders: the live world uses J00BA's (`mining.gd`, Coal fi
 
 ---
 
-## 7. Calls
+## 7. Calls answered
 
-1. **Rested XP (X1):** yes, at 10 minutes per hour away and a 2-hour bank?
-2. **Back-half nodes (X2):** yield and drops from 50 instead of speed, so the decided pace holds?
-3. **First-craft tier (X3):** the crafted tool's place in its tree (Bronze 1 to Stellarite 9, bows to 15)?
-4. **Which XP doc leads:** keep `xp_system.md` and fold the answers in, or replace it with this one?
+1. **Rested XP (X1):** yes, at 10 minutes per hour away and a 2-hour bank. D-141.
+2. **Back-half nodes (X2):** yield and drops from 50 instead of speed. D-142.
+3. **First-craft tier (X3):** the crafted tool's place in its tree. D-143.
+4. **Which XP doc leads:** `xp_system.md`, with the answers folded in. D-144 (Claude took this option: the docs rules don't allow replacing a doc unless asked).
