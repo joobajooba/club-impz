@@ -48,6 +48,7 @@ var _font_shown := ""
 var fov := 62.0
 var mouse_sensitivity := 1.0      # times the controller's own orbit_sensitivity
 var invert_y := false
+var reduce_motion := false        # D-137: no hit-stop, gentler bounce and lean (scripts/player/imp_visual.gd)
 var volume := {"Master": 0.8, "Music": 0.8, "Effects": 0.8, "Ambient": 0.8, "Interface": 0.8}
 var muted := false
 
@@ -143,6 +144,7 @@ func reset() -> void:
 	fov = 62.0
 	mouse_sensitivity = 1.0
 	invert_y = false
+	reduce_motion = false
 	for bus in BUSES:
 		volume[bus] = 0.8
 	muted = false
@@ -163,6 +165,7 @@ func _load() -> void:
 	fov = clampf(float(cfg.get_value("options", "fov", fov)), 45.0, 90.0)
 	mouse_sensitivity = clampf(float(cfg.get_value("options", "mouse_sensitivity", mouse_sensitivity)), 0.25, 3.0)
 	invert_y = bool(cfg.get_value("options", "invert_y", invert_y))
+	reduce_motion = bool(cfg.get_value("options", "reduce_motion", reduce_motion))
 	muted = bool(cfg.get_value("sound", "muted", muted))
 	for bus in BUSES:
 		volume[bus] = clampf(float(cfg.get_value("sound", bus, volume[bus])), 0.0, 1.0)
@@ -170,7 +173,7 @@ func _load() -> void:
 
 func _save() -> void:
 	var cfg := ConfigFile.new()
-	for key in ["fullscreen", "shadows", "text_font", "fov", "mouse_sensitivity", "invert_y"]:
+	for key in ["fullscreen", "shadows", "text_font", "fov", "mouse_sensitivity", "invert_y", "reduce_motion"]:
 		cfg.set_value("options", key, get(key))
 	cfg.set_value("sound", "muted", muted)
 	for bus in BUSES:
@@ -246,6 +249,8 @@ func _render_options() -> void:
 	_slider_row("Mouse sensitivity", mouse_sensitivity, 0.25, 3.0, 0.05, func(v): set_value("mouse_sensitivity", v),
 		func(v): return "%.2fx" % v)
 	_toggle_row("Invert camera up / down", "invert_y")
+	_heading("Motion")
+	_toggle_row("Reduce motion", "reduce_motion", "No pause on each tool hit, and a gentler bounce and lean.")
 	var r := UIKit.row(_list)
 	r.add_child(UIKit.spacer())
 	r.add_child(UIKit.button("Reset to defaults", true, reset))
