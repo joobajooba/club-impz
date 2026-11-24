@@ -1,6 +1,6 @@
 # Resource Gathering
 
-> Status: draft v2 · Owner: J00BA · Last updated: 2026-10-29
+> Status: draft v2 · Owner: J00BA · Last updated: 2026-11-21 (section 7 Proposed by Claude, waiting for J00BA)
 >
 > How players gather every resource in the resource world: tools, tiers, gather times, drops and skill XP. This doc must agree with `game_direction.md`. Where the two differ, `game_direction.md` wins until it is updated.
 
@@ -15,7 +15,7 @@ There are five gathering skills. Each one has its own tool, its own resources an
 | Mining | Pickaxe | Ores (+ gems) | Ingots | Done (section 4) |
 | Lumbering | Axe | Logs | Planks | Done (section 5) |
 | Foraging | To be decided | Plants | Plant bundles | Placeholder (section 6) |
-| Fishing | To be decided (rod) | Fish | To be decided | Placeholder (section 7) |
+| Fishing | Rod | Fish (+ pearls) | Cooked fish | Proposed (section 7) |
 | Hunting | To be decided (bow / weapon) | Mobs → hides, mob drops | To be decided | Placeholder (section 8) |
 
 All gatherable resources live in the **resource world**. None spawn in the hub world.
@@ -35,7 +35,7 @@ These rules apply to every gathering skill.
 
 ### 2.1 Tool progression
 
-The same ladder is used for **every** gathering tool (pickaxe, axe, and later the foraging, fishing and hunting tools).
+The same ladder is used for **every** gathering tool (pickaxe, axe, and later the foraging, fishing and hunting tools). Proposed exception: fishing rods are made from planks (section 7.1).
 
 ```
 stone ─▶ bronze ─▶ iron ─▶ gold ─▶ obsidian ─▶ titanite ─▶ dreadstone ─▶ voidstone ─▶ stellarite
@@ -217,14 +217,112 @@ Lumbering has no gems, so each log gives a little more XP than the matching ore.
 
 ## 7. Fishing
 
-> Placeholder. J00BA will supply the fish table (names, tiers, gather times, minimum tools).
+> **Proposed** by Claude on 2026-11-21, waiting for J00BA. This section fits the IMPLINGZ fishing rules (D-109 to D-112 in `DECISIONS.md`, built in the test scene) into this doc's gathering system. Where the two doc sets differ, it follows the newer one. The reasons are in `reports/2026-11-21-fishing-skill.md`.
 
-- Follows the same rules as section 2 and the same tool ladder as section 2.1.
-- XP per fish will be set with the same method as section 3.2 once the table is in.
+- **Tool:** fishing rod. Starts with `driftwood_rod`.
+- **Nodes:** fishing spots on the water in the resource world (section 7.3).
+- **Output:** one fish per catch. A campfire cooks raw fish and burns logs as fuel. Cooked fish is food for battle animals (D-111).
+- **Bonus drop:** each fish can come with its pearl (section 7.2).
+- **Catching:** press F to cast. The progress bar fills over the time to catch while a fish circles closer. Then it bites and a short timing window opens. Press F inside the window to land the fish (D-109). A missed bite loses the fish and drops the bar to half.
+- **Energy:** a catch spends 5 energy while there is energy left (D-109). With no energy left, fishing still gives fish and XP (D-123).
 
-| Fish | Tier | Item id | Time to catch | Minimum rod | XP per fish |
+### 7.1 Rods
+
+Rods don't use the section 2.1 ladder. Each fish tier has its own rod, made from planks (D-110). J00BA's PR #100 (2026-11-15) builds these ten rods, so this is the newer rule. A rod catches its own tier and every tier below. The speed bonus in section 2.3 applies for each rod tier above the fish's tier.
+
+| Rod | Tier | Rod id | Recipe (D-110) | Recipe unlocks at fishing level | Catches |
 | --- | --- | --- | --- | --- | --- |
-| *to be added* | | | | | |
+| Driftwood | 1 | `driftwood_rod` | Starter rod, free | Starter | T1 |
+| Ash | 2 | `ash_rod` | 10 Ash planks | 2 | Up to T2 |
+| Birch | 3 | `birch_rod` | 10 Birch planks | 3 | Up to T3 |
+| Oak | 4 | `oak_rod` | 10 Oak planks | 5 | Up to T4 |
+| Pine | 5 | `pine_rod` | 10 Pine planks | 15 | Up to T5 |
+| Goldleaf | 6 | `goldleaf_rod` | 10 Goldleaf planks | 25 | Up to T6 |
+| Ebony | 7 | `ebony_rod` | 10 Ebony planks | 35 | Up to T7 |
+| Silverbark | 8 | `silverbark_rod` | 10 Silverbark planks | 45 | Up to T8 |
+| Bloodwood | 9 | `bloodwood_rod` | 10 Bloodwood planks | 55 | Up to T9 |
+| Voidwood | 10 | `voidwood_rod` | 10 Voidwood planks | 70 | All |
+
+- Levels 5 to 70 match section 2.1 for the same resource tier. The starter rod catches only Minnow, so the Ash and Birch rods unlock at levels 2 and 3, within the first few minutes.
+- No rod sits above Voidwood, so fishing has no level 90 speed tool like Stellarite.
+- **Open question:** the recipe woods are the IMPLINGZ trees (`02-resources.md`), not the section 5 trees (Pine to Worldbark). Whichever tree list wins sets each rod's recipe, and maybe its name.
+
+### 7.2 Fish and pearls
+
+Catch times follow the mining ladder (section 4.1). XP per fish is set so each tier earns the same XP per hour as the ore of that tier. Fish names are from D-109. Time to catch and XP per hour are with the minimum rod, and XP per hour includes the average XP from pearls.
+
+| Fish | Tier | Fish id | Cooked id | Time to catch | Minimum rod | XP per fish | XP per hour |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Minnow | T1 | `minnow` | `cooked_minnow` | 30s | Driftwood | 17 | 2,448 |
+| Perch | T2 | `perch` | `cooked_perch` | 45s | Ash | 33 | 3,115 |
+| Trout | T3 | `trout` | `cooked_trout` | 45s | Birch | 40 | 3,712 |
+| Catfish | T4 | `catfish` | `cooked_catfish` | 60s | Oak | 65 | 4,446 |
+| Goldfin Carp | T5 | `goldfin_carp` | `cooked_goldfin_carp` | 120s | Pine | 147 | 4,939 |
+| Shadow Eel | T6 | `shadow_eel` | `cooked_shadow_eel` | 240s | Goldleaf | 324 | 5,346 |
+| Frostscale Pike | T7 | `frostscale_pike` | `cooked_frostscale_pike` | 300s | Ebony | 444 | 5,754 |
+| Bloodfin Snapper | T8 | `bloodfin_snapper` | `cooked_bloodfin_snapper` | 300s | Silverbark | 510 | 6,487 |
+| Void Angler | T9 | `void_angler` | `cooked_void_angler` | 600s | Bloodwood | 1,143 | 7,132 |
+| Starfin Koi | T10 | `starfin_koi` | `cooked_starfin_koi` | 1000s | Voidwood | 2,114 | 7,763 |
+
+Pearls work like gems (section 4.2). The fish is still received, and a pearl gives double its fish's XP. The chance falls from 10% to 1% by tier (D-112).
+
+| Pearl | Tier | Pearl id | Found when catching | Chance | XP per pearl |
+| --- | --- | --- | --- | --- | --- |
+| River Pearl | T1 | `river_pearl` | Minnow | 10% | 34 |
+| Sand Pearl | T2 | `sand_pearl` | Perch | 9% | 66 |
+| Moss Pearl | T3 | `moss_pearl` | Trout | 8% | 80 |
+| Black Pearl | T4 | `black_pearl` | Catfish | 7% | 130 |
+| Golden Pearl | T5 | `golden_pearl` | Goldfin Carp | 6% | 294 |
+| Shadow Pearl | T6 | `shadow_pearl` | Shadow Eel | 5% | 648 |
+| Frost Pearl | T7 | `frost_pearl` | Frostscale Pike | 4% | 888 |
+| Blood Pearl | T8 | `blood_pearl` | Bloodfin Snapper | 3% | 1,020 |
+| Void Pearl | T9 | `void_pearl` | Void Angler | 2% | 2,286 |
+| Star Pearl | T10 | `star_pearl` | Starfin Koi | 1% | 4,228 |
+
+- Player XP follows D-121: 1 per second of catch time, and a pearl gives the same again.
+- **Open question:** what pearls are for, beyond selling to the merchant (D-124).
+
+### 7.3 Where to fish
+
+Minnow lives in every water, the way coal is in almost every biome. Some fish need a better rod than their biome's other resources, so players come back later.
+
+| Biome | Water | Fish (resource tier) |
+| --- | --- | --- |
+| Forest | River | Minnow (T1), perch (T2), trout (T3) |
+| Forest | Swan pond | Minnow (T1), trout (T3), catfish (T4) |
+| Frost | Open pools in the frozen lakes | Minnow (T1), frostscale pike (T7) |
+| Plains | Watering holes | Minnow (T1), goldfin carp (T5) |
+| Swamp | Swamp water | Minnow (T1), shadow eel (T6), bloodfin snapper (T8) |
+| Any | A shoal event (section 7.4) | Void angler (T9) or starfin koi (T10) |
+
+- Void and Stellar have no water (`game_worlds.md` sections 4.8.6 and 4.8.7), so tiers 9 and 10 come only from shoals. Mountain water has no fish yet.
+- Spots are fixed in place and shared, like every other node (section 9): 4 along each shore and 8 in the swamp. This answers open question 3 for fishing.
+- **Conflict:** D-109 says a spot refreshes 10 seconds after a catch, but section 9 says nodes never run out. Section 9 is newer, so this section follows it. D-109 stays as it is until both collaborators agree.
+
+### 7.4 Shoal events
+
+- A shoal appears at one fishing spot for 15 minutes, with a banner for everyone. It reuses the ore events the build already runs for voidstone and stellarite (`godot-game/autoload/ore_events.gd`).
+- Each minute there is a 1 in 45 chance of a Void Angler shoal and a 1 in 120 chance of a Starfin Koi shoal, the same odds as the ore events. A void shoal is up about 29% of the time and a stellar shoal about 12%.
+- Shoals need their own list of shore spots. The build's 48 event spots are on land.
+- **Open question:** daily caps. Shoals follow whatever rule the ore events get.
+
+### 7.5 Pace
+
+This uses the section 3.2 method. Between shoals the player catches the best fish in normal water (Bloodfin Snapper).
+
+| Reached level | Hours | Days |
+| --- | --- | --- |
+| 10 | 0.3 | under 1 |
+| 30 | 2.7 | under 1 |
+| 50 | 17 | 0.7 |
+| 70 | 110 | 4.6 |
+| 90 | 737 | 31 |
+| 99 | 1,783 | 74 |
+| **100** | **1,967** | **82 (about 2.7 months)** |
+
+- Fishing is a week slower than mining (75 days) because the top fish only come from shoals and there is no level 90 rod. It is still inside the 2 to 3 month target (section 3.1).
+- To match mining exactly, multiply every fishing XP value by about 1.09.
+- **Open question:** at tiers 9 and 10, one F press after a 10 to 17 minute wait is thin play, and a bot could time it from the bar. A reel step after the bite is one answer (idea 5 in `reports/2026-11-21-fishing-expansion.md`).
 
 ---
 
@@ -255,4 +353,4 @@ Lumbering has no gems, so each log gives a little more XP than the matching ore.
 
 1. How much player level XP does each gather give?
 2. Inventory size and what happens when it is full.
-3. Fishing spots and mobs: are they fixed in place like ores and trees, and do mobs respawn after being hunted?
+3. Fishing spots and mobs: are they fixed in place like ores and trees, and do mobs respawn after being hunted? (Proposed for fishing spots: fixed and shared, section 7.3.)
