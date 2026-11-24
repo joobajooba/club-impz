@@ -191,9 +191,30 @@ forest ─▶ mountain ─▶ frost ─▶ plains ─▶ swamp ─▶ void ─�
 | Bloodfin snapper | T8 | Swamp |
 | Void angler | T9 | Shoal events, any water |
 | Starfin koi | T10 | Shoal events, any water |
+| Nettle | T1 | Forest, mountain, frost, plains, swamp |
+| Marigold | T2 | Forest, plains |
+| Bluebell | T3 | Forest |
+| Thornroot | T4 | Mountain |
+| Sunpetal | T5 | Plains |
+| Nightshade | T6 | Swamp |
+| Frostbloom | T7 | Frost |
+| Bloodcap | T8 | Forest, swamp |
+| Voidlily | T9 | Swamp |
+| Starmoss | T10 | Mountain (by the highest peak) |
+| Hare | T1 | Forest, mountain, frost, plains, swamp |
+| Fox | T2 | Forest, plains |
+| Boar | T3 | Forest |
+| Wolf | T4 | Mountain, frost |
+| Goldhorn stag | T5 | Plains |
+| Shadowcat | T6 | Swamp |
+| Frostmane yeti | T7 | Frost |
+| Cinder salamander | T8 | Mountain (by the obsidian cave) |
+| Voidstalker | T9 | Swamp |
+| Starwyrm | T10 | Frost (by the ice spire) |
+| Stormhorn ram to eclipse dragon | T11 to T16 | Legendary hunt events in their home biome |
 
 - The fish rows are **Proposed**, waiting for J00BA (`resource_gathering.md` section 7.3).
-- Plants and mobs for each biome will be added once their tables are in `resource_gathering.md` and `world_mobs.md`.
+- The plant and animal rows are **Proposed**, waiting for J00BA (`resource_gathering.md` sections 6.3, 8.3 and 8.4). Mob behaviour still belongs in `world_mobs.md`.
 - The existing mob models (`cow`, `pig`, `highland_cow`, `wolf`, `ogre`, `dragon`, `pale_dragon`) still need to be placed in biomes. Section 4.8 has suggestions.
 
 ### 4.7 Biome look and feel: shared rules
