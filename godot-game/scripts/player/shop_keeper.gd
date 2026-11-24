@@ -5,7 +5,8 @@ extends Node
 ## merchant: ui/merchant_menu.gd, buy refills, inventory rows and stable slots, sell what you gathered).
 ## E, F or Esc closes it again (ui/modal.gd). A shop counter is any Node3D in the "shop" group with the meta
 ## "kind" (the menu it opens: the menu is in the group "menu_<kind>") and "label"; hub_town.gd puts one at
-## the merchant's stall.
+## the merchant's stall. Optional metas: "verb" (the prompt's first word, default "Shop"), "any_side" (no
+## customers' side) and "reach". hub_town.gd's crafting stations use all three ("E  Use: Anvil").
 
 const REACH := 2.6               # metres from the counter marker (behind the counter) to the Imp
 
@@ -21,17 +22,17 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	target = null
 	if not player.frozen and not player.menu_open():
-		var best := REACH
+		var best := INF
 		for s: Node3D in get_tree().get_nodes_in_group("shop"):
 			var off := player.global_position - s.global_position
-			if off.dot(-s.global_basis.z) < 0.0:           # only from the customers' side (the marker faces them)
+			if not s.get_meta("any_side", false) and off.dot(-s.global_basis.z) < 0.0:   # only from the customers' side (the marker faces them)
 				continue
 			var d := Vector2(off.x, off.z).length()
-			if d < best:
+			if d < float(s.get_meta("reach", REACH)) and d < best:
 				best = d
 				target = s
 	if target:
-		_set_prompt("E", "Shop: %s" % String(target.get_meta("label", "Shop")))
+		_set_prompt("E", "%s: %s" % [String(target.get_meta("verb", "Shop")), String(target.get_meta("label", "Shop"))])
 	else:
 		_set_prompt("", "")
 

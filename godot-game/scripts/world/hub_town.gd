@@ -15,6 +15,12 @@ const PLAN := "res://data/hub_town.json"
 const NPCS := "res://data/hub_npcs.json"   # the NPCs at the stores (J00BA, 2026-11-14)
 ## npc spots that are shop counters: spot name -> [menu kind, prompt label] (J00BA, 2026-11-15)
 const SHOPS := {"vendor_merchant": ["merchant", "Merchant"]}
+## crafting stations in the crafters' yard that work: placement alias -> [station kind (ui/station_menu.gd), label].
+## E next to the prop opens it, from any side. The anvil makes hilts, heads, blades and reels; the workbench puts
+## every tool together (D-127); the others turn raw items into made ones, so the anvil has ingots to work.
+const STATIONS := {"furnace": ["furnace", "Furnace"], "anvil": ["blacksmith", "Anvil"], "workbench": ["workbench", "Workbench"],
+		"sawbench": ["sawbench", "Sawbench"], "tanning_rack": ["tanning_rack", "Tanning rack"], "drying_rack": ["drying_rack", "Drying rack"]}
+const STATION_REACH := 2.4       # metres from the prop's centre to the Imp
 const GLOW_DAY := 0.25           # lamp glass emission by day
 const GLOW_NIGHT := 0.9          # and at full night
 const LIGHT_ENERGY := 3.0
@@ -74,6 +80,7 @@ func populate(w: GameWorld) -> void:
 	_make_colliders(plan["colliders"])
 	_make_lights(plan["lights"])
 	_make_npc_spots(plan["npc_spots"])
+	_make_station_spots(plan["placements"])
 	_place_npcs(plan["npc_spots"])
 	_place_portal(plan["landmarks"]["portal"])
 	_rects = plan["no_scatter"]
@@ -210,6 +217,27 @@ func _make_npc_spots(list: Array) -> void:
 			m.add_to_group("shop")
 			m.set_meta("kind", SHOPS[n["name"]][0])
 			m.set_meta("label", SHOPS[n["name"]][1])
+		root.add_child(m)
+
+
+## A "shop" marker on each working station (STATIONS), so shop_keeper.gd shows "E  Use: Anvil" and opens the
+## station menu. Reached from any side: the stalls open to the street, and the Imp walks round the prop.
+func _make_station_spots(placements: Array) -> void:
+	var root := Node3D.new()
+	root.name = "station_spots"
+	add_child(root)
+	for p in placements:
+		if not STATIONS.has(p[0]):
+			continue
+		var m := Marker3D.new()
+		m.name = String(p[0])
+		m.transform = _xf(p)
+		m.add_to_group("shop")
+		m.set_meta("kind", STATIONS[p[0]][0])
+		m.set_meta("label", STATIONS[p[0]][1])
+		m.set_meta("verb", "Use")
+		m.set_meta("any_side", true)
+		m.set_meta("reach", STATION_REACH)
 		root.add_child(m)
 
 

@@ -138,7 +138,7 @@ Wrap: 10 leather of animal tier N − 1 (D-069). Stave and string: D-125. Part i
 ## 6. What is built
 
 - Parts, fittings, part recipes at their stations, the workbench (Craft, make missing parts, shopping list), take apart, re-haft, inlays, the ×2.5 cap and part sell prices are in Godot, in the test landscape (`demo_landscape.tscn`), with a headless test (`tests/test_tool_parts.tscn`). PR #113, draft. The Proposed rules above are built as written, at the user's request.
-- The hub's anvil and workbench are placeholders today (`scenes/hub/`).
+- The hub's anvil, workbench, furnace, sawbench, tanning rack and drying rack open the same menus with E (`scripts/world/hub_town.gd` STATIONS, test `tests/test_hub_stations.tscn`), in the PR stacked on this one. The tool rack (D-136) isn't built yet.
 
 ---
 
