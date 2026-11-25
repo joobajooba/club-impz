@@ -61,7 +61,7 @@ func _ready() -> void:
 			print("  stand ", s.get_meta("stand"), " now ", me, " spot ", s.global_position, " d ",
 					Vector2(me.x - s.global_position.x, me.z - s.global_position.z).length(), " target ", fisher.target)
 	if perch:
-		_ok(Fishing.blocker(perch.row, "driftwood_rod") == "Needs an Ash Rod", "the starter rod can't catch perch")
+		_ok(Fishing.blocker(perch.row, "driftwood_rod") == "Needs an Ash Rod or better", "the starter rod can't catch perch")
 	# a full cast on a minnow spot, with short test times
 	var at_minnow := func() -> bool:
 		player.global_position = minnow.get_meta("stand") + Vector3.UP * 0.05
@@ -113,7 +113,21 @@ func _rules() -> void:
 	_ok(is_equal_approx(Fishing.bite_window(rows.minnow, "ash_rod"), 1.65), "a Tin reel widens it x1.1")
 	_ok(is_equal_approx(Fishing.bite_window(rows.bloodfin_snapper, "silverbark_rod"), 1.5 * 0.72 * 1.4), "tier 8 with a Bronze reel")
 	_ok(Fishing.blocker(rows.trout, "birch_rod") in ["", "Inventory full"], "a Birch Rod catches trout")
-	_ok(Fishing.blocker(rows.catfish, "birch_rod") == "Needs an Oak Rod", "a Birch Rod can't catch catfish")
+	_ok(Fishing.blocker(rows.catfish, "birch_rod") == "Needs an Oak Rod or better", "a Birch Rod can't catch catfish")
+	for t in GameData.tools_of["rod"]:      # any rod of the fish's tier or above works
+		for r in GameData.tiers["fishing"]:
+			var ok: bool = Fishing.blocker(r, t.id) in ["", "Inventory full"]
+			_ok(ok == (int(t.tier) >= int(r.tier)), "%s on %s: %s" % [t.label, r.label, "fishes" if ok else "blocked"])
+	var saved_held: String = Inventory.held.rod
+	var saved_owned: Array = Inventory.owned.rod.duplicate()
+	Inventory.owned.rod = ["driftwood_rod", "voidwood_rod", "oak_rod"]
+	Inventory.held.rod = "driftwood_rod"
+	_ok(Fishing.rod_for(rows.trout) == "oak_rod", "a weak equipped rod: the weakest owned rod that reaches is used")
+	_ok(Fishing.rod_for(rows.minnow) == "driftwood_rod", "the equipped rod is kept when it reaches")
+	Inventory.held.rod = "voidwood_rod"
+	_ok(Fishing.rod_for(rows.minnow) == "voidwood_rod", "a top-tier rod fishes a tier 1 fish")
+	Inventory.owned.rod = saved_owned
+	Inventory.held.rod = saved_held
 	for id in Fishing.TIMES:
 		_ok(rows.has(id), "%s is a fish in GameData" % id)
 
