@@ -3,7 +3,7 @@ extends Node
 ## A child of the player (imp_player.gd), next to ore_miner.gd.
 ##
 ## Stand on the shore by the rings with a rod in hand: the prompt shows "E  Fish for Trout (45s)", or what is
-## missing ("Needs a Birch Rod"). E or F casts: D-109 says F, the live world gathers with E, so both work.
+## missing ("Needs a Birch Rod or better"). E or F casts: D-109 says F, the live world gathers with E, so both work.
 ## - The float lands in the rings and the bar fills over the fish's time to catch while its shadow circles in.
 ## - Just before the bite the float twitches (a nibble), so the bite never comes out of nowhere. Then it dips:
 ##   E or F inside the bite window (D-135) lands the fish, the pearl may come with it, and the Imp casts again.
@@ -90,7 +90,10 @@ func use() -> bool:
 		return true                                    # mid-cast: the swing finishes first
 	if Inventory.in_hand != "rod" or not is_instance_valid(target):
 		return false
-	var why := Fishing.blocker(target.row, Inventory.held.rod)
+	var rod := Fishing.rod_for(target.row)
+	if rod != Inventory.held.rod:
+		Inventory.hold(rod)                            # a better rod from the bag goes on the tool bar
+	var why := Fishing.blocker(target.row, rod)
 	if why != "":
 		Inventory.message.emit(why)
 		return false
@@ -295,11 +298,12 @@ func _look_for_spot() -> void:
 	if Inventory.in_hand != "rod":
 		_set_prompt("", "%s here: take out a rod (5) to fish" % label)
 		return
-	var why := Fishing.blocker(target.row, Inventory.held.rod)
+	var rod := Fishing.rod_for(target.row)
+	var why := Fishing.blocker(target.row, rod)
 	if why != "":
 		_set_prompt("", why)
 		return
-	var t := time_override if time_override > 0.0 else Fishing.catch_time(target.row, Inventory.held.rod)
+	var t := time_override if time_override > 0.0 else Fishing.catch_time(target.row, rod)
 	var left := maxi(1, int(ceil(t * (1.0 - float(Fishing.progress.get(String(target.name), 0.0))))))
 	_set_prompt("E", "Fish for %s  (%ds)" % [label, left])
 

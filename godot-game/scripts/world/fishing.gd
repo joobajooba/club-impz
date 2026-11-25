@@ -27,10 +27,25 @@ static func _article(label: String) -> String:
 	return ("an " if "AEIOU".contains(label.left(1)) else "a ") + label
 
 
-## Why this rod can't fish the spot's fish ("Needs an Oak Rod", "Inventory full"), or "".
+## The rod to fish this fish with: the equipped one if its tier is high enough, otherwise the weakest owned
+## rod that is (any rod of the fish's tier or above works, like every other gathering tool). Falls back
+## to the equipped rod when none is, so blocker() names the rod needed.
+static func rod_for(row: Dictionary) -> String:
+	var held: String = Inventory.held.rod
+	if int(GameData.tools[held].reach) >= int(row.tier):
+		return held
+	var best := ""
+	for id in Inventory.owned.rod:
+		var t: Dictionary = GameData.tools[id]
+		if int(t.reach) >= int(row.tier) and (best == "" or int(t.tier) < int(GameData.tools[best].tier)):
+			best = id
+	return best if best != "" else held
+
+
+## Why this rod can't fish the spot's fish ("Needs an Oak Rod or better", "Inventory full"), or "".
 static func blocker(row: Dictionary, rod_id: String) -> String:
 	if int(GameData.tools[rod_id].reach) < int(row.tier):
-		return "Needs " + _article(GameData.tool_for_tier("rod", row.tier).label)
+		return "Needs " + _article(GameData.tool_for_tier("rod", row.tier).label) + " or better"
 	if not Inventory.has_room(row.raw):
 		return "Inventory full"
 	return ""
