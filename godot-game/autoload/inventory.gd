@@ -23,6 +23,7 @@ var coins := 0               # TEST: coins from staking arrive with accounts (G6
 var extra_rows := 0          # bought inventory rows (D-077)
 var refill_period := -1      # the reset period of the last bought refill (D-076: one per reset)
 var sockets := {}            # tool id -> the gem or pearl inlaid in it (D-130, D-134)
+var quests_done := {}       # quest id -> the reset period it was handed in (GameData.QUESTS: once per reset)
 var unfolded := {}           # crafting mechanics this player has met (E1, Proposed): "parts", "take_apart", "socket"
 var _period := 0
 
@@ -669,6 +670,45 @@ func open_crate(crate: String) -> Dictionary:
 	var drop := GameData.crate_roll(crate)
 	add(drop.id, drop.n)
 	return drop
+
+
+# --- the princess's quests (J00BA, 2026-11-28; GameData.QUESTS) -------------------
+
+func quest_done(id: String) -> bool:
+	return int(quests_done.get(id, -1)) == period()
+
+
+## Why this quest can't be handed in now, or "".
+func quest_blocker(id: String) -> String:
+	var q := GameData.quest(id)
+	if quest_done(id):
+		return "Done for this reset"
+	for item in q.needs:
+		if count(item) < int(q.needs[item]):
+			return "Bring %d more %s" % [int(q.needs[item]) - count(item), GameData.item_label(item)]
+	if q.reward.has("key") and count(q.reward.key) == 0 and not has_room(q.reward.key):
+		return "Make room in your inventory first"
+	return ""
+
+
+## Takes the quest's items and pays its reward. Returns false if blocked.
+func hand_in(id: String) -> bool:
+	var why := quest_blocker(id)
+	if why != "":
+		message.emit(why)
+		return false
+	var q := GameData.quest(id)
+	quests_done[id] = period()
+	for item in q.needs:
+		remove(item, int(q.needs[item]))
+	if q.reward.has("coins"):
+		earn(int(q.reward.coins))
+		message.emit("+%d Imp Coins" % int(q.reward.coins))
+	else:
+		add(q.reward.key, int(q.reward.get("n", 1)))
+		looted.emit(q.reward.key, int(q.reward.get("n", 1)), true)
+	changed.emit()
+	return true
 
 
 # --- TEST tools, for reviewers to try every tier quickly. Remove before launch. ---

@@ -278,6 +278,13 @@ func _place_npcs(spots: Array) -> void:
 		inst.name = String(n["model"]).get_file().get_basename()
 		root.add_child(inst)
 		inst.transform = Transform3D(Basis(Vector3.UP, face).scaled(Vector3.ONE * float(n["scale"])), Vector3(x, y, z))
+		if n.has("menu"):                        # E at this NPC opens a menu (the princess: ui/quest_menu.gd)
+			inst.add_to_group("shop")
+			inst.set_meta("kind", n["menu"])
+			inst.set_meta("label", n.get("label", "NPC"))
+			inst.set_meta("verb", n.get("verb", "Talk"))
+			inst.set_meta("any_side", true)
+			inst.set_meta("reach", STATION_REACH)
 		var cache := {}
 		for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
 			var glow := _is_glow(mi, inst)

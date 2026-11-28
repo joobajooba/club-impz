@@ -305,6 +305,32 @@ const CRATE_RARITY := {
 }
 
 
+## The princess's quests (J00BA, 2026-11-28): E at the princess by the castle opens ui/quest_menu.gd. Each quest
+## asks for items handed in and pays coins or a chest key, once per reset (00:00 and 12:00 UTC, like energy).
+## TEST quests and numbers until the quest design is written. reward: {coins} or {key, n}.
+const QUESTS := [
+	{id = "royal_timber", label = "Royal Timber", text = "The castle's hearths are running cold. Bring me ash logs.",
+			needs = {ash_log = 10}, reward = {coins = 50}},
+	{id = "smiths_ore", label = "Ore for the Smiths", text = "The royal smiths need tin to mend the guards' helmets.",
+			needs = {tin_ore = 10}, reward = {key = "rare_key", n = 1}},
+	{id = "royal_supper", label = "A Royal Supper", text = "Fresh fish for tonight's feast, if you please!",
+			needs = {minnow = 5}, reward = {coins = 75}},
+	{id = "forge_supplies", label = "Forge Supplies", text = "Iron for the castle gates. Heavy work, handsomely paid.",
+			needs = {iron_ore = 8}, reward = {key = "legendary_key", n = 1}},
+	{id = "garden_bridge", label = "The Garden Bridge", text = "A new bridge for the wizard's garden: oak and copper.",
+			needs = {oak_log = 10, copper_ingot = 5}, reward = {key = "epic_key", n = 1}},
+	{id = "crown_jewels", label = "Polish the Crown", text = "Gold for the crown and trout for the king's table.",
+			needs = {gold_ingot = 5, trout = 5}, reward = {key = "mythic_key", n = 1}},
+]
+
+
+func quest(id: String) -> Dictionary:
+	for q in QUESTS:
+		if q.id == id:
+			return q
+	return {}
+
+
 ## The drop's chance, 0..1.
 func crate_chance(crate: String, drop: Dictionary) -> float:
 	var total := 0.0
