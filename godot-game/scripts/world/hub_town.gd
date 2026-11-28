@@ -29,7 +29,8 @@ const LIGHT_COLOR := Color("#ffc878")
 const LIGHT_FADE_BEGIN := 38.0   # lights further than this from the camera fade out (Compatibility renderer budget)
 const ARCANE_COLOR := Color("#b48cff")   # the wizard's garden: violet light from the arcane lamps and the rune circle
 const ARCANE := ["arcane_lamp", "arcane_circle"]
-const CHEST_TITLES := {"legendary_chest": ["Tier 1 Chest", Color("#5fd35a"), "legendary_key"]}   # hologram name (and key count) over a chest that isn't a crate (J00BA, 2026-11-28)
+const CHEST_TITLES := {"legendary_chest": ["Tier 1 Chest", Color("#5fd35a"), "legendary_key"],
+		"epic_chest": ["Tier 2 Chest", Color("#4b8dff"), "epic_key"], "mythic_chest": ["Tier 3 Chest", Color("#ff5a4a"), "mythic_key"]}   # hologram name (and key count) over a chest that isn't a crate (J00BA, 2026-11-28)
 
 var world: GameWorld
 var glow_mats: Array[StandardMaterial3D] = []

@@ -296,6 +296,8 @@ const CRATES := {
 ## Keys for hub chests that aren't crates yet (J00BA, 2026-11-28): owned and counted, but they open nothing so far.
 const CHEST_KEYS := {
 	legendary_key = {label = "Tier 1 Chest Key", icon = "res://sprites/items/key_legendary.png"},
+	epic_key = {label = "Tier 2 Chest Key", icon = "res://sprites/items/key_epic.png"},
+	mythic_key = {label = "Tier 3 Chest Key", icon = "res://sprites/items/key_mythic.png"},
 }
 const CRATE_RARITY := {
 	common = ["Common", Color("#b0b3b8")], uncommon = ["Uncommon", Color("#5fd35a")], rare = ["Rare", Color("#4b8dff")],
