@@ -351,6 +351,18 @@
    "height": 1.062,
    "animated": true
   },
+  "epic_chest": {
+   "path": "res://assets/models/props/chests/epic_chest.glb",
+   "glow": true,
+   "height": 0.938,
+   "animated": true
+  },
+  "mythic_chest": {
+   "path": "res://assets/models/props/chests/mythic_chest.glb",
+   "glow": true,
+   "height": 1.031,
+   "animated": true
+  },
   "rose": {
    "path": "res://assets/models/foliage/rose_flower.glb",
    "glow": false,
@@ -4599,8 +4611,24 @@
    "legendary_chest",
    -14.5,
    0.0,
-   -47.2,
+   -46.5,
    -90,
+   1.0
+  ],
+  [
+   "epic_chest",
+   14.5,
+   0.0,
+   -40.5,
+   90,
+   1.0
+  ],
+  [
+   "mythic_chest",
+   14.5,
+   0.0,
+   -46.5,
+   90,
    1.0
   ],
   [
@@ -9032,11 +9060,29 @@
   [
    -14.5,
    0.531,
-   -47.2,
+   -46.5,
    1.062,
    1.062,
    0.812,
    -90
+  ],
+  [
+   14.5,
+   0.469,
+   -40.5,
+   1.0,
+   0.938,
+   0.75,
+   90
+  ],
+  [
+   14.5,
+   0.515,
+   -46.5,
+   1.0,
+   1.031,
+   0.75,
+   90
   ],
   [
    -10.0,
@@ -14359,9 +14405,21 @@
   ],
   [
    -15.21,
-   -48.03,
+   -47.33,
    -13.79,
-   -46.37
+   -45.67
+  ],
+  [
+   13.82,
+   -41.3,
+   15.18,
+   -39.7
+  ],
+  [
+   13.82,
+   -47.3,
+   15.18,
+   -45.7
   ],
   [
    -12.83,

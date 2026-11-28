@@ -276,6 +276,13 @@ func _place_npcs(spots: Array) -> void:
 		inst.name = String(n["model"]).get_file().get_basename()
 		root.add_child(inst)
 		inst.transform = Transform3D(Basis(Vector3.UP, face).scaled(Vector3.ONE * float(n["scale"])), Vector3(x, y, z))
+		if n.has("menu"):                        # E at this NPC opens a menu (the princess: ui/quest_menu.gd)
+			inst.add_to_group("shop")
+			inst.set_meta("kind", n["menu"])
+			inst.set_meta("label", n.get("label", "NPC"))
+			inst.set_meta("verb", n.get("verb", "Talk"))
+			inst.set_meta("any_side", true)
+			inst.set_meta("reach", STATION_REACH)
 		var cache := {}
 		for mi: MeshInstance3D in inst.find_children("*", "MeshInstance3D", true, false):
 			var glow := _is_glow(mi, inst)
@@ -330,7 +337,7 @@ func _place_animated(path: String, p: Array) -> void:
 		inst.set_meta("prompt", "Open " + GameData.CRATES[p[0]].label)
 		if not players.is_empty():
 			inst.set_meta("anim", players[0])     # the menu plays "open" and "close" on the lid
-		var holo := preload("res://scripts/world/crate_hologram.gd").new()   # "Daily Crate" and the player's keys over it
+		var holo := preload("res://scripts/world/crate_hologram.gd").new()   # the crate's name and the player's keys over it
 		holo.crate = p[0]
 		inst.add_child(holo)
 	if not players.is_empty():

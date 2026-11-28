@@ -97,6 +97,9 @@ func _ready() -> void:
 	var crate_menu: CanvasLayer = preload("res://ui/crate_menu.gd").new()   # a crate chest: E at the chest (J00BA, 2026-11-21)
 	crate_menu.name = "crate_menu"
 	add_child(crate_menu)
+	var quest_menu: CanvasLayer = preload("res://ui/quest_menu.gd").new()   # the princess's quests: E at her (J00BA, 2026-11-28)
+	quest_menu.name = "quest_menu"
+	add_child(quest_menu)
 	var start: String = args.get("world", "hub")
 	busy = true
 	player.frozen = true
@@ -213,6 +216,14 @@ func _ready() -> void:
 				if args.has("crate_spin"):
 					Inventory.test_add_keys(String(best.get_meta("crate")))
 					crate_menu.call("_spin"))
+	if args.has("quests_open"):                            # testing: --quests_open=4 (seconds) opens the princess's quests
+		get_tree().create_timer(float(args["quests_open"])).timeout.connect(func():   # --quest_test=<id> gives its items and hands it in
+			if args.has("quest_test"):
+				var q := GameData.quest(String(args["quest_test"]))
+				for item in q.needs:
+					Inventory.add(item, int(q.needs[item]))
+				print("QUEST hand in: ", Inventory.hand_in(q.id), " keys ", Inventory.count(String(q.reward.get("key", ""))), " coins ", Inventory.coins)
+			quest_menu.call("open", "quests"))
 	if args.has("inventory_open"):                         # testing: open the inventory (with --shot)
 		inventory_ui.visible = true
 	if args.has("skill_tree"):                             # testing: open the Profile menu and that skill's tree popup

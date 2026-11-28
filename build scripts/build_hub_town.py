@@ -47,7 +47,7 @@ for n in ("workshop_shelter_timber", "workshop_shelter_forge", "workshop_shelter
           "sign_smelter", "sign_blacksmith", "sign_carpenter", "sign_sawyer", "sign_tanner", "sign_herbalist", "sign_brewer"):
     MODELS[n] = (f"res://assets/models/props/workshop/{n}.glb", f"assets/models/props/workshop/{n}.bbmodel", 1.0)
 
-for n in ("rare_chest", "legendary_chest"):
+for n in ("rare_chest", "legendary_chest", "epic_chest", "mythic_chest"):
     MODELS[n] = (f"res://assets/models/props/chests/{n}.glb", f"assets/models/props/chests/{n}.bbmodel", 1.0)
 MODELS["rose"] = ("res://assets/models/foliage/rose_flower.glb", "assets/models/foliage/rose_flower.bbmodel", 1.0)
 MODELS["wizard_tower"] = ("res://assets/models/buildings/wizard_tower.glb", "assets/models/buildings/wizard_tower.bbmodel", 1.5)
@@ -553,7 +553,11 @@ for sx in (-1, 1):
 # stays on the cobbles (they end at x -17), lock facing south to it. Both 4 m from the walk's centre line, so the walk stays clear. The hub is flat: y = 0.
 PATH_Z = -45.0
 place("rare_chest", -14.5, PATH_Z + 4.5, -90)
-place("legendary_chest", -14.5, PATH_Z - 2.2, -90)   # J00BA: in line with the brown chest (same x), same way; just clear of the urn at z -48.5
+place("legendary_chest", -14.5, PATH_Z - 1.5, -90)   # J00BA 2026-11-28: same x and way as the brown chest, 2 m from the urn at z -48.5 (as the brown one is from its lamp)
+# J00BA 2026-11-28: the blue (epic) and red (mythic) tier chests mirror them on the east side of the castle, by the
+# east plaza lamp (14.5, -38.5) and urn (14.5, -48.5), lock facing west towards the forecourt.
+place("epic_chest", 14.5, PATH_Z + 4.5, 90)
+place("mythic_chest", 14.5, PATH_Z - 1.5, 90)
 # ================================================================ 8. residential lanes (south)
 L1 = (20.0, 26.0)     # Rose Lane
 L2 = (42.0, 48.0)     # Orchard Lane

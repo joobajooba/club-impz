@@ -1,11 +1,11 @@
 {
- "_doc": "The Imp NPCs in the hub (J00BA, 2026-11-14; inside their stalls and the merchant Imp 2026-11-15). Either spot + offset + turn: spot = a name in hub_town.json npc_spots, offset = metres in the spot's own frame (x right, z back), turn = extra yaw in degrees (the Imp NPCs face +z in Blockbench). Or pos [x, z] + yaw (world degrees, 0 = facing +z) to stand inside a stall; spot then only names the store. lift = metres above the ground (the market stalls' decks and plinths are 0.125). scale: Imp-body files are about 101 units = 1.15 m. Placed by scripts/world/hub_town.gd.",
+ "_doc": "The Imp NPCs in the hub (J00BA, 2026-11-14; inside their stalls and the merchant Imp 2026-11-15). Either spot + offset + turn: spot = a name in hub_town.json npc_spots, offset = metres in the spot's own frame (x right, z back), turn = extra yaw in degrees (the Imp NPCs face +z in Blockbench). Or pos [x, z] + yaw (world degrees, 0 = facing +z) to stand inside a stall; spot then only names the store. lift = metres above the ground (the market stalls' decks and plinths are 0.125). scale: Imp-body files are about 101 units = 1.15 m. menu (+ label, verb) = E at the NPC opens the menu of that kind (shop_keeper.gd), e.g. the princess's quests. Placed by scripts/world/hub_town.gd.",
  "npcs": [
   {"spot": "crafter_brewer", "model": "res://assets/models/npcs/potion_seller_imp_npc.glb", "scale": 0.1822, "pos": [-36.6, -5.3], "yaw": 155},
   {"spot": "vendor_merchant", "model": "res://assets/models/npcs/merchant_imp_npc.glb", "scale": 0.1822, "pos": [62.56, -15.875], "yaw": -90, "lift": 0.325},
   {"spot": "crafter_sawyer", "model": "res://assets/models/npcs/lumberjack_imp_npc.glb", "scale": 0.1822, "pos": [-34.55, -26.5], "yaw": -25},
   {"spot": "crafter_smelter", "model": "res://assets/models/npcs/miner_imp_npc.glb", "scale": 0.1822, "pos": [-58.5, -26.4], "yaw": -25},
-  {"spot": "castle_herald", "model": "res://assets/models/npcs/princess_imp_npc.glb", "scale": 0.1822, "pos": [0.0, -48.6], "yaw": 0},
+  {"spot": "castle_herald", "model": "res://assets/models/npcs/princess_imp_npc.glb", "scale": 0.1822, "pos": [0.0, -48.6], "yaw": 0, "menu": "quests", "label": "Princess", "verb": "Talk"},
   {"spot": "castle_herald", "model": "res://assets/models/npcs/jester_imp_npc.glb", "scale": 0.1822, "pos": [-1.9, -48.2], "yaw": 12}
  ]
 }

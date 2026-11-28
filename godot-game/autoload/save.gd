@@ -44,6 +44,7 @@ func state() -> Dictionary:
 			items = Inventory.items, owned = Inventory.owned, held = Inventory.held,
 			in_hand = Inventory.in_hand, coins = Inventory.coins, extra_rows = Inventory.extra_rows,
 			refill_period = Inventory.refill_period, sockets = Inventory.sockets, unfolded = Inventory.unfolded,
+			quests_done = Inventory.quests_done,
 		},
 		stable = {
 			animals = Stable.animals, follower = Stable.follower, team = Stable.team,
@@ -126,6 +127,12 @@ func _apply_inventory(inv: Dictionary) -> void:
 	Inventory.coins = maxi(0, int(inv.get("coins", 0)))
 	Inventory.extra_rows = clampi(int(inv.get("extra_rows", 0)), 0, GameData.EXTRA_ROWS_MAX)
 	Inventory.refill_period = int(inv.get("refill_period", -1))
+	Inventory.quests_done = {}
+	var done = inv.get("quests_done", {})
+	if done is Dictionary:
+		for id in done:
+			if GameData.quest(str(id)) != {}:
+				Inventory.quests_done[str(id)] = int(done[id])
 
 
 func _apply_stable(st: Dictionary) -> void:
