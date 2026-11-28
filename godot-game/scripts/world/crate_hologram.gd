@@ -1,7 +1,7 @@
 extends Node3D
 ## The hologram over a crate chest in the hub (J00BA, 2026-11-21): the crate's name ("Daily Crate") in gold and,
 ## under it, how many of its keys this player owns. Facing the camera, bobbing gently. hub_town.gd puts one on
-## each chest in GameData.CRATES. With no crate it shows `title` in `color` and the count of `key` (hub_town.gd CHEST_TITLES).
+## each chest in GameData.CRATES. The title is in the crate's own colour (gold, green, blue, red).
 
 const TOP := 2.0                 # metres over the chest's base
 const BOB := 0.06
@@ -19,6 +19,7 @@ func _ready() -> void:
 	if crate != "":
 		title = GameData.CRATES[crate].label
 		key = GameData.CRATES[crate].key
+		color = GameData.CRATES[crate].get("color", color)
 	_title = _label(title, color, 48, 0.0)
 	_keys = _label("", Color("#e8f4ff"), 30, -0.4)
 	Inventory.changed.connect(_update)

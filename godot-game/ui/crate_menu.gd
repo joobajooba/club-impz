@@ -78,10 +78,12 @@ func _render() -> void:
 	var why := Inventory.crate_blocker(crate)
 	top.add_child(UIKit.button("  Open  (1 key)  ", why == "" and not _spinning, _spin))
 	if why != "" and not _spinning:
-		_note(why + ". Keys open this chest for free.")
+		_note(why + ". Keys open this chest for free." + ("" if crate == "rare_chest" else " The princess gives them for quests."))
 	_heading("Contents")
-	var grid := HBoxContainer.new()                  # one card per drop, like a CS:GO case's contents
-	grid.add_theme_constant_override("separation", 8)
+	var grid := GridContainer.new()                  # one card per drop, like a CS:GO case's contents: 8 in two rows of 4
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	_list.add_child(grid)
 	for d in c.drops:
 		var rar: Array = GameData.CRATE_RARITY[d.rarity]
@@ -228,7 +230,7 @@ func _build() -> void:
 	_result = UIKit.label("", UIKit.MUTED, 18)
 	_result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	holder.add_child(_result)
-	(vbox.get_child(vbox.get_child_count() - 1) as Control).custom_minimum_size = Vector2(0, 250)   # the list's scroll
+	(vbox.get_child(vbox.get_child_count() - 1) as Control).custom_minimum_size = Vector2(0, 345)   # the list's scroll: the key row and both rows of 4 drops
 
 
 func _lid(anim: String) -> void:

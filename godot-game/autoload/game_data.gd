@@ -276,28 +276,58 @@ func _init() -> void:
 	_build_parts()
 	for c in CRATES.values():                    # each crate's key is an item (kept in the grid, not sold)
 		items[c.key] = {label = c.key_label, icon = c.key_icon, tier = 0, skill = "", kind = "key"}
-	for k in CHEST_KEYS:                         # keys of named chests that aren't crates yet (hub_town.gd CHEST_TITLES)
-		items[k] = {label = CHEST_KEYS[k].label, icon = CHEST_KEYS[k].icon, tier = 0, skill = "", kind = "key"}
 
 
 ## Crates (J00BA, 2026-11-21): a chest in the hub that opens with its own key, like a Minecraft server crate. E at the
 ## chest shows what's inside and the odds (ui/crate_menu.gd); Open spends one key and a CS:GO style reel lands on the
-## prize. Drops are TEST: five items with weights out of 100. rarity -> [label, colour] in CRATE_RARITY.
+## prize. Drops are TEST: eight items each with weights out of 100. rarity -> [label, colour] in CRATE_RARITY.
+## Every crate has 8 drops (J00BA, 2026-11-28), better each tier: Daily Crate < Tier 1 < Tier 2 < Tier 3. The tier
+## keys come from the princess's quests (QUESTS); Daily Crate Keys don't. color = the hologram's title.
 const CRATES := {
-	rare_chest = {label = "Daily Crate", key = "rare_key", key_label = "Daily Crate Key",
+	rare_chest = {label = "Daily Crate", key = "rare_key", key_label = "Daily Crate Key", color = Color("#ffc94a"),
 			key_icon = "res://sprites/items/key_rare.png", drops = [
-		{id = "iron_ingot", n = 5, weight = 45.0, rarity = "common"},
-		{id = "gold_ingot", n = 3, weight = 28.0, rarity = "uncommon"},
-		{id = "ruby", n = 1, weight = 15.0, rarity = "rare"},
-		{id = "golden_antler", n = 1, weight = 9.0, rarity = "epic"},
-		{id = "diamond", n = 1, weight = 3.0, rarity = "legendary"},
+		{id = "tin_ingot", n = 5, weight = 25.0, rarity = "common"},
+		{id = "copper_ingot", n = 5, weight = 22.0, rarity = "common"},
+		{id = "iron_ingot", n = 5, weight = 18.0, rarity = "common"},
+		{id = "coal_ore", n = 10, weight = 12.0, rarity = "uncommon"},
+		{id = "gold_ingot", n = 3, weight = 10.0, rarity = "uncommon"},
+		{id = "topaz", n = 1, weight = 7.0, rarity = "rare"},
+		{id = "ruby", n = 1, weight = 4.0, rarity = "epic"},
+		{id = "diamond", n = 1, weight = 2.0, rarity = "legendary"},
 	]},
-}
-## Keys for hub chests that aren't crates yet (J00BA, 2026-11-28): owned and counted, but they open nothing so far.
-const CHEST_KEYS := {
-	legendary_key = {label = "Tier 1 Chest Key", icon = "res://sprites/items/key_legendary.png"},
-	epic_key = {label = "Tier 2 Chest Key", icon = "res://sprites/items/key_epic.png"},
-	mythic_key = {label = "Tier 3 Chest Key", icon = "res://sprites/items/key_mythic.png"},
+	legendary_chest = {label = "Tier 1 Chest", key = "legendary_key", key_label = "Tier 1 Chest Key", color = Color("#5fd35a"),
+			key_icon = "res://sprites/items/key_legendary.png", drops = [
+		{id = "iron_ingot", n = 10, weight = 25.0, rarity = "common"},
+		{id = "gold_ingot", n = 5, weight = 20.0, rarity = "common"},
+		{id = "obsidian_ore", n = 8, weight = 16.0, rarity = "uncommon"},
+		{id = "sapphire", n = 2, weight = 13.0, rarity = "uncommon"},
+		{id = "emerald", n = 1, weight = 11.0, rarity = "rare"},
+		{id = "golden_antler", n = 1, weight = 8.0, rarity = "rare"},
+		{id = "titanite_ingot", n = 3, weight = 5.0, rarity = "epic"},
+		{id = "diamond", n = 1, weight = 2.0, rarity = "legendary"},
+	]},
+	epic_chest = {label = "Tier 2 Chest", key = "epic_key", key_label = "Tier 2 Chest Key", color = Color("#4b8dff"),
+			key_icon = "res://sprites/items/key_epic.png", drops = [
+		{id = "gold_ingot", n = 10, weight = 24.0, rarity = "common"},
+		{id = "obsidian_ingot", n = 5, weight = 20.0, rarity = "common"},
+		{id = "titanite_ingot", n = 5, weight = 16.0, rarity = "uncommon"},
+		{id = "emerald", n = 2, weight = 13.0, rarity = "uncommon"},
+		{id = "jade", n = 2, weight = 11.0, rarity = "rare"},
+		{id = "diamond", n = 1, weight = 8.0, rarity = "rare"},
+		{id = "dreadstone_ingot", n = 3, weight = 5.0, rarity = "epic"},
+		{id = "painite", n = 1, weight = 3.0, rarity = "legendary"},
+	]},
+	mythic_chest = {label = "Tier 3 Chest", key = "mythic_key", key_label = "Tier 3 Chest Key", color = Color("#ff5a4a"),
+			key_icon = "res://sprites/items/key_mythic.png", drops = [
+		{id = "titanite_ingot", n = 10, weight = 24.0, rarity = "common"},
+		{id = "dreadstone_ingot", n = 5, weight = 20.0, rarity = "common"},
+		{id = "diamond", n = 2, weight = 16.0, rarity = "uncommon"},
+		{id = "void_ingot", n = 5, weight = 13.0, rarity = "uncommon"},
+		{id = "painite", n = 1, weight = 11.0, rarity = "rare"},
+		{id = "stellarite_ingot", n = 3, weight = 8.0, rarity = "rare"},
+		{id = "arcanium", n = 1, weight = 5.0, rarity = "epic"},
+		{id = "eclipsium", n = 1, weight = 3.0, rarity = "legendary"},
+	]},
 }
 const CRATE_RARITY := {
 	common = ["Common", Color("#b0b3b8")], uncommon = ["Uncommon", Color("#5fd35a")], rare = ["Rare", Color("#4b8dff")],
@@ -306,13 +336,13 @@ const CRATE_RARITY := {
 
 
 ## The princess's quests (J00BA, 2026-11-28): E at the princess by the castle opens ui/quest_menu.gd. Each quest
-## asks for items handed in and pays coins or a chest key, once per reset (00:00 and 12:00 UTC, like energy).
+## asks for items handed in and pays coins or a Tier 1/2/3 Chest Key (never a Daily Crate Key, J00BA 2026-11-28), once per reset (00:00 and 12:00 UTC, like energy).
 ## TEST quests and numbers until the quest design is written. reward: {coins} or {key, n}.
 const QUESTS := [
 	{id = "royal_timber", label = "Royal Timber", text = "The castle's hearths are running cold. Bring me ash logs.",
 			needs = {ash_log = 10}, reward = {coins = 50}},
 	{id = "smiths_ore", label = "Ore for the Smiths", text = "The royal smiths need tin to mend the guards' helmets.",
-			needs = {tin_ore = 10}, reward = {key = "rare_key", n = 1}},
+			needs = {tin_ore = 10}, reward = {key = "legendary_key", n = 1}},
 	{id = "royal_supper", label = "A Royal Supper", text = "Fresh fish for tonight's feast, if you please!",
 			needs = {minnow = 5}, reward = {coins = 75}},
 	{id = "forge_supplies", label = "Forge Supplies", text = "Iron for the castle gates. Heavy work, handsomely paid.",
