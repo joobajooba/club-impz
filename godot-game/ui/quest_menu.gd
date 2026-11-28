@@ -66,8 +66,16 @@ func _card(q: Dictionary) -> void:
 	line.add_child(UIKit.label("Reward:", UIKit.MUTED, 13))
 	var r: Dictionary = q.reward
 	if r.has("coins"):
-		line.add_child(UIKit.pixel_icon(UIKit.COIN, UIKit.ENERGY))
 		line.add_child(UIKit.label("%d Imp Coins" % int(r.coins), UIKit.RARE, 14))
-	else:
-		line.add_child(UIKit.icon(GameData.item_icon(r.key), 24))
-		line.add_child(UIKit.label("%s x%d" % [GameData.item_label(r.key), int(r.get("n", 1))], UIKit.RARE, 14))
+	else:                                        # text only, in the key's chest colour: "Tier 1 Key" in green (J00BA, 2026-11-28)
+		var crate := _crate_of(r.key)
+		var n := int(r.get("n", 1))
+		var key_text: String = String(crate.label).replace(" Chest", "") + " Key" + ("" if n == 1 else " x%d" % n)
+		line.add_child(UIKit.label(key_text, crate.get("color", UIKit.RARE), 14))
+
+
+static func _crate_of(key: String) -> Dictionary:
+	for c in GameData.CRATES.values():
+		if c.key == key:
+			return c
+	return {label = GameData.item_label(key)}
