@@ -1,8 +1,8 @@
 """Giveaway poster: "Like and share this post for a chance to win an Imp", game coming December.
 
 Same look as first_release_poster.py (docs/posters.md): drawn on a 640 x 360 art canvas with the
-ui_kit.gd colours and gold bevelled frames, scaled x3 with nearest-neighbour to 1920 x 1080; text and
-the 3D Impz (tools/posters/render_impz.gd renders) are added at full resolution.
+ui_kit.gd colours and gold bevelled frames, scaled x3 with nearest-neighbour to 1920 x 1080; text is added at full resolution;
+the Impz are the collection's 2D pixel art (docs/imp-traits/bodies), keyed out and scaled x2 / x3.
 
     python tools/posters/giveaway_poster.py
 
@@ -323,9 +323,34 @@ text(LX + LW / 2, 92, "FOR A CHANCE TO", 14, KEY, shadow=1, anchor="mm", bold=Tr
 pill(LX + LW // 2 - pw // 2, 102, pw, 34, ENERGY, lip=3)
 text(LX + LW / 2, 102 + 15.5, win, 26, OUTLINE, shadow=0, anchor="mm")
 
-hero_slots = [(RENDERS / "gold_408.png", LX - 12, 186, 140),
-              (RENDERS / "diamond_158.png", LX + LW - 132, 186, 140),
-              (RENDERS / "cyan_111.png", LX + LW // 2 - 92, 160, 184)]
+def cut_out(path):
+    """Key out the collection's flat purple background by flood fill from the edges."""
+    im = Image.open(path).convert("RGBA")
+    p = im.load()
+    w, h = im.size
+
+    def is_bg(c):
+        k = c[2] / 105
+        return k > 0.45 and abs(c[0] - 88 * k) < 10 and abs(c[1] - 72 * k) < 10
+
+    seen = set()
+    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in seen or not (0 <= x < w and 0 <= y < h):
+            continue
+        seen.add((x, y))
+        if not is_bg(p[x, y]):
+            continue
+        p[x, y] = (0, 0, 0, 0)
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return im
+
+
+# the collection's own 2D pixel art, unchanged, keyed out of its purple background (x2 at the sides, x3 in front)
+paste(cut_out(BODIES / "body_gold_408.png"), LX + 2, 330 - 134, 2)
+paste(cut_out(BODIES / "body_diamond_158.png"), LX + LW - 130, 330 - 134, 2)
+paste(cut_out(BODIES / "body_cyan_111.png"), LX + LW // 2 - 96, 330 - 186, 3)
 
 
 # ---------------------------------------------------------------- right: how to enter
@@ -347,31 +372,28 @@ for n, (num, verb, rest, icon) in enumerate(STEPS):
     text(RX + 101, sy + 54, rest, 15, MUTED, shadow=1, anchor="lm", bold=True, sans=True)
 
 
-# ---------------------------------------------------------------- right: the game
+# ---------------------------------------------------------------- right: the prizes
 
 GY, GH = 236, 112
 panel(RX, GY, RW, GH)
-gold_tab(RX + 12, GY - 8, "THE GAME", 16)
-cd = "COMING DECEMBER!"
-cw = round(text_w(cd, 22)) + 28
-pill(RX + RW // 2 - cw // 2, GY + 16, cw, 30, ENERGY, lip=3)
-text(RX + RW / 2, GY + 16 + 13.5, cd, 22, OUTLINE, shadow=0, anchor="mm")
-ICONS = [PICKAXES / "iron_pickaxe.png", ITEMS / "tool_iron_axe.png", ITEMS / "tool_oak_rod.png",
-         ITEMS / "gemstone_diamond.png", ITEMS / "prestige_0.png"]
-iw = 52
-ix0 = RX + (RW - (len(ICONS) * iw + (len(ICONS) - 1) * 6)) // 2
-for n, f in enumerate(ICONS):
-    slot(ix0 + n * (iw + 6), GY + 54, iw, iw)
-    paste(Image.open(f).convert("RGBA"), ix0 + n * (iw + 6) + 2, GY + 56)
+gold_tab(RX + 12, GY - 8, "PRIZES", 16)
+n3 = "3 IMPZ"
+grabs = "UP FOR GRABS!"
+w3 = text_w(n3, 34)
+gw = round(text_w(grabs, 17)) + 20
+row_w = w3 + 10 + gw
+x3 = RX + (RW - row_w) / 2
+text(x3, GY + 36, n3, 34, RARE, shadow=2, anchor="lm", stroke=3)
+pill(round(x3 + w3 + 10), GY + 24, gw, 25, ENERGY, lip=3)
+text(x3 + w3 + 10 + gw / 2, GY + 24 + 11, grabs, 17, OUTLINE, shadow=0, anchor="mm")
+text(RX + RW / 2, GY + 74, "TO USE IN OUR UPCOMING GAME!", 16, KEY, shadow=2, anchor="mm", stroke=2)
+text(RX + RW / 2, GY + 95, "GAME COMING DECEMBER", 12, MUTED, shadow=1, anchor="mm", bold=True, sans=True)
 
 
 # ---------------------------------------------------------------- save
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 big = img.convert("RGB").resize((W * SCALE, H * SCALE), Image.NEAREST)
-for f, x, y, size in hero_slots:
-    r = Image.open(f).convert("RGBA").resize((size * SCALE, size * SCALE), Image.LANCZOS)
-    big.paste(r, (x * SCALE, y * SCALE), r)
 draw_texts(big)
 tmp = OUT.with_name(OUT.stem + ".tmp.png")
 big.save(tmp)
