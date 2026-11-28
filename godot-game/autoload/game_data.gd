@@ -276,6 +276,8 @@ func _init() -> void:
 	_build_parts()
 	for c in CRATES.values():                    # each crate's key is an item (kept in the grid, not sold)
 		items[c.key] = {label = c.key_label, icon = c.key_icon, tier = 0, skill = "", kind = "key"}
+	for k in CHEST_KEYS:                         # keys of named chests that aren't crates yet (hub_town.gd CHEST_TITLES)
+		items[k] = {label = CHEST_KEYS[k].label, icon = CHEST_KEYS[k].icon, tier = 0, skill = "", kind = "key"}
 
 
 ## Crates (J00BA, 2026-11-21): a chest in the hub that opens with its own key, like a Minecraft server crate. E at the
@@ -290,6 +292,10 @@ const CRATES := {
 		{id = "golden_antler", n = 1, weight = 9.0, rarity = "epic"},
 		{id = "diamond", n = 1, weight = 3.0, rarity = "legendary"},
 	]},
+}
+## Keys for hub chests that aren't crates yet (J00BA, 2026-11-28): owned and counted, but they open nothing so far.
+const CHEST_KEYS := {
+	legendary_key = {label = "Tier 1 Chest Key", icon = "res://sprites/items/key_legendary.png"},
 }
 const CRATE_RARITY := {
 	common = ["Common", Color("#b0b3b8")], uncommon = ["Uncommon", Color("#5fd35a")], rare = ["Rare", Color("#4b8dff")],
