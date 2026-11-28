@@ -209,7 +209,7 @@ func gather_blocker(skill: String, row: Dictionary) -> String:
 	var kind: String = GameData.SKILLS[skill].tool
 	if held_tool(kind).reach < row.tier:
 		var best = _best_owned(kind, row.tier)
-		return ("Switch to your " + best.label) if best else ("Needs a " + GameData.tool_for_tier(kind, row.tier).label)
+		return ("Switch to your " + best.label) if best else ("Needs " + GameData.a_an(GameData.tool_for_tier(kind, row.tier).label))
 	if energy < GameData.GATHER_ENERGY:
 		return "Not enough energy"
 	if not has_room(row.raw):

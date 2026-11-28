@@ -46,7 +46,7 @@ func tracker_tier() -> int:
 
 func tame_blocker(r: Dictionary) -> String:
 	if Inventory.count(r.tame_with) < 1:
-		return "Needs a " + GameData.item_label(r.tame_with) + " to tame"
+		return "Needs " + GameData.a_an(GameData.item_label(r.tame_with)) + " to tame"
 	if animals.size() >= slots():
 		return "Stable full"
 	return ""

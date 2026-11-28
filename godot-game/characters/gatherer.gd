@@ -169,7 +169,7 @@ func _owned_reach(target: GatherNode) -> bool:
 
 
 func _needs(target: GatherNode) -> String:
-	return "Needs a " + GameData.tool_for_tier(GameData.SKILLS[target.skill].tool, target.row.tier).label
+	return "Needs " + GameData.a_an(GameData.tool_for_tier(GameData.SKILLS[target.skill].tool, target.row.tier).label)
 
 
 func _interact() -> void:
