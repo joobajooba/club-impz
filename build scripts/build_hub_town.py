@@ -553,7 +553,7 @@ for sx in (-1, 1):
 # stays on the cobbles (they end at x -17), lock facing south to it. Both 4 m from the walk's centre line, so the walk stays clear. The hub is flat: y = 0.
 PATH_Z = -45.0
 place("rare_chest", -14.5, PATH_Z + 4.5, -90)
-place("legendary_chest", -14.5, PATH_Z - 2.2, -90)   # J00BA: in line with the brown chest (same x), same way; just clear of the urn at z -48.5
+place("legendary_chest", -14.5, PATH_Z - 1.5, -90)   # J00BA 2026-11-28: same x and way as the brown chest, 2 m from the urn at z -48.5 (as the brown one is from its lamp)
 # ================================================================ 8. residential lanes (south)
 L1 = (20.0, 26.0)     # Rose Lane
 L2 = (42.0, 48.0)     # Orchard Lane

@@ -29,6 +29,7 @@ const LIGHT_COLOR := Color("#ffc878")
 const LIGHT_FADE_BEGIN := 38.0   # lights further than this from the camera fade out (Compatibility renderer budget)
 const ARCANE_COLOR := Color("#b48cff")   # the wizard's garden: violet light from the arcane lamps and the rune circle
 const ARCANE := ["arcane_lamp", "arcane_circle"]
+const CHEST_TITLES := {"legendary_chest": ["Tier 1 Chest", Color("#5fd35a")]}   # hologram name over a chest that isn't a crate (J00BA, 2026-11-28)
 
 var world: GameWorld
 var glow_mats: Array[StandardMaterial3D] = []
@@ -332,6 +333,11 @@ func _place_animated(path: String, p: Array) -> void:
 			inst.set_meta("anim", players[0])     # the menu plays "open" and "close" on the lid
 		var holo := preload("res://scripts/world/crate_hologram.gd").new()   # "Daily Crate" and the player's keys over it
 		holo.crate = p[0]
+		inst.add_child(holo)
+	elif CHEST_TITLES.has(p[0]):                 # a named chest: just its title, styled like the crate's
+		var holo := preload("res://scripts/world/crate_hologram.gd").new()
+		holo.title = CHEST_TITLES[p[0]][0]
+		holo.color = CHEST_TITLES[p[0]][1]
 		inst.add_child(holo)
 	if not players.is_empty():
 		var ap := players[0] as AnimationPlayer
