@@ -20,8 +20,8 @@ extends CharacterBody3D
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var cam_yaw := 0.0
-var cam_pitch := -0.32
-var target_zoom := 7.5
+var cam_pitch := -0.5               # looking down a little more, so a vein or tree in front isn't hidden behind the Imp
+var target_zoom := 6.5
 var frozen := false
 var fast_sprint := false
 var chopper: Node                 # scripts/player/tree_chopper.gd: chopping trees with the axe

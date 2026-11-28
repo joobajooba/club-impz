@@ -111,7 +111,7 @@ static func blocker(tree: String, axe_id: String) -> String:
 	if axe_index(axe_id) >= min_axe_index(tree):
 		return ""
 	var need: Dictionary = GameData.tools_of["axe"][min_axe_index(tree)]
-	return "Needs a " + need.label
+	return "Needs " + GameData.a_an(need.label)
 
 
 ## Seconds to chop this tree with this axe: the doc's time, 5% less per axe tier above the minimum.

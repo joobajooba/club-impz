@@ -560,6 +560,11 @@ func part_cost(id: String) -> Dictionary:
 
 # --- lookups ----------------------------------------------------------------------
 
+## "a Bronze pickaxe" / "an Iron pickaxe".
+static func a_an(label: String) -> String:
+	return ("an " if label.length() > 0 and "AEIOUaeiou".contains(label[0]) else "a ") + label
+
+
 func item_label(id: String) -> String:
 	return items[id].label if items.has(id) else (tools[id].label if tools.has(id) else id)
 

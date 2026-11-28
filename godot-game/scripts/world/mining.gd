@@ -44,7 +44,7 @@ static func min_index(ore: String) -> int:
 ## Why this pickaxe can't mine the ore ("Needs a Bronze pickaxe", "Inventory full"), or "".
 static func blocker(ore: String, pick_id: String) -> String:
 	if pick_index(pick_id) < min_index(ore):
-		return "Needs a " + GameData.tools_of["pickaxe"][min_index(ore)].label
+		return "Needs " + GameData.a_an(GameData.tools_of["pickaxe"][min_index(ore)].label)
 	if not Inventory.has_room(ORES[ore].item):
 		return "Inventory full"
 	return ""

@@ -4,7 +4,8 @@ extends CanvasLayer
 ##                 Enter starts typing (the Imp stands still meanwhile), Enter sends, Esc stops. At most 200
 ##                 characters; ChatFilter refuses slurs and abuse and stars out swearing (the server checks again).
 ##   World events  the comms: ore events starting and running out (OreEvents), and anything sent to event().
-## The × button closes the box; the Chat button on the right edge opens it again and counts what came in meanwhile.
+## The box starts closed. The Chat button on the right edge (or Enter) opens it and counts what came in meanwhile;
+## the × button closes it again.
 
 const NAME_COLOR := Color("#ff4a4a")
 const TEXT_COLOR := Color.WHITE
@@ -321,5 +322,6 @@ func _build() -> void:
 	_open_button.offset_top = -54
 	_open_button.offset_bottom = -16
 	_open_button.tooltip_text = "Open chat"
-	_open_button.visible = false
 	root.add_child(_open_button)
+	_panel.visible = false          # starts closed so the world is clear; Enter or the Chat button opens it
+	_open_button.visible = true
