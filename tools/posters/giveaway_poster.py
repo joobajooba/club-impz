@@ -312,6 +312,32 @@ SHARE = pix([          # two arrows chasing each other round a loop: the plain "
 ], {"G": GOOD}, scale=3)
 
 
+def comment_icon():
+    """A speech bubble with "0x..." in it: comment your wallet address."""
+    w, h = 17, 15
+    rows = [["." for _ in range(w)] for _ in range(h)]
+    for y in range(0, 11):                      # the bubble, rounded corners
+        for x in range(w):
+            corner = (x in (0, w - 1)) and y in (0, 10)
+            if corner:
+                continue
+            edge = y in (0, 10) or x in (0, w - 1)
+            rows[y][x] = "k" if edge else "W"
+    rows[10][4] = rows[10][5] = "W"             # the tail: open at the bubble's bottom, pointing down-left
+    for x, y, c in ((3, 11, "k"), (4, 11, "W"), (5, 11, "W"), (6, 11, "k"), (3, 12, "k"), (4, 12, "W"), (5, 12, "k"),
+                    (3, 13, "k"), (4, 13, "k")):
+        rows[y][x] = c
+    zero = [(3, 3), (4, 3), (5, 3), (3, 4), (5, 4), (3, 5), (5, 5), (3, 6), (5, 6), (3, 7), (4, 7), (5, 7)]
+    ex = [(7, 5), (9, 5), (8, 6), (7, 7), (9, 7)]
+    dots = [(11, 7), (13, 7)]
+    for x, y in zero + ex + dots:
+        rows[y][x] = "b"
+    return pix(["".join(r) for r in rows], {"W": KEY, "b": hexc("#3b5bd6")}, scale=3)
+
+
+COMMENT = comment_icon()
+
+
 # ---------------------------------------------------------------- left: title and the prize
 
 LX, LW = 8, 300
@@ -361,25 +387,26 @@ paste(cut_out(mayc64), LX + LW // 2 - 96, 330 - 186, 3)
 # ---------------------------------------------------------------- right: how to enter
 
 RX, RW = 326, 306
-RY, RH = 18, 196
+RY, RH = 16, 222
 panel(RX, RY, RW, RH)
 gold_tab(RX + 12, RY - 8, "HOW TO ENTER", 16)
 
-STEPS = [("1", "LIKE", "THIS POST", HEART), ("2", "SHARE", "THIS POST", SHARE)]
+STEPS = [("1", "LIKE", "THIS POST", HEART), ("2", "SHARE", "THIS POST", SHARE),
+         ("3", "COMMENT", "YOUR PUBLIC WALLET ADDRESS", COMMENT)]
 for n, (num, verb, rest, icon) in enumerate(STEPS):
-    sy = RY + 22 + n * 84
-    slot(RX + 14, sy, 72, 72)
-    paste(icon, RX + 14 + (72 - icon.width) // 2, sy + (72 - icon.height) // 2)
+    sy = RY + 18 + n * 66
+    slot(RX + 14, sy, 60, 60)
+    paste(icon, RX + 14 + (60 - icon.width) // 2, sy + (60 - icon.height) // 2)
     # the step number on a small gold pill over the slot's corner
     pill(RX + 8, sy - 4, 20, 18, RARE, lip=2)
     text(RX + 18, sy + 3.5, num, 13, OUTLINE, shadow=0, anchor="mm")
-    text(RX + 100, sy + 27, verb, 46, KEY, shadow=2, anchor="lm", stroke=3)
-    text(RX + 101, sy + 54, rest, 15, MUTED, shadow=1, anchor="lm", bold=True, sans=True)
+    text(RX + 88, sy + 22, verb, 36, KEY, shadow=2, anchor="lm", stroke=3)
+    text(RX + 89, sy + 46, rest, 11.5 if len(rest) > 12 else 13, MUTED, shadow=1, anchor="lm", bold=True, sans=True)
 
 
 # ---------------------------------------------------------------- right: the prizes
 
-GY, GH = 236, 112
+GY, GH = 254, 98
 panel(RX, GY, RW, GH)
 gold_tab(RX + 12, GY - 8, "PRIZES", 16)
 n3 = "3 IMPZ"
@@ -388,11 +415,11 @@ w3 = text_w(n3, 34)
 gw = round(text_w(grabs, 17)) + 20
 row_w = w3 + 10 + gw
 x3 = RX + (RW - row_w) / 2
-text(x3, GY + 36, n3, 34, RARE, shadow=2, anchor="lm", stroke=3)
-pill(round(x3 + w3 + 10), GY + 24, gw, 25, ENERGY, lip=3)
-text(x3 + w3 + 10 + gw / 2, GY + 24 + 11, grabs, 17, OUTLINE, shadow=0, anchor="mm")
-text(RX + RW / 2, GY + 74, "TO USE IN OUR UPCOMING GAME!", 16, KEY, shadow=2, anchor="mm", stroke=2)
-text(RX + RW / 2, GY + 95, "GAME COMING DECEMBER", 12, MUTED, shadow=1, anchor="mm", bold=True, sans=True)
+text(x3, GY + 31, n3, 34, RARE, shadow=2, anchor="lm", stroke=3)
+pill(round(x3 + w3 + 10), GY + 19, gw, 25, ENERGY, lip=3)
+text(x3 + w3 + 10 + gw / 2, GY + 19 + 11, grabs, 17, OUTLINE, shadow=0, anchor="mm")
+text(RX + RW / 2, GY + 63, "TO USE IN OUR UPCOMING GAME!", 16, KEY, shadow=2, anchor="mm", stroke=2)
+text(RX + RW / 2, GY + 82, "GAME COMING DECEMBER", 12, MUTED, shadow=1, anchor="mm", bold=True, sans=True)
 
 
 # ---------------------------------------------------------------- save
