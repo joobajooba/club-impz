@@ -350,7 +350,12 @@ def cut_out(path):
 # the collection's own 2D pixel art, unchanged, keyed out of its purple background (x2 at the sides, x3 in front)
 paste(cut_out(BODIES / "body_gold_408.png"), LX + 2, 330 - 134, 2)
 paste(cut_out(BODIES / "body_diamond_158.png"), LX + LW - 130, 330 - 134, 2)
-paste(cut_out(BODIES / "body_cyan_111.png"), LX + LW // 2 - 96, 330 - 186, 3)
+# front: Imp #1885 in the MAYC Brim (J00BA, 2026-11-28). The collection picture is 640 x 640 (10x the 64 x 64 art), so
+# it is brought back to its 64 x 64 pixels before the x3, the same art as the docs/imp-traits/bodies files.
+MAYC = ROOT / "godot-game/assets/sprites/implingz_generations/1885.png"
+mayc64 = ROOT / "docs/images/posters/giveaway_imp_1885.png"
+Image.open(MAYC).convert("RGBA").resize((64, 64), Image.NEAREST).save(mayc64)
+paste(cut_out(mayc64), LX + LW // 2 - 96, 330 - 186, 3)
 
 
 # ---------------------------------------------------------------- right: how to enter
